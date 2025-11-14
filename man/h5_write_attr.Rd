@@ -20,7 +20,8 @@ h5_write_attr(
 
 \item{attribute}{The name of the attribute to create.}
 
-\item{data}{The R object to write.}
+\item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
+\code{logical}, \code{character}, \code{raw}.}
 
 \item{dtype}{The target HDF5 data type. Defaults to \code{typeof(data)}.}
 
@@ -37,8 +38,8 @@ file <- tempfile(fileext = ".h5")
 h5_write(file, "my_dataset", 1:10)
 
 # Write scalar attributes
-h5_write_attr(file, "my_dataset", "version", "1.0")
-h5_write_attr(file, "my_dataset", "timestamp", 123456, dtype = "integer")
+h5_write_attr(file, "my_dataset", "version", "1.0", dims = NULL)
+h5_write_attr(file, "my_dataset", "timestamp", 123456, dtype = "integer", dims = NULL)
 
 # Write vector attributes
 h5_write_attr(file, "my_dataset", "range", c(0, 100))

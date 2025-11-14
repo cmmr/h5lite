@@ -4,7 +4,14 @@
 \alias{h5_write}
 \title{Write a Dataset to HDF5}
 \usage{
-h5_write(file, name, data, dtype = typeof(data), dims = length(data))
+h5_write(
+  file,
+  name,
+  data,
+  dtype = typeof(data),
+  dims = length(data),
+  compress = TRUE
+)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
@@ -12,13 +19,17 @@ h5_write(file, name, data, dtype = typeof(data), dims = length(data))
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
-\code{logical}, \code{character}.}
+\code{logical}, \code{character}, \code{raw}.}
 
 \item{dtype}{The target HDF5 data type. Defaults to \code{typeof(data)}.
-Options: "double", "integer", "logical", "character".}
+Options: "double", "integer", "logical", "character", "opaque", "float", etc.}
 
 \item{dims}{An integer vector specifying dimensions, or \code{NULL} for a scalar.
 Defaults to \code{dim(data)} if it exists, or \code{length(data)} otherwise.}
+
+\item{compress}{A logical or an integer from 0-9. If \code{TRUE} (default),
+compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
+An integer \code{1-9} specifies the zlib compression level directly.}
 }
 \description{
 Writes an R object to an HDF5 file as a dataset. The file is created if
@@ -30,15 +41,22 @@ file <- tempfile(fileext = ".h5")
 # 1. Write a vector as a double
 h5_write(file, "vec_double", c(1.5, 2.5, 3.5))
 
-# 2. Write integers, enforcing integer storage on disk
+# 2. Write integers with compression
+h5_write(file, "vec_int_compressed", 1:1000, dtype = "integer", compress = TRUE)
+
+# 3. Write integers, enforcing integer storage on disk (uncompressed)
 h5_write(file, "vec_int", 1:10, dtype = "integer")
 
-# 3. Write a 3D array
+# 4. Write a 3D array (uncompressed)
 arr <- array(1:24, dim = c(2, 3, 4))
 h5_write(file, "3d_array", arr)
 
-# Verify dimensions
-dim(h5_read(file, "3d_array"))
+# 5. Write a raw vector (as 1-byte OPAQUE)
+h5_write(file, "raw_data", as.raw(c(0x01, 0xFF, 0x10)), dtype = "opaque")
+
+# Verify types
+h5_ls(file, recursive = TRUE)
+h5_typeof(file, "raw_data") # "OPAQUE"
 
 unlink(file)
 }

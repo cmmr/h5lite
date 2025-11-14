@@ -13,6 +13,9 @@ h5_dim_attr(file, name, attribute)
 
 \item{attribute}{Name of the attribute.}
 }
+\value{
+Integer vector of dimensions, or \code{integer(0)} for scalars.
+}
 \description{
 Returns the dimensions of an attribute.
 }

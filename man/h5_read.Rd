@@ -12,11 +12,18 @@ h5_read(file, name)
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 }
 \value{
-A \code{numeric} or \code{character} vector/array.
+A \code{numeric}, \code{character}, or \code{raw} vector/array.
 }
 \description{
 Reads a dataset from an HDF5 file and returns it as an R object.
-Numeric datasets are read as doubles to prevent integer overflow.
+}
+\details{
+\itemize{
+\item Numeric datasets are read as \code{numeric} (double) to prevent overflow.
+\item String datasets are read as \code{character}.
+\item 1-byte \code{OPAQUE} datasets are read as \code{raw}.
+}
+
 Dimensions are preserved and transposed to match R's column-major order.
 }
 \examples{

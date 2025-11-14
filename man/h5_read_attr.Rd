@@ -14,10 +14,17 @@ h5_read_attr(file, name, attribute)
 \item{attribute}{Name of the attribute to read.}
 }
 \value{
-A \code{numeric} or \code{character} vector/array.
+A \code{numeric}, \code{character}, or \code{raw} vector/array.
 }
 \description{
 Reads an attribute associated with an HDF5 object (dataset or group).
+}
+\details{
+\itemize{
+\item Numeric attributes are read as \code{numeric} (double).
+\item String attributes are read as \code{character}.
+\item 1-byte \code{OPAQUE} attributes are read as \code{raw}.
+}
 }
 \examples{
 file <- tempfile(fileext = ".h5")
@@ -26,7 +33,7 @@ file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1:5)
 
 # Attach an attribute
-h5_write_attr(file, "data", "unit", "meters")
+h5_write_attr(file, "data", "unit", "meters", dims = NULL)
 
 # Read the attribute
 unit <- h5_read_attr(file, "data", "unit")

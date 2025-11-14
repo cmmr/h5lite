@@ -12,10 +12,10 @@ h5_typeof(file, name)
 \item{name}{Name of the dataset.}
 }
 \value{
-A string representing the HDF5 class.
+A string representing the HDF5 storage type.
 }
 \description{
-Returns the low-level HDF5 class of a dataset (e.g., "integer", "double", "character").
+Returns the low-level HDF5 storage type of a dataset (e.g., "INT", "FLOAT", "STRING").
 This allows inspecting the file storage type before reading the data into R.
 }
 \examples{
@@ -27,8 +27,8 @@ h5_write(file, "integers", 1:5, dtype = "integer")
 h5_write(file, "doubles", c(1.1, 2.2))
 
 # Check types
-h5_typeof(file, "integers") # "integer"
-h5_typeof(file, "doubles")  # "double"
+h5_typeof(file, "integers") # "INT"
+h5_typeof(file, "doubles")  # "DOUBLE"
 
 unlink(file)
 }

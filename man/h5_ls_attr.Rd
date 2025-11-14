@@ -22,8 +22,8 @@ Lists the names of attributes attached to a specific HDF5 object.
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
-h5_write_attr(file, "data", "a1", 1)
-h5_write_attr(file, "data", "a2", 2)
+h5_write_attr(file, "data", "a1", 1, dims = NULL)
+h5_write_attr(file, "data", "a2", 2, dims = NULL)
 
 h5_ls_attr(file, "data")
 unlink(file)

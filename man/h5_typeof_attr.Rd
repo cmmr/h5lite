@@ -13,15 +13,18 @@ h5_typeof_attr(file, name, attribute)
 
 \item{attribute}{Name of the attribute.}
 }
+\value{
+A string representing the HDF5 storage type.
+}
 \description{
-Returns the low-level HDF5 class of an attribute.
+Returns the low-level HDF5 storage type of an attribute.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
-h5_write_attr(file, "data", "meta", "info")
-h5_typeof_attr(file, "data", "meta") # "character"
+h5_write_attr(file, "data", "meta", "info", dims = NULL)
+h5_typeof_attr(file, "data", "meta") # "STRING"
 
 unlink(file)
 }
