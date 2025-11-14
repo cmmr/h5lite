@@ -39,6 +39,12 @@ jobs:
             github::cmmr/hdf5lib
           needs: website
 
+      - name: DEBUG - List hdf5lib installation contents
+        run: |
+          echo "Listing contents of the R user library..."
+          ls -lR ${{ env.R_LIBS_USER }}
+        shell: bash
+
       - name: Install local package
         run: R CMD INSTALL .
 
