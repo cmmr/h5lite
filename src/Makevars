@@ -1,1 +1,2 @@
-PKG_LIBS = `$(R_HOME)/bin/Rscript -e "cat(hdf5lib::ld_flags())"`
+#PKG_LIBS = `$(R_HOME)/bin/Rscript -e "cat(hdf5lib::ld_flags())"`
+PKG_LIBS = "-L/home/runner/work/_temp/Library/hdf5lib/lib -lhdf5z -lpthread -ldl"
