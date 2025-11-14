@@ -1,1 +1,1 @@
-PKG_LIBS = $(shell $(R_HOME)/bin/Rscript -e "cat(hdf5lib::ld_flags())")
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e "cat(hdf5lib::ld_flags())"`

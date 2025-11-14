@@ -3,3 +3,5 @@
 ^pkgdown$
 ^docs$
 ^pkgdown$
+^src/.*\.o$
+^src/.*\.dll$
