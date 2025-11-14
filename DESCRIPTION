@@ -11,6 +11,9 @@ RoxygenNote: 7.3.3
 LinkingTo: hdf5lib
 NeedsCompilation: yes
 Suggests: 
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 URL: https://cmmr.github.io/h5lite/
+VignetteBuilder: knitr

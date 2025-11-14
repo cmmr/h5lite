@@ -1,0 +1,64 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+
+name: R CMD check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  R-CMD-check:
+    
+    timeout-minutes: 60
+    
+    runs-on: ${{ matrix.config.os }}
+
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {os: macos-latest,     r: 'release'}
+          - {os: macos-latest,     r: 'devel'}
+          - {os: macos-latest,     r: 'oldrel-1'}
+          - {os: macos-14,         r: 'release'}
+          
+          - {os: windows-latest,   r: 'devel'}
+          - {os: windows-latest,   r: 'oldrel-1'}
+          - {os: windows-2022,     r: 'release'}
+          - {os: windows-latest,   r: 'release'}
+
+          - {os: ubuntu-latest,    r: 'release'}
+          - {os: ubuntu-latest,    r: 'devel' }
+          - {os: ubuntu-latest,    r: 'oldrel-1'}
+          - {os: ubuntu-22.04,     r: 'release'}
+
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: no
+      NOT_CRAN: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck, MASS
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          args: 'c("--no-manual", "--as-cran")'
