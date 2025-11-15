@@ -71,40 +71,52 @@ static hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out
 /* --- HELPER: Memory Type (What is it in R?) --- */
 static hid_t get_mem_type(SEXP data) {
   switch (TYPEOF(data)) {
-  case REALSXP: return H5T_NATIVE_DOUBLE;
-  case INTSXP:  return H5T_NATIVE_INT;
-  case LGLSXP:  return H5T_NATIVE_INT; /* R's logicals are int */
-  case RAWSXP:  return H5T_NATIVE_UCHAR; /* R's raw is unsigned char */
-  case STRSXP:  
-    return -1; // Handled specially
-  default: error("Unsupported R data type");
+    case REALSXP: return H5T_NATIVE_DOUBLE;
+    case INTSXP:  return H5T_NATIVE_INT;
+    case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
+    case RAWSXP:  return H5T_NATIVE_UCHAR;  /* R's raw is unsigned char */
+    case STRSXP:  return -1;                /* Handled specially */
+    default: error("Unsupported R data type");
   }
   return -1;
 }
 
 /* --- HELPER: File Type (What user wants on disk) --- */
 static hid_t get_file_type(const char *dtype, SEXP data) {
-  /* Mappings based on H5T_NATIVE_... types */
-  if (strcmp(dtype, "double") == 0 || strcmp(dtype, "numeric") == 0) return H5Tcopy(H5T_NATIVE_DOUBLE);
-  if (strcmp(dtype, "float") == 0) return H5Tcopy(H5T_NATIVE_FLOAT);
+  /* Mappings from user-friendly strings to HDF5 standard types for portability */
+
+  /* Floating Point Types (IEEE Standard) */
+  if (strcmp(dtype, "float16") == 0) return H5Tcopy(H5T_IEEE_F16LE);
+  if (strcmp(dtype, "float32") == 0) return H5Tcopy(H5T_IEEE_F32LE);
+  if (strcmp(dtype, "float64") == 0) return H5Tcopy(H5T_IEEE_F64LE);
   
-  if (strcmp(dtype, "integer") == 0 || strcmp(dtype, "int") == 0) return H5Tcopy(H5T_NATIVE_INT);
-  if (strcmp(dtype, "uint") == 0) return H5Tcopy(H5T_NATIVE_UINT);
+  /* Signed Integer Types (Standard) */
+  if (strcmp(dtype, "int8")  == 0) return H5Tcopy(H5T_STD_I8LE);
+  if (strcmp(dtype, "int16") == 0) return H5Tcopy(H5T_STD_I16LE);
+  if (strcmp(dtype, "int32") == 0) return H5Tcopy(H5T_STD_I32LE);
+  if (strcmp(dtype, "int64") == 0) return H5Tcopy(H5T_STD_I64LE);
   
-  if (strcmp(dtype, "short") == 0) return H5Tcopy(H5T_NATIVE_SHORT);
+  /* Unsigned Integer Types (Standard) */
+  if (strcmp(dtype, "uint8")  == 0) return H5Tcopy(H5T_STD_U8LE);
+  if (strcmp(dtype, "uint16") == 0) return H5Tcopy(H5T_STD_U16LE);
+  if (strcmp(dtype, "uint32") == 0) return H5Tcopy(H5T_STD_U32LE);
+  if (strcmp(dtype, "uint64") == 0) return H5Tcopy(H5T_STD_U64LE);
+  
+  /* System-dependent Native types (less portable, but sometimes needed) */
+  if (strcmp(dtype, "char")   == 0) return H5Tcopy(H5T_NATIVE_CHAR);
+  if (strcmp(dtype, "uchar")  == 0) return H5Tcopy(H5T_NATIVE_UCHAR);
+  if (strcmp(dtype, "short")  == 0) return H5Tcopy(H5T_NATIVE_SHORT);
   if (strcmp(dtype, "ushort") == 0) return H5Tcopy(H5T_NATIVE_USHORT);
+  if (strcmp(dtype, "int")    == 0) return H5Tcopy(H5T_NATIVE_INT);
+  if (strcmp(dtype, "uint")   == 0) return H5Tcopy(H5T_NATIVE_UINT);
+  if (strcmp(dtype, "long")   == 0) return H5Tcopy(H5T_NATIVE_LONG);
+  if (strcmp(dtype, "ulong")  == 0) return H5Tcopy(H5T_NATIVE_ULONG);
+  if (strcmp(dtype, "llong")  == 0) return H5Tcopy(H5T_NATIVE_LLONG);
+  if (strcmp(dtype, "ullong") == 0) return H5Tcopy(H5T_NATIVE_ULLONG);
+  if (strcmp(dtype, "float")  == 0) return H5Tcopy(H5T_NATIVE_FLOAT);
+  if (strcmp(dtype, "double") == 0) return H5Tcopy(H5T_NATIVE_DOUBLE);
   
-  if (strcmp(dtype, "long") == 0) return H5Tcopy(H5T_NATIVE_LONG);
-  if (strcmp(dtype, "ulong") == 0) return H5Tcopy(H5T_NATIVE_ULONG);
-  
-  if (strcmp(dtype, "int64") == 0 || strcmp(dtype, "long long") == 0) return H5Tcopy(H5T_NATIVE_LLONG);
-  if (strcmp(dtype, "uint64") == 0 || strcmp(dtype, "unsigned long long") == 0) return H5Tcopy(H5T_NATIVE_ULLONG);
-  
-  /* Note: R logical -> H5T_NATIVE_CHAR (per user request) */
-  if (strcmp(dtype, "logical") == 0 || strcmp(dtype, "bool") == 0 || strcmp(dtype, "boolean") == 0) return H5Tcopy(H5T_NATIVE_CHAR);
-  
-  if (strcmp(dtype, "char") == 0) return H5Tcopy(H5T_NATIVE_CHAR);
-  if (strcmp(dtype, "unsigned char") == 0 || strcmp(dtype, "uchar") == 0) return H5Tcopy(H5T_NATIVE_UCHAR);
+  /* Special Types */
   
   if (strcmp(dtype, "character") == 0) {
     hid_t t = H5Tcopy(H5T_C_S1);
@@ -114,7 +126,7 @@ static hid_t get_file_type(const char *dtype, SEXP data) {
   }
   
   /* R raw -> H5T_OPAQUE (size 1) */
-  if (strcmp(dtype, "opaque") == 0 || strcmp(dtype, "raw") == 0) {
+  if (strcmp(dtype, "raw") == 0) {
     hid_t t = H5Tcreate(H5T_OPAQUE, 1);
     return t;
   }

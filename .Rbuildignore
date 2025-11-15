@@ -5,3 +5,5 @@
 ^pkgdown$
 ^src/.*\.o$
 ^src/.*\.dll$
+^.*\.Rproj$
+^\.Rproj\.user$

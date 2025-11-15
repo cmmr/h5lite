@@ -4,43 +4,48 @@
 
 /* --- HELPER: Map H5T to String --- */
 static SEXP h5_type_to_rstr(hid_t type_id) {
+  
   H5T_class_t class_id = H5Tget_class(type_id);
   
   if (class_id == H5T_INTEGER) {
-    /* Check specific integer types */
-    if (H5Tequal(type_id, H5T_NATIVE_INT) > 0) return mkString("INT");
-    if (H5Tequal(type_id, H5T_NATIVE_UINT) > 0) return mkString("UINT");
-    if (H5Tequal(type_id, H5T_NATIVE_SHORT) > 0) return mkString("SHORT");
-    if (H5Tequal(type_id, H5T_NATIVE_USHORT) > 0) return mkString("USHORT");
-    if (H5Tequal(type_id, H5T_NATIVE_LONG) > 0) return mkString("LONG");
-    if (H5Tequal(type_id, H5T_NATIVE_ULONG) > 0) return mkString("ULONG");
-    if (H5Tequal(type_id, H5T_NATIVE_LLONG) > 0) return mkString("LLONG");
-    if (H5Tequal(type_id, H5T_NATIVE_ULLONG) > 0) return mkString("ULLONG");
-    if (H5Tequal(type_id, H5T_NATIVE_CHAR) > 0) return mkString("CHAR");
-    if (H5Tequal(type_id, H5T_NATIVE_UCHAR) > 0) return mkString("UCHAR");
-    /* Fallback for other integer types (e.g., non-native) */
+    
+    /* Check for standard integer types first (LE and BE) */
+    if (H5Tequal(type_id, H5T_STD_I8LE)  > 0 || H5Tequal(type_id, H5T_STD_I8BE)  > 0) return mkString("int8");
+    if (H5Tequal(type_id, H5T_STD_I16LE) > 0 || H5Tequal(type_id, H5T_STD_I16BE) > 0) return mkString("int16");
+    if (H5Tequal(type_id, H5T_STD_I32LE) > 0 || H5Tequal(type_id, H5T_STD_I32BE) > 0) return mkString("int32");
+    if (H5Tequal(type_id, H5T_STD_I64LE) > 0 || H5Tequal(type_id, H5T_STD_I64BE) > 0) return mkString("int64");
+    
+    if (H5Tequal(type_id, H5T_STD_U8LE)  > 0 || H5Tequal(type_id, H5T_STD_U8BE)  > 0) return mkString("uint8");
+    if (H5Tequal(type_id, H5T_STD_U16LE) > 0 || H5Tequal(type_id, H5T_STD_U16BE) > 0) return mkString("uint16");
+    if (H5Tequal(type_id, H5T_STD_U32LE) > 0 || H5Tequal(type_id, H5T_STD_U32BE) > 0) return mkString("uint32");
+    if (H5Tequal(type_id, H5T_STD_U64LE) > 0 || H5Tequal(type_id, H5T_STD_U64BE) > 0) return mkString("uint64");
+    
+    /* Generic fallback */
     return mkString("INTEGER"); 
   }
   
   if (class_id == H5T_FLOAT) {
-    /* Check specific float types */
-    if (H5Tequal(type_id, H5T_NATIVE_DOUBLE) > 0) return mkString("DOUBLE");
-    if (H5Tequal(type_id, H5T_NATIVE_FLOAT) > 0) return mkString("FLOAT");
-    /* Fallback */
+    
+    /* Check for standard float types first (LE and BE) */
+    if (H5Tequal(type_id, H5T_IEEE_F16LE) > 0 || H5Tequal(type_id, H5T_IEEE_F16BE) > 0) return mkString("float16");
+    if (H5Tequal(type_id, H5T_IEEE_F32LE) > 0 || H5Tequal(type_id, H5T_IEEE_F32BE) > 0) return mkString("float32");
+    if (H5Tequal(type_id, H5T_IEEE_F64LE) > 0 || H5Tequal(type_id, H5T_IEEE_F64BE) > 0) return mkString("float64");
+
+    /* Generic fallback */
     return mkString("FLOAT");
   }
   
   /* Handle other classes */
   const char *s = "UNKNOWN";
   switch(class_id) {
-    case H5T_STRING:  s = "STRING"; break;
-    case H5T_BITFIELD: s = "BITFIELD"; break;
-    case H5T_OPAQUE:  s = "OPAQUE"; break;
-    case H5T_COMPOUND: s = "COMPOUND"; break;
+    case H5T_STRING:    s = "STRING";    break;
+    case H5T_BITFIELD:  s = "BITFIELD";  break;
+    case H5T_OPAQUE:    s = "OPAQUE";    break;
+    case H5T_COMPOUND:  s = "COMPOUND";  break;
     case H5T_REFERENCE: s = "REFERENCE"; break;
-    case H5T_ENUM:    s = "ENUM"; break;
-    case H5T_VLEN:    s = "VLEN"; break; 
-    case H5T_ARRAY:   s = "ARRAY"; break;
+    case H5T_ENUM:      s = "ENUM";      break;
+    case H5T_VLEN:      s = "VLEN";      break; 
+    case H5T_ARRAY:     s = "ARRAY";     break;
     default: break;
   }
   return mkString(s);

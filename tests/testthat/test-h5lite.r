@@ -40,27 +40,27 @@ test_that("Full read/write/list/info cycle works", {
   
   # Write datasets
   h5_write(file_path, "/g1/d_vec_double", d_vec_double)
-  h5_write(file_path, "/g1/d_vec_int", d_vec_int, dtype = "integer")
+  h5_write(file_path, "/g1/d_vec_int", d_vec_int, dtype = "int32")
   h5_write(file_path, "/g1/g2/d_mat_double", d_mat_double)
-  h5_write(file_path, "/g1/g2/d_arr_int", d_arr_int, dtype = "integer")
-  h5_write(file_path, "/g3/d_vec_logical", d_vec_logical, dtype = "logical")
+  h5_write(file_path, "/g1/g2/d_arr_int", d_arr_int, dtype = "int32")
+  h5_write(file_path, "/g3/d_vec_logical", d_vec_logical)
   h5_write(file_path, "/g3/d_vec_char", d_vec_char)
   h5_write(file_path, "/g3/d_scalar_char", d_scalar_char, dims = NULL)
-  h5_write(file_path, "/g3/d_vec_raw", d_vec_raw, dtype = "opaque") # New
-  h5_write(file_path, "/g3/d_mat_raw", d_mat_raw, dtype = "opaque") # New
-  h5_write(file_path, "/d_scalar_int", d_scalar_int, dtype = "integer", dims = NULL)
+  h5_write(file_path, "/g3/d_vec_raw", d_vec_raw, dtype = "raw") # New
+  h5_write(file_path, "/g3/d_mat_raw", d_mat_raw, dtype = "raw") # New
+  h5_write(file_path, "/d_scalar_int", d_scalar_int, dtype = "int32", dims = NULL)
   
   # Write specific dtypes
-  h5_write(file_path, "/g4/d_vec_float", d_vec_float, dtype = "float")
-  h5_write(file_path, "/g4/d_vec_schar", d_vec_schar, dtype = "char")
-  h5_write(file_path, "/g4/d_vec_short", d_vec_short, dtype = "short")
+  h5_write(file_path, "/g4/d_vec_float", d_vec_float, dtype = "float32")
+  h5_write(file_path, "/g4/d_vec_schar", d_vec_schar, dtype = "int8")
+  h5_write(file_path, "/g4/d_vec_short", d_vec_short, dtype = "int16")
   h5_write(file_path, "/g4/d_vec_uint64", d_vec_uint64, dtype = "uint64")
   
   # Write attributes
   h5_write_attr(file_path, "/", "a_scalar_char", a_scalar_char, dims = NULL)
-  h5_write_attr(file_path, "/g1/g2/d_arr_int", "a_mat_int", a_mat_int, dtype = "integer")
+  h5_write_attr(file_path, "/g1/g2/d_arr_int", "a_mat_int", a_mat_int, dtype = "int32")
   h5_write_attr(file_path, "/g1/d_vec_double", "a_vec_double", a_vec_double)
-  h5_write_attr(file_path, "/g3", "a_vec_raw", a_vec_raw, dtype = "opaque") # New
+  h5_write_attr(file_path, "/g3", "a_vec_raw", a_vec_raw, dtype = "raw") # New
   
   
   # --- 3. TEST LISTING (h5_ls, h5_ls_attr) ---
@@ -91,22 +91,22 @@ test_that("Full read/write/list/info cycle works", {
   # --- 4. TEST METADATA (h5_typeof, h5_dim) ---
   
   # Test typeof (on-disk type)
-  expect_equal(h5_typeof(file_path, "/g1/d_vec_double"), "DOUBLE")
-  expect_equal(h5_typeof(file_path, "/g1/d_vec_int"), "INT")
+  expect_equal(h5_typeof(file_path, "/g1/d_vec_double"), "float64")
+  expect_equal(h5_typeof(file_path, "/g1/d_vec_int"), "int32")
   expect_equal(h5_typeof(file_path, "/g3/d_vec_char"), "STRING")
-  expect_equal(h5_typeof(file_path, "/d_scalar_int"), "INT")
+  expect_equal(h5_typeof(file_path, "/d_scalar_int"), "int32")
   
   # New dtype tests (UPDATED EXPECTATIONS)
-  expect_equal(h5_typeof(file_path, "/g3/d_vec_logical"), "CHAR") # logical -> char
-  expect_equal(h5_typeof(file_path, "/g4/d_vec_float"), "FLOAT") # float -> float
-  expect_equal(h5_typeof(file_path, "/g4/d_vec_schar"), "CHAR") # char -> char
-  expect_equal(h5_typeof(file_path, "/g4/d_vec_short"), "SHORT") # short -> short
-  expect_equal(h5_typeof(file_path, "/g4/d_vec_uint64"), "ULLONG") # uint64 -> ULLONG
+  expect_equal(h5_typeof(file_path, "/g3/d_vec_logical"), "uint8") # logical -> uchar -> uint8
+  expect_equal(h5_typeof(file_path, "/g4/d_vec_float"), "float32") # float -> float32
+  expect_equal(h5_typeof(file_path, "/g4/d_vec_schar"), "int8") # char -> int8
+  expect_equal(h5_typeof(file_path, "/g4/d_vec_short"), "int16") # short -> int16
+  expect_equal(h5_typeof(file_path, "/g4/d_vec_uint64"), "uint64") # uint64 -> uint64
   expect_equal(h5_typeof(file_path, "/g3/d_vec_raw"), "OPAQUE") # New
   
   # Test typeof_attr
   expect_equal(h5_typeof_attr(file_path, "/", "a_scalar_char"), "STRING")
-  expect_equal(h5_typeof_attr(file_path, "/g1/g2/d_arr_int", "a_mat_int"), "INT")
+  expect_equal(h5_typeof_attr(file_path, "/g1/g2/d_arr_int", "a_mat_int"), "int32")
   expect_equal(h5_typeof_attr(file_path, "/g3", "a_vec_raw"), "OPAQUE") # New
   
   # Test dim
@@ -167,12 +167,12 @@ test_that("Full read/write/list/info cycle works", {
   
   # Overwrite a dataset
   d_new_vec <- c(99, 88, 77)
-  h5_write(file_path, "/g1/d_vec_double", d_new_vec)
+  h5_write(file_path, "/g1/d_vec_double", d_new_vec, dtype = "double")
   
   # Check new data
   expect_equal(h5_read(file_path, "/g1/d_vec_double"), d_new_vec)
   # Check new type and dim
-  expect_equal(h5_typeof(file_path, "/g1/d_vec_double"), "DOUBLE")
+  expect_equal(h5_typeof(file_path, "/g1/d_vec_double"), "float64")
   expect_equal(h5_dim(file_path, "/g1/d_vec_double"), length(d_new_vec))
   
   # Overwrite an attribute
