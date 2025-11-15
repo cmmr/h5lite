@@ -1,0 +1,107 @@
+library(testthat)
+library(h5lite)
+
+test_that("Read/write cycle works for various data types", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # --- 1. DEFINE DATA ---
+  d_vec_double <- c(1.5, 2.2, 3.3)
+  d_vec_int <- 1L:10L
+  d_vec_logical <- c(TRUE, FALSE, TRUE)
+  d_vec_char <- c("hello", "world", "h5lite")
+  d_vec_raw <- as.raw(c(0x01, 0x10, 0xFF))
+  d_factor <- factor(c("a", "b", "a"))
+
+  d_mat_double <- matrix(1:12, nrow = 3, ncol = 4)
+  d_arr_int <- array(1L:24L, dim = c(2, 3, 4))
+  d_mat_raw <- matrix(as.raw(1:12), nrow = 3, ncol = 4)
+
+  d_scalar_char <- "I am a scalar"
+  d_scalar_int <- 42L
+
+  # --- 2. WRITE DATA ---
+  h5_write(file_path, "d_vec_double", d_vec_double)
+  h5_write(file_path, "d_vec_int", d_vec_int)
+  h5_write(file_path, "d_vec_logical", d_vec_logical)
+  h5_write(file_path, "d_vec_char", d_vec_char)
+  h5_write(file_path, "d_vec_raw", d_vec_raw)
+  h5_write(file_path, "d_factor", d_factor)
+  h5_write(file_path, "d_mat_double", d_mat_double)
+  h5_write(file_path, "d_arr_int", d_arr_int)
+  h5_write(file_path, "d_mat_raw", d_mat_raw)
+  h5_write(file_path, "d_scalar_char", d_scalar_char, dims = NULL)
+  h5_write(file_path, "d_scalar_int", d_scalar_int, dims = NULL)
+
+  # --- 3. READ AND VERIFY DATA ---
+  expect_equal(h5_read(file_path, "d_vec_double"), d_vec_double)
+  expect_equal(h5_read(file_path, "d_mat_double"), d_mat_double)
+  expect_equal(h5_read(file_path, "d_arr_int"), d_arr_int)
+  expect_equal(h5_read(file_path, "d_vec_char"), d_vec_char)
+  expect_equal(h5_read(file_path, "d_scalar_int"), d_scalar_int)
+  expect_equal(h5_read(file_path, "d_vec_raw"), d_vec_raw)
+  expect_equal(h5_read(file_path, "d_mat_raw"), d_mat_raw)
+  expect_equal(h5_read(file_path, "d_factor"), d_factor)
+
+  # Test that integer/logical data is read back as R's "numeric" (double) for safety
+  expect_type(h5_read(file_path, "d_vec_int"), "double")
+  expect_type(h5_read(file_path, "d_vec_logical"), "double")
+  expect_equal(h5_read(file_path, "d_vec_int"), as.numeric(d_vec_int))
+  expect_equal(h5_read(file_path, "d_vec_logical"), as.numeric(d_vec_logical))
+})
+
+test_that("Specific dtype writing and reading works", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  d_vec_float <- c(1.123456789, 2.222222222, 3.333333333)
+  d_vec_schar <- c(-10L, 20L, 30L)
+  d_vec_short <- c(500L, -1000L, 30000L)
+  d_vec_uint64 <- c(2^50, 2^60) # R 'numeric' (double)
+
+  h5_write(file_path, "d_vec_float", d_vec_float, dtype = "float32")
+  h5_write(file_path, "d_vec_schar", d_vec_schar, dtype = "int8")
+  h5_write(file_path, "d_vec_short", d_vec_short, dtype = "int16")
+  h5_write(file_path, "d_vec_uint64", d_vec_uint64, dtype = "uint64")
+
+  # Read back and check type and value
+  r_vec_float <- h5_read(file_path, "d_vec_float")
+  expect_type(r_vec_float, "double")
+  expect_equal(r_vec_float, d_vec_float, tolerance = 1e-7)
+
+  r_vec_schar <- h5_read(file_path, "d_vec_schar")
+  expect_type(r_vec_schar, "double")
+  expect_equal(r_vec_schar, as.numeric(d_vec_schar))
+
+  r_vec_short <- h5_read(file_path, "d_vec_short")
+  expect_type(r_vec_short, "double")
+  expect_equal(r_vec_short, as.numeric(d_vec_short))
+
+  r_vec_uint64 <- h5_read(file_path, "d_vec_uint64")
+  expect_type(r_vec_uint64, "double")
+  expect_equal(r_vec_uint64, d_vec_uint64) # R doubles can hold these values
+})
+
+test_that("Compression works correctly", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  d_compressible <- rep(1:10, 1000)
+
+  # Write once without compression, once with
+  h5_write(file_path, "uncompressed", d_compressible, compress = FALSE)
+  h5_write(file_path, "compressed", d_compressible, compress = TRUE)
+
+  # Check that data is readable and correct
+  expect_equal(h5_read(file_path, "uncompressed"), as.numeric(d_compressible))
+  expect_equal(h5_read(file_path, "compressed"), as.numeric(d_compressible))
+
+  # Check that compressed file is smaller
+  file_uncompressed <- tempfile(fileext = ".h5"); on.exit(unlink(file_uncompressed), add = TRUE)
+  h5_write(file_uncompressed, "data", d_compressible, compress = FALSE)
+
+  file_compressed <- tempfile(fileext = ".h5"); on.exit(unlink(file_compressed), add = TRUE)
+  h5_write(file_compressed, "data", d_compressible, compress = TRUE)
+
+  expect_lt(file.size(file_compressed), file.size(file_uncompressed))
+})

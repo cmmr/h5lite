@@ -10,6 +10,7 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 LinkingTo: hdf5lib
 NeedsCompilation: yes
+Imports: utils
 Suggests: 
     knitr,
     rmarkdown,

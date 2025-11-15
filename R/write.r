@@ -51,6 +51,208 @@ get_best_dtype <- function(data, dtype) {
   }
 }
 
+#' Helper to select R attributes for writing based on the 'attrs' argument
+#' @param data The R object containing attributes.
+#' @param attrs The `attrs` argument from `h5_write`.
+#' @return A named list of attributes to be written.
+#' @noRd
+#' @keywords internal
+get_attributes_to_write <- function(data, attrs) {
+  all_attrs <- attributes(data)
+  
+  # Rule: Never write 'dim' as it's a native HDF5 dataset property.
+  all_attrs$dim <- NULL
+  
+  if (is.logical(attrs)) {
+    if (isTRUE(attrs)) {
+      return(all_attrs) # Write all (except dim)
+    } else {
+      return(list()) # Write none
+    }
+  }
+  
+  if (is.character(attrs) && length(attrs) > 0) {
+    is_exclusion <- startsWith(attrs, "-")
+    
+    if (all(is_exclusion)) {
+      # Exclusion mode: start with all attributes and remove specified ones
+      to_exclude <- substring(attrs, 2)
+      return(all_attrs[!names(all_attrs) %in% to_exclude])
+    } else if (all(!is_exclusion)) {
+      # Inclusion mode: start with none and add specified ones
+      return(all_attrs[names(all_attrs) %in% attrs])
+    } else {
+      stop("The 'attrs' argument cannot contain a mix of inclusive (e.g., 'a') and exclusive (e.g., '-b') names.")
+    }
+  }
+  
+  return(list()) # Default to writing no attributes
+}
+
+#' Helper to validate R attributes before writing them to HDF5
+#' @param data The R object whose attributes will be checked.
+#' @param attrs A logical indicating if attributes should be processed.
+#' @return Invisibly returns `TRUE` if validation succeeds. Throws an error otherwise.
+#' @noRd
+#' @keywords internal
+validate_attributes <- function(data, attrs) {  
+  # If attrs is FALSE, there's nothing to do.
+  if (is.logical(attrs) && !isTRUE(attrs)) return(invisible(TRUE))
+  
+  # Determine which attributes are candidates for writing
+  attr_to_write <- get_attributes_to_write(data, attrs)
+  
+  if (length(attr_to_write) == 0) {
+    return(invisible(TRUE))
+  }
+  
+  for (attr_name in names(attr_to_write)) {
+    attr_val <- attr_to_write[[attr_name]]
+    # Attributes must be atomic vectors or factors. Lists, environments, etc., are not supported.
+    if (!is.atomic(attr_val) && !is.factor(attr_val)) {
+      stop("Attribute '", attr_name, "' cannot be written to HDF5 because its type ('", typeof(attr_val), "') is not supported. Only atomic vectors and factors can be written as attributes.")
+    }
+  }
+  
+  invisible(TRUE)
+}
+
+#' Recursively validate a list for h5_write_all
+#' @noRd
+#' @keywords internal
+validate_write_all_recursive <- function(data, current_path, attrs_arg) {
+  
+  # It's a group (list)
+  if (is.list(data) && !is.data.frame(data)) {
+    # All list elements must be named to be written as groups/datasets.
+    if (length(data) > 0) {
+      list_names <- names(data)
+      if (is.null(list_names) || any(list_names == "")) {
+        stop("Validation failed for group '", current_path, "'. All elements in a list must be named.", call. = FALSE)
+      }
+    }
+    
+    # First, validate the attributes of the list itself, which will become group attributes.
+    tryCatch({
+      validate_attributes(data, TRUE)
+    }, error = function(e) {
+      stop("Validation failed for group '", current_path, "': ", e$message, call. = FALSE)
+    })
+    
+    # Then, recursively validate each child element.
+    for (name in names(data)) {
+      child_path <- if (current_path == "/") name else paste(current_path, name, sep = "/")
+      validate_write_all_recursive(data[[name]], child_path, attrs_arg)
+    }
+    
+  } else { # It's a dataset
+    # Check that the dataset itself is a writeable type.
+    if (!is.atomic(data) && !is.factor(data)) {
+      stop("Validation failed for dataset '", current_path, "'. Its type ('", 
+           typeof(data), "') is not supported. Only atomic vectors and factors can be written.", call. = FALSE)
+    }
+    
+    # Validate the attributes that will be written with this dataset.
+    tryCatch({
+      validate_attributes(data, attrs_arg)
+    }, error = function(e) {
+      stop("Validation failed for dataset '", current_path, "': ", e$message, call. = FALSE)
+    })
+  }
+}
+
+#' Recursively write a list for h5_write_all
+#' @noRd
+#' @keywords internal
+write_all_recursive <- function(file, name, data, compress, attrs_arg) {
+  
+  # It's a group (list)
+  if (is.list(data) && !is.data.frame(data)) {
+    # Create the group. This is safe even if it exists.
+    h5_create_group(file, name)
+    
+    # Write the attributes of the list itself to the group.
+    group_attrs <- get_attributes_to_write(data, TRUE)
+    group_attrs[['names']] <- NULL
+    for (attr_name in names(group_attrs)) {
+      h5_write_attr(file, name, attr_name, group_attrs[[attr_name]])
+    }
+    
+    # Recursively write each child element.
+    for (child_name in names(data)) {
+      child_path <- if (name == "/") child_name else paste(name, child_name, sep = "/")
+      write_all_recursive(file, child_path, data[[child_name]], compress, attrs_arg)
+    }
+    
+  } else { # It's a dataset
+    h5_write(file, name, data, compress = compress, attrs = attrs_arg)
+  }
+}
+
+#' Write a List Recursively to HDF5
+#' 
+#' Writes a nested R list to an HDF5 file, creating a corresponding group
+#' and dataset structure.
+#'
+#' @details
+#' This function provides a way to save a complex, nested R list as an HDF5
+#' hierarchy.
+#' 
+#' - R `list` objects are created as HDF5 groups.
+#' - All other supported R objects (vectors, matrices, arrays, factors) are
+#'   written as HDF5 datasets.
+#' - Attributes of a list are written as HDF5 attributes on the corresponding group.
+#' - The `attrs` argument controls how attributes of the datasets (non-list elements)
+#'   are handled.
+#' 
+#' Before writing any data, `h5_write_all` performs a "dry run" to validate
+#' that all objects and attributes within the list are of a writeable type. If
+#' any part of the structure is invalid, the function will throw an error and
+#' no data will be written to the file.
+#'
+#' @param file Path to the HDF5 file.
+#' @param name The name of the top-level group to write the list into.
+#' @param data The nested R `list` to write.
+#' @param compress A logical or an integer from 0-9. This compression setting is
+#'   applied to all datasets written during the recursive operation.
+#' @param attrs Controls which R attributes are written for the **datasets** within
+#'   the list. See [h5_write()] for details. This does not affect attributes on
+#'   the lists/groups themselves, which are always written.
+#' @return Invisibly returns \code{NULL}.
+#' @seealso [h5_read_all()], [h5_write()]
+#' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#' 
+#' # Create a nested list with attributes
+#' my_list <- list(
+#'   config = list(version = 1.2, user = "test"),
+#'   data = list(
+#'     matrix = matrix(1:4, 2),
+#'     vector = 1:10
+#'   )
+#' )
+#' attr(my_list$data, "info") <- "This is the data group"
+#' 
+#' h5_write_all(file, "session_data", my_list)
+#' 
+#' h5_ls(file, recursive = TRUE)
+#' 
+#' unlink(file)
+h5_write_all <- function(file, name, data, compress = TRUE, attrs = TRUE) {
+  if (!is.list(data) || is.data.frame(data)) {
+    stop("'data' must be a list.", call. = FALSE)
+  }
+  
+  # 1. Dry run: Validate the entire structure before writing anything.
+  validate_write_all_recursive(data, name, attrs)
+  
+  # 2. Write: If validation passed, perform the recursive write.
+  write_all_recursive(file, name, data, compress, attrs)
+  
+  invisible(NULL)
+}
+
 #' Write a Dataset to HDF5
 #' 
 #' Writes an R object to an HDF5 file as a dataset. The file is created if 
@@ -94,6 +296,11 @@ get_best_dtype <- function(data, dtype) {
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
+#' @param attrs Controls which R attributes of `data` are written to the HDF5 dataset.
+#'   Can be `FALSE` (the default, no attributes), `TRUE` (all attributes except `dim`),
+#'   a character vector of attribute names to include (e.g., `c("info", "version")`),
+#'   or a character vector of names to exclude, prefixed with `-` (e.g., `c("-class")`).
+#'   Mixing inclusive and exclusive names is not allowed.
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
 #' @seealso [h5_write_attr()]
 #' @export
@@ -119,15 +326,34 @@ get_best_dtype <- function(data, dtype) {
 #' unlink(file)
 h5_write <- function(file, name, data,
                      dtype = "auto",
-                     dims = length(data),
-                     compress = TRUE) {
+                     dims = "auto",
+                     compress = TRUE,
+                     attrs = FALSE) {
   
   file  <- path.expand(file)
+  
+  # Perform a "dry run" to validate attributes before writing anything
+  validate_attributes(data, attrs)
+  
   dtype <- get_best_dtype(data, dtype)
   level <- if (isTRUE(compress)) 5L else as.integer(compress)
-  if (missing(dims) && !is.null(dim(data))) dims <- dim(data)
+  
+  if (identical(dims, "auto")) {
+    dims <- if (is.null(dim(data))) length(data) else dim(data)
+  }
   
   .Call("C_h5_write_dataset", file, name, data, dtype, dims, level, PACKAGE = "h5lite")
+  
+  # If validation passed and attrs is TRUE, write the attributes
+  if (!is.logical(attrs) || isTRUE(attrs)) {
+    attr_to_write <- get_attributes_to_write(data, attrs)
+    
+    for (attr_name in names(attr_to_write)) {
+      h5_write_attr(file = file, name = name, attribute = attr_name, 
+                    data = attr_to_write[[attr_name]])
+    }
+  }
+  
   invisible(NULL)
 }
 

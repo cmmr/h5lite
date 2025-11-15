@@ -9,8 +9,9 @@ h5_write(
   name,
   data,
   dtype = "auto",
-  dims = length(data),
-  compress = TRUE
+  dims = "auto",
+  compress = TRUE,
+  attrs = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,12 @@ Defaults to \code{dim(data)} if it exists, or \code{length(data)} otherwise.}
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
 An integer \code{1-9} specifies the zlib compression level directly.}
+
+\item{attrs}{Controls which R attributes of \code{data} are written to the HDF5 dataset.
+Can be \code{FALSE} (the default, no attributes), \code{TRUE} (all attributes except \code{dim}),
+a character vector of attribute names to include (e.g., \code{c("info", "version")}),
+or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).
+Mixing inclusive and exclusive names is not allowed.}
 }
 \value{
 Invisibly returns \code{NULL}. This function is called for its side effects.

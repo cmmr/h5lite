@@ -2,14 +2,20 @@
 % Please edit documentation in R/read.r
 \name{h5_read}
 \alias{h5_read}
-\title{Read a Dataset from HDF5}
+\title{Read an HDF5 Dataset}
 \usage{
-h5_read(file, name)
+h5_read(file, name, attrs = FALSE)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
+
+\item{attrs}{Controls which HDF5 attributes are read and attached to the returned R object.
+Can be \code{FALSE} (the default, no attributes), \code{TRUE} (all attributes),
+a character vector of attribute names to include (e.g., \code{c("info", "version")}),
+or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).
+Non-existent attributes are silently skipped.}
 }
 \value{
 A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.

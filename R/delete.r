@@ -20,7 +20,14 @@
 h5_delete <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
-  # TODO: Add a check to ensure 'name' is a dataset, not a group.
+  
+  if (!h5_exists(file, name)) {
+    warning("Object '", name, "' not found. Nothing to delete.")
+    return(invisible(NULL))
+  }
+  if (h5_is_group(file, name)) {
+    stop("'", name, "' is a group, not a dataset. Use h5_delete_group() to delete groups.")
+  }
   .Call("C_h5_delete_link", file, name, PACKAGE = "h5lite")
   invisible(NULL)
 }
@@ -47,7 +54,14 @@ h5_delete <- function(file, name) {
 h5_delete_group <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
-  # TODO: Add a check to ensure 'name' is a group, not a dataset.
+  
+  if (!h5_exists(file, name)) {
+    warning("Object '", name, "' not found. Nothing to delete.")
+    return(invisible(NULL))
+  }
+  if (h5_is_dataset(file, name)) {
+    stop("'", name, "' is a dataset, not a group. Use h5_delete() to delete datasets.")
+  }
   .Call("C_h5_delete_link", file, name, PACKAGE = "h5lite")
   invisible(NULL)
 }
@@ -75,6 +89,10 @@ h5_delete_group <- function(file, name) {
 h5_delete_attr <- function(file, name, attribute) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  if (!h5_exists_attr(file, name, attribute)) {
+    warning("Attribute '", attribute, "' not found on object '", name, "'. Nothing to delete.")
+    return(invisible(NULL))
+  }
   .Call("C_h5_delete_attr", file, name, attribute, PACKAGE = "h5lite")
   invisible(NULL)
 }

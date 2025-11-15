@@ -4,27 +4,9 @@
 \name{h5lite-package}
 \alias{h5lite}
 \alias{h5lite-package}
-\title{h5lite: A Simple and Lightweight HDF5 Interface}
+\title{h5lite: Simplified HDF5 Interface}
 \description{
-The h5lite package provides a simple, lightweight, and user-friendly
-interface for reading and writing HDF5 files. It is designed for R users
-who want to save and load R objects (vectors, matrices, arrays) to an
-HDF5 file without needing to understand the low-level details of the HDF5 C API.
-}
-\details{
-\code{h5lite} handles common tasks automatically:
-\itemize{
-\item Saving R objects with the correct dimensions.
-\item Reading data back into R as matrices or arrays.
-\item Reading and writing R \code{factor} objects as native HDF5 \code{ENUM} types.
-\item Automatically overwriting data and creating parent groups.
-\item Writing compressed datasets.
-\item Safely reading all numeric types without integer overflow.
-\item Reading and writing R \code{raw} vectors.
-}
-
-This package uses the HDF5 library developed by The HDF Group
-(\url{https://www.hdfgroup.org/}).
+Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' \url{https://www.hdfgroup.org/}.
 }
 \seealso{
 Useful links:

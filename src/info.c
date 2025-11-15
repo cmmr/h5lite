@@ -156,3 +156,102 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
   return result;
 }
+
+/* --- EXISTS --- */
+SEXP C_h5_exists(SEXP filename, SEXP name) {
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *oname = CHAR(STRING_ELT(name, 0));
+  
+  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) return ScalarLogical(0); // File doesn't exist or isn't HDF5
+  
+  // Suppress errors for H5Lexists, as a non-existent link is a valid check
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  
+  htri_t link_exists = H5Lexists(file_id, oname, H5P_DEFAULT);
+  
+  // Restore error handler
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  
+  H5Fclose(file_id);
+  
+  return ScalarLogical(link_exists > 0);
+}
+
+/* --- EXISTS ATTR --- */
+SEXP C_h5_exists_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *oname = CHAR(STRING_ELT(obj_name, 0));
+  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  
+  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) return ScalarLogical(0);
+  
+  // Suppress errors for H5Oopen and H5Aexists
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  
+  htri_t attr_exists = H5Aexists_by_name(file_id, oname, aname, H5P_DEFAULT);
+  
+  // Restore error handler
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  
+  H5Fclose(file_id);
+  
+  return ScalarLogical(attr_exists > 0);
+}
+
+/* --- HELPER: Check object type --- */
+static int check_obj_type(const char *fname, const char *oname, H5O_type_t check_type) {
+  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) return 0;
+  
+  int result = 0;
+  
+  // Suppress errors for H5Oget_info_by_name
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  
+  H5O_info_t oinfo;
+  /* HDF5 1.12.0 API: Added H5O_INFO_BASIC */
+  herr_t status = H5Oget_info_by_name(file_id, oname, &oinfo, H5O_INFO_BASIC, H5P_DEFAULT);
+  
+  // Restore error handler
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (status >= 0) {
+    if (oinfo.type == check_type) {
+      result = 1;
+    }
+  }
+  
+  H5Fclose(file_id);
+  return result;
+}
+
+/* --- IS GROUP --- */
+SEXP C_h5_is_group(SEXP filename, SEXP name) {
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *oname = CHAR(STRING_ELT(name, 0));
+  
+  int is_group = check_obj_type(fname, oname, H5O_TYPE_GROUP);
+  
+  return ScalarLogical(is_group);
+}
+
+/* --- IS DATASET --- */
+SEXP C_h5_is_dataset(SEXP filename, SEXP name) {
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *oname = CHAR(STRING_ELT(name, 0));
+  
+  int is_dataset = check_obj_type(fname, oname, H5O_TYPE_DATASET);
+  
+  return ScalarLogical(is_dataset);
+}

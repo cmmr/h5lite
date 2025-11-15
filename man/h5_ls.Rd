@@ -4,7 +4,7 @@
 \alias{h5_ls}
 \title{List HDF5 Objects}
 \usage{
-h5_ls(file, name = "/", recursive = TRUE)
+h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
@@ -12,12 +12,15 @@ h5_ls(file, name = "/", recursive = TRUE)
 \item{name}{The group path to start listing from. Defaults to the root group "/".}
 
 \item{recursive}{If \code{TRUE} (default), lists all objects found recursively
-under \code{name}. If \code{FALSE}, lists only the immediate children of \code{name}.}
+under \code{name}. If \code{FALSE}, lists only the immediate children.}
+
+\item{full.names}{If \code{TRUE}, the full paths from the file's root are
+returned. If \code{FALSE} (the default), names are relative to \code{name}.}
 }
 \value{
 A character vector of object names. If \code{name} is \code{/} (the default),
 the paths are relative to the root of the file. If \code{name} is another group,
-the paths are relative to that group.
+the paths are relative to that group (unless \code{full.names = TRUE}).
 }
 \description{
 Lists the names of objects (datasets and groups) within an HDF5 file or group.

@@ -148,7 +148,39 @@ units <- h5_read_attr(file, "experiment_1/sensor_readings", "units")
 print(units)
 ```
 
-## 5. Handling Special R Types
+## 5. Recursive I/O with Lists (`h5_write_all` and `h5_read_all`)
+
+For more complex data structures, `h5lite` provides `h5_write_all()` and `h5_read_all()` to seamlessly save and load nested R `list` objects.
+
+- R `list` objects are saved as HDF5 **groups**.
+- Attributes on a `list` are saved as attributes on the corresponding group.
+- All other objects inside the list (vectors, matrices, etc.) are saved as **datasets**.
+
+This allows you to perform a "round-trip" for a complex R object, preserving its structure and metadata.
+
+```{r roundtrip_list}
+# Create a nested list with attributes
+my_list <- list(
+  config = list(version = 1.2, user = "test"),
+  data = list(
+    matrix = matrix(1:4, 2),
+    vector = 1:10
+  )
+)
+attr(my_list$data, "info") <- "This is the data group"
+attr(my_list$data$matrix, "my_attr") <- "matrix attribute"
+
+# Write the entire list to a group called "session_data"
+h5_write_all(file, "session_data", my_list)
+
+# Read it all back in one command
+read_list <- h5_read_all(file, "session_data")
+
+# Verify the round-trip was successful
+identical(my_list, read_list)
+```
+
+## 6. Handling Special R Types
 
 `h5lite` has special support for some of R's unique data types.
 
@@ -182,7 +214,7 @@ read_blob <- h5_read(file, "experiment_1/binary_config")
 identical(binary_blob, read_blob)
 ```
 
-## 6. Managing File Contents
+## 7. Managing File Contents
 
 ### Overwriting
 

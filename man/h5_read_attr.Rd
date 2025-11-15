@@ -2,7 +2,7 @@
 % Please edit documentation in R/read.r
 \name{h5_read_attr}
 \alias{h5_read_attr}
-\title{Read an Attribute from HDF5}
+\title{Read an HDF5 Attribute}
 \usage{
 h5_read_attr(file, name, attribute)
 }

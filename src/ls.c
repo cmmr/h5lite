@@ -7,8 +7,10 @@
 
 typedef struct {
   int count;
-  SEXP names;
   int idx;
+  SEXP names;
+  const char *gname; // Starting group name
+  int full_names;    // Flag for full names
 } h5_op_data_t;
 
 /* Callback for Recursive LS (H5Ovisit) */
@@ -17,7 +19,22 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
   if (strcmp(name, ".") == 0 || strlen(name) == 0) return 0; // Skip root
   
   if (data->names != R_NilValue) {
-    SET_STRING_ELT(data->names, data->idx, mkChar(name));
+    if (data->full_names) {
+      // Construct full path: gname + / + name
+      // Handle the case where gname is "/" to avoid "//"
+      int gname_is_root = (strcmp(data->gname, "/") == 0);
+      size_t len = (gname_is_root ? 0 : strlen(data->gname)) + 1 + strlen(name) + 1;
+      char *full_name = (char *)malloc(len);
+      if (gname_is_root) {
+        snprintf(full_name, len, "%s", name);
+      } else {
+        snprintf(full_name, len, "%s/%s", data->gname, name);
+      }
+      SET_STRING_ELT(data->names, data->idx, mkChar(full_name));
+      free(full_name);
+    } else {
+      SET_STRING_ELT(data->names, data->idx, mkChar(name));
+    }
     data->idx++;
   } else {
     data->count++;
@@ -30,7 +47,21 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   
   if (data->names != R_NilValue) {
-    SET_STRING_ELT(data->names, data->idx, mkChar(name));
+    if (data->full_names) {
+      // Construct full path: gname + / + name
+      int gname_is_root = (strcmp(data->gname, "/") == 0);
+      size_t len = (gname_is_root ? 0 : strlen(data->gname)) + 1 + strlen(name) + 1;
+      char *full_name = (char *)malloc(len);
+      if (gname_is_root) {
+        snprintf(full_name, len, "%s", name);
+      } else {
+        snprintf(full_name, len, "%s/%s", data->gname, name);
+      }
+      SET_STRING_ELT(data->names, data->idx, mkChar(full_name));
+      free(full_name);
+    } else {
+      SET_STRING_ELT(data->names, data->idx, mkChar(name));
+    }
     data->idx++;
   } else {
     data->count++;
@@ -52,10 +83,11 @@ static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_inf
 
 /* --- DISCOVERY FUNCTIONS --- */
 
-SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive) {
+SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *gname = CHAR(STRING_ELT(group_name, 0));
   int is_recursive = LOGICAL(recursive)[0];
+  int use_full_names = LOGICAL(full_names)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -68,8 +100,10 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive) {
   
   h5_op_data_t op_data;
   op_data.count = 0;
-  op_data.names = R_NilValue;
   op_data.idx = 0;
+  op_data.names = R_NilValue;
+  op_data.gname = gname;
+  op_data.full_names = use_full_names;
   
   /* PASS 1: Count objects */
   if (is_recursive) {
