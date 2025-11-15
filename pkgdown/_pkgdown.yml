@@ -10,31 +10,32 @@ template:
     heading_font: {google: "Noto Sans"}
 
 reference:
-  - layout: table
-  - title: "Read & Write"
-    desc: "Functions for reading and writing datasets, attributes, and nested lists."
-    contents:
-      - h5_read
-      - h5_read_all
-      - h5_read_attr
-      - h5_write
-      - h5_write_all
-      - h5_write_attr
-  - title: "Inspection & Discovery"
-    desc: "Functions for exploring the contents and properties of an HDF5 file."
-    contents:
-      - h5_ls
-      - h5_ls_attr
-      - h5_str
-      - h5_exists
-      - h5_is_group
-      - h5_is_dataset
-      - h5_dim
-      - h5_typeof
-  - title: "Object Management"
-    desc: "Functions for creating and deleting groups, datasets, and attributes."
-    contents:
-      - h5_create_group
-      - h5_delete
-      - h5_delete_group
-      - h5_delete_attr
+  layout: table
+  sections:
+    - title: "Read & Write"
+      desc: "Functions for reading and writing datasets, attributes, and nested lists."
+      contents:
+        - h5_read
+        - h5_read_all
+        - h5_read_attr
+        - h5_write
+        - h5_write_all
+        - h5_write_attr
+    - title: "Inspection & Discovery"
+      desc: "Functions for exploring the contents and properties of an HDF5 file."
+      contents:
+        - h5_ls
+        - h5_ls_attr
+        - h5_str
+        - h5_exists
+        - h5_is_group
+        - h5_is_dataset
+        - h5_dim
+        - h5_typeof
+    - title: "Object Management"
+      desc: "Functions for creating and deleting groups, datasets, and attributes."
+      contents:
+        - h5_create_group
+        - h5_delete
+        - h5_delete_group
+        - h5_delete_attr
