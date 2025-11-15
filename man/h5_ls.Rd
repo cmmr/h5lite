@@ -15,8 +15,28 @@ h5_ls(file, name = "/", recursive = TRUE)
 under \code{name}. If \code{FALSE}, lists only the immediate children of \code{name}.}
 }
 \value{
-A character vector of object names (relative paths).
+A character vector of object names. If \code{name} is \code{/} (the default),
+the paths are relative to the root of the file. If \code{name} is another group,
+the paths are relative to that group.
 }
 \description{
-Lists the names of objects (datasets and groups) within an HDF5 file.
+Lists the names of objects (datasets and groups) within an HDF5 file or group.
+}
+\examples{
+file <- tempfile(fileext = ".h5")
+
+# Create some nested objects
+h5_write(file, "g1/d1", 1)
+h5_write(file, "g1/g2/d2", 2)
+
+# List recursively from the root (default)
+h5_ls(file) # c("g1", "g1/d1", "g1/g2", "g1/g2/d2")
+
+# List recursively from a subgroup
+h5_ls(file, name = "g1") # c("d1", "g2", "g2/d2")
+
+unlink(file)
+}
+\seealso{
+\code{\link[=h5_ls_attr]{h5_ls_attr()}}
 }

@@ -12,7 +12,7 @@ h5_dim(file, name)
 \item{name}{Name of the dataset.}
 }
 \value{
-Integer vector of dimensions, or \code{integer(0)} for scalars.
+An integer vector of dimensions, or \code{integer(0)} for scalars.
 }
 \description{
 Returns the dimensions of a dataset as an integer vector.
@@ -28,4 +28,7 @@ h5_write(file, "matrix", mat)
 h5_dim(file, "matrix") # Returns c(2, 5)
 
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_dim_attr]{h5_dim_attr()}}
 }

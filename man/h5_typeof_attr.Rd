@@ -14,7 +14,7 @@ h5_typeof_attr(file, name, attribute)
 \item{attribute}{Name of the attribute.}
 }
 \value{
-A string representing the HDF5 storage type.
+A character string representing the HDF5 storage type.
 }
 \description{
 Returns the low-level HDF5 storage type of an attribute.
@@ -27,4 +27,7 @@ h5_write_attr(file, "data", "meta", "info", dims = NULL)
 h5_typeof_attr(file, "data", "meta") # "STRING"
 
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_typeof]{h5_typeof()}}
 }

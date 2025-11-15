@@ -11,6 +11,9 @@ h5_create_group(file, name)
 
 \item{name}{The full path of the group to create (e.g., "/g1/g2").}
 }
+\value{
+Invisibly returns \code{NULL}. This function is called for its side effects.
+}
 \description{
 Explicitly creates a new group (or nested groups) in an HDF5 file.
 This is useful for creating an empty group structure.
@@ -20,6 +23,7 @@ file <- tempfile(fileext = ".h5")
 
 h5_create_group(file, "/my/nested/group")
 
-h5_ls(file)
+# List all objects recursively to see the full structure
+h5_ls(file, recursive = TRUE)
 unlink(file)
 }

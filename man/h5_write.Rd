@@ -30,6 +30,9 @@ Defaults to \code{dim(data)} if it exists, or \code{length(data)} otherwise.}
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
 An integer \code{1-9} specifies the zlib compression level directly.}
 }
+\value{
+Invisibly returns \code{NULL}. This function is called for its side effects.
+}
 \description{
 Writes an R object to an HDF5 file as a dataset. The file is created if
 it does not exist. Handles dimension transposition automatically.
@@ -63,4 +66,28 @@ For non-numeric data (\code{character}, \code{factor}, \code{raw}, \code{logical
 type is determined automatically and \strong{cannot be changed} by the \code{dtype}
 argument. R \code{logical} vectors are stored as 8-bit unsigned integers (\code{uint8}),
 as HDF5 does not have a native boolean datatype.
+}
+\examples{
+file <- tempfile(fileext = ".h5")
+
+# Write a simple vector (dtype is auto-detected as uint8)
+h5_write(file, "vec1", 1:20)
+h5_typeof(file, "vec1") # "uint8"
+
+# Write a matrix, letting h5_write determine dimensions
+mat <- matrix(rnorm(12), nrow = 4, ncol = 3)
+h5_write(file, "group/mat", mat)
+h5_dim(file, "group/mat") # c(4, 3)
+
+# Overwrite the first vector, forcing a 32-bit integer type
+h5_write(file, "vec1", 101:120, dtype = "int32")
+h5_typeof(file, "vec1") # "int32"
+
+# Write a scalar value
+h5_write(file, "scalar", 3.14, dims = NULL)
+
+unlink(file)
+}
+\seealso{
+\code{\link[=h5_write_attr]{h5_write_attr()}}
 }

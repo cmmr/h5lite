@@ -34,6 +34,7 @@ static hid_t open_or_create_file(const char *fname) {
 }
 
 /* --- HELPER: Create Dataspace from R dims --- */
+/* --- HELPER: Create Dataspace from R dims --- */
 static hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims) {
   hid_t space_id = -1;
   *out_h5_dims = NULL;
@@ -48,8 +49,8 @@ static hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out
     *out_rank = (int)length(dims);
     if (*out_rank == 0) error("dims must be NULL or a vector");
     
-    hsize_t *h5_dims = (hsize_t *)malloc(*out_rank * sizeof(hsize_t));
-    if (!h5_dims) error("Memory allocation failed");
+    /* R_alloc takes (n, size). No check for NULL needed. */
+    hsize_t *h5_dims = (hsize_t *)R_alloc(*out_rank, sizeof(hsize_t));
     
     int *r_dims = INTEGER(dims);
     hsize_t total_elements = 1;
@@ -59,13 +60,53 @@ static hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out
     }
     
     if (total_elements != (hsize_t)XLENGTH(data)) {
-      free(h5_dims);
+      /* No free(h5_dims) needed here! R handles it. */
       error("Dimensions do not match data length");
     }
     *out_h5_dims = h5_dims;
     space_id = H5Screate_simple(*out_rank, h5_dims, NULL);
   }
   return space_id;
+}
+
+/* --- HELPER: Calculate Chunk Dimensions (Target ~1MB) --- */
+static void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
+  hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
+  hsize_t current_bytes = type_size;
+  
+  /* 1. Start with the full dimensions */
+  for (int i = 0; i < rank; i++) {
+    out_chunk_dims[i] = dims[i];
+    current_bytes *= dims[i];
+  }
+  
+  /* 2. If the dataset is small (< 1MB), just use one chunk (full dims) */
+  if (current_bytes <= TARGET_SIZE) {
+    return;
+  }
+  
+  /* 3. Iteratively reduce dimensions until we fit in the target size */
+  while (current_bytes > TARGET_SIZE) {
+    /* Find the largest dimension */
+    int max_idx = 0;
+    for (int i = 1; i < rank; i++) {
+      if (out_chunk_dims[i] > out_chunk_dims[max_idx]) {
+        max_idx = i;
+      }
+    }
+    
+    /* Safety check: if largest dim is 1, we can't shrink anymore */
+    if (out_chunk_dims[max_idx] <= 1) break;
+    
+    /* Halve the largest dimension (ceiling division) */
+    out_chunk_dims[max_idx] = (out_chunk_dims[max_idx] + 1) / 2;
+    
+    /* Recalculate total bytes */
+    current_bytes = type_size;
+    for (int i = 0; i < rank; i++) {
+      current_bytes *= out_chunk_dims[i];
+    }
+  }
 }
 
 /* --- HELPER: Memory Type (What is it in R?) --- */
@@ -185,8 +226,21 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   
   /* Create Dataset Creation Property List for compression */
   hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+  
+  /* Only chunk if compression is requested or we explicitly want chunking */
   if (compress > 0 && rank > 0) {
-    H5Pset_chunk(dcpl_id, rank, h5_dims);
+    
+    /* Get element size (e.g., 4 bytes for int, 8 for double) */
+    size_t type_size = H5Tget_size(file_type_id);
+    
+    /* Heuristic for choosing a chunk size */
+    hsize_t *chunk_dims = (hsize_t *) R_alloc(rank, sizeof(hsize_t));
+    calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
+    H5Pset_chunk(dcpl_id, rank, chunk_dims);
+    
+    /* Enable Shuffle: Only useful if element size > 1 byte */
+    if (type_size > 1) H5Pset_shuffle(dcpl_id);
+    
     H5Pset_deflate(dcpl_id, (unsigned int)compress);
   }
   

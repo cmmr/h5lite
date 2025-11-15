@@ -12,7 +12,7 @@ h5_read(file, name)
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 }
 \value{
-A \code{numeric}, \code{character}, or \code{raw} vector/array.
+A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.
 }
 \description{
 Reads a dataset from an HDF5 file and returns it as an R object.
@@ -21,6 +21,7 @@ Reads a dataset from an HDF5 file and returns it as an R object.
 \itemize{
 \item Numeric datasets are read as \code{numeric} (double) to prevent overflow.
 \item String datasets are read as \code{character}.
+\item \code{ENUM} datasets are read as \code{factor}.
 \item 1-byte \code{OPAQUE} datasets are read as \code{raw}.
 }
 
@@ -32,13 +33,23 @@ file <- tempfile(fileext = ".h5")
 # Write a matrix
 mat <- matrix(1:12, nrow = 3, ncol = 4)
 h5_write(file, "example_matrix", mat)
+# Write a factor
+fac <- factor(c("a", "b", "a", "c"))
+h5_write(file, "example_factor", fac)
 
 # Read it back
 mat2 <- h5_read(file, "example_matrix")
-print(mat2)
+fac2 <- h5_read(file, "example_factor")
 
-# Verify equality
+# Print and verify
+print(mat2)
 all.equal(mat, mat2)
 
+print(fac2)
+all.equal(fac, fac2)
+
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_read_attr]{h5_read_attr()}}
 }

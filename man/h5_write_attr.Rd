@@ -21,6 +21,9 @@ h5_write_attr(file, name, attribute, data, dtype = "auto", dims = length(data))
 \item{dims}{An integer vector specifying dimensions, or \code{NULL} for a scalar.
 Defaults to \code{dim(data)} or \code{length(data)}.}
 }
+\value{
+Invisibly returns \code{NULL}. This function is called for its side effects.
+}
 \description{
 Writes an R object as an attribute to an existing HDF5 object.
 }
@@ -53,4 +56,24 @@ For non-numeric data (\code{character}, \code{factor}, \code{raw}, \code{logical
 type is determined automatically and \strong{cannot be changed} by the \code{dtype}
 argument. R \code{logical} vectors are stored as 8-bit unsigned integers (\code{uint8}),
 as HDF5 does not have a native boolean datatype.
+}
+\examples{
+file <- tempfile(fileext = ".h5")
+
+# First, create an object to attach attributes to
+h5_write(file, "my_data", 1:10)
+
+# Write a scalar string attribute
+h5_write_attr(file, "my_data", "units", "meters", dims = NULL)
+
+# Write a numeric vector attribute
+h5_write_attr(file, "my_data", "range", c(0, 100))
+
+# List attributes to confirm they were written
+h5_ls_attr(file, "my_data")
+
+unlink(file)
+}
+\seealso{
+\code{\link[=h5_write]{h5_write()}}
 }

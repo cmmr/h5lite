@@ -18,3 +18,6 @@ A character vector of attribute names.
 \description{
 Lists the names of attributes attached to a specific HDF5 object.
 }
+\seealso{
+\code{\link[=h5_ls]{h5_ls()}}
+}

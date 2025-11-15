@@ -13,16 +13,22 @@ h5_delete_attr(file, name, attribute)
 
 \item{attribute}{The name of the attribute to delete.}
 }
+\value{
+Invisibly returns \code{NULL}. This function is called for its side effects.
+}
 \description{
 Deletes an attribute from an object.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-h5_write_attr(file, "data", "attr1", 123, dims = NULL)
-h5_ls_attr(file, "data") # "attr1"
+h5_write_attr(file, "data", "attr1", "some info")
+print(h5_ls_attr(file, "data")) # "attr1"
 
 h5_delete_attr(file, "data", "attr1")
-h5_ls_attr(file, "data") # character(0)
+print(h5_ls_attr(file, "data")) # character(0)
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_delete]{h5_delete()}}, \code{\link[=h5_delete_group]{h5_delete_group()}}
 }

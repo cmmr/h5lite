@@ -11,16 +11,22 @@ h5_delete(file, name)
 
 \item{name}{The full path of the dataset to delete.}
 }
+\value{
+Invisibly returns \code{NULL}. This function is called for its side effects.
+}
 \description{
-Deletes a dataset from an HDF5 file.
+Deletes a dataset from an HDF5 file. This function will not delete a group.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_write(file, "dset1", 1:10)
 h5_write(file, "dset2", 1:5)
-h5_ls(file)
+print(h5_ls(file))
 
 h5_delete(file, "dset1")
-h5_ls(file)
+print(h5_ls(file))
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_delete_attr]{h5_delete_attr()}}, \code{\link[=h5_delete_group]{h5_delete_group()}}
 }

@@ -14,7 +14,7 @@ h5_dim_attr(file, name, attribute)
 \item{attribute}{Name of the attribute.}
 }
 \value{
-Integer vector of dimensions, or \code{integer(0)} for scalars.
+An integer vector of dimensions, or \code{integer(0)} for scalars.
 }
 \description{
 Returns the dimensions of an attribute.
@@ -27,4 +27,7 @@ h5_write_attr(file, "data", "vec_attr", 1:10)
 h5_dim_attr(file, "data", "vec_attr") # 10
 
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_dim]{h5_dim()}}
 }

@@ -12,7 +12,7 @@ h5_typeof(file, name)
 \item{name}{Name of the dataset.}
 }
 \value{
-A string representing the HDF5 storage type.
+A character string representing the HDF5 storage type (e.g., "float64", "int32", "STRING").
 }
 \description{
 Returns the low-level HDF5 storage type of a dataset (e.g., "INT", "FLOAT", "STRING").
@@ -27,8 +27,11 @@ h5_write(file, "integers", 1:5)
 h5_write(file, "doubles", c(1.1, 2.2))
 
 # Check types
-h5_typeof(file, "integers") # "uint8"
-h5_typeof(file, "doubles")  # "float16"
+h5_typeof(file, "integers") # "uint8" (auto-selected)
+h5_typeof(file, "doubles")  # "float64" (auto-selected)
 
 unlink(file)
+}
+\seealso{
+\code{\link[=h5_typeof_attr]{h5_typeof_attr()}}
 }

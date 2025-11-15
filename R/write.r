@@ -93,7 +93,29 @@ get_best_dtype <- function(data, dtype) {
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
+#' @return Invisibly returns \code{NULL}. This function is called for its side effects.
+#' @seealso [h5_write_attr()]
 #' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#' 
+#' # Write a simple vector (dtype is auto-detected as uint8)
+#' h5_write(file, "vec1", 1:20)
+#' h5_typeof(file, "vec1") # "uint8"
+#' 
+#' # Write a matrix, letting h5_write determine dimensions
+#' mat <- matrix(rnorm(12), nrow = 4, ncol = 3)
+#' h5_write(file, "group/mat", mat)
+#' h5_dim(file, "group/mat") # c(4, 3)
+#' 
+#' # Overwrite the first vector, forcing a 32-bit integer type
+#' h5_write(file, "vec1", 101:120, dtype = "int32")
+#' h5_typeof(file, "vec1") # "int32"
+#' 
+#' # Write a scalar value
+#' h5_write(file, "scalar", 3.14, dims = NULL)
+#' 
+#' unlink(file)
 h5_write <- function(file, name, data,
                      dtype = "auto",
                      dims = length(data),
@@ -105,6 +127,7 @@ h5_write <- function(file, name, data,
   if (missing(dims) && !is.null(dim(data))) dims <- dim(data)
   
   .Call("C_h5_write_dataset", file, name, data, dtype, dims, level, PACKAGE = "h5lite")
+  invisible(NULL)
 }
 
 #' Write an Attribute to HDF5
@@ -146,7 +169,25 @@ h5_write <- function(file, name, data,
 #' 
 #' @param dims An integer vector specifying dimensions, or \code{NULL} for a scalar.
 #'   Defaults to \code{dim(data)} or \code{length(data)}.
+#' @return Invisibly returns \code{NULL}. This function is called for its side effects.
+#' @seealso [h5_write()]
 #' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#' 
+#' # First, create an object to attach attributes to
+#' h5_write(file, "my_data", 1:10)
+#' 
+#' # Write a scalar string attribute
+#' h5_write_attr(file, "my_data", "units", "meters", dims = NULL)
+#' 
+#' # Write a numeric vector attribute
+#' h5_write_attr(file, "my_data", "range", c(0, 100))
+#' 
+#' # List attributes to confirm they were written
+#' h5_ls_attr(file, "my_data")
+#' 
+#' unlink(file)
 h5_write_attr <- function(file, name, attribute, data, 
                           dtype = "auto", 
                           dims = length(data)) {
@@ -161,6 +202,7 @@ h5_write_attr <- function(file, name, attribute, data,
   if (missing(dims) && !is.null(dim(data))) dims <- dim(data)
   
   .Call("C_h5_write_attribute", file, name, attribute, data, dtype, dims, PACKAGE = "h5lite")
+  invisible(NULL)
 }
 
 #' Create an HDF5 Group
@@ -170,15 +212,18 @@ h5_write_attr <- function(file, name, attribute, data,
 #'
 #' @param file Path to the HDF5 file.
 #' @param name The full path of the group to create (e.g., "/g1/g2").
+#' @return Invisibly returns \code{NULL}. This function is called for its side effects.
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
 #' 
 #' h5_create_group(file, "/my/nested/group")
 #' 
-#' h5_ls(file)
+#' # List all objects recursively to see the full structure
+#' h5_ls(file, recursive = TRUE)
 #' unlink(file)
 h5_create_group <- function(file, name) {
   file <- path.expand(file)
   .Call("C_h5_create_group", file, name, PACKAGE = "h5lite")
+  invisible(NULL)
 }

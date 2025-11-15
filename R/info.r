@@ -1,13 +1,31 @@
 #' List HDF5 Objects
 #' 
-#' Lists the names of objects (datasets and groups) within an HDF5 file.
+#' Lists the names of objects (datasets and groups) within an HDF5 file or group.
 #'
 #' @param file Path to the HDF5 file.
 #' @param name The group path to start listing from. Defaults to the root group "/".
 #' @param recursive If \code{TRUE} (default), lists all objects found recursively 
 #'   under \code{name}. If \code{FALSE}, lists only the immediate children of \code{name}.
-#' @return A character vector of object names (relative paths).
+#' @return A character vector of object names. If `name` is `/` (the default),
+#'   the paths are relative to the root of the file. If `name` is another group,
+#'   the paths are relative to that group.
+#' 
+#' @seealso [h5_ls_attr()]
 #' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#' 
+#' # Create some nested objects
+#' h5_write(file, "g1/d1", 1)
+#' h5_write(file, "g1/g2/d2", 2)
+#' 
+#' # List recursively from the root (default)
+#' h5_ls(file) # c("g1", "g1/d1", "g1/g2", "g1/g2/d2")
+#' 
+#' # List recursively from a subgroup
+#' h5_ls(file, name = "g1") # c("d1", "g2", "g2/d2")
+#' 
+#' unlink(file)
 h5_ls <- function(file, name = "/", recursive = TRUE) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
@@ -23,6 +41,8 @@ h5_ls <- function(file, name = "/", recursive = TRUE) {
 #' @param name The path to the object (dataset or group) to query. 
 #'   Use "/" for the file's root attributes.
 #' @return A character vector of attribute names.
+#' 
+#' @seealso [h5_ls()]
 #' @export
 h5_ls_attr <- function(file, name) {
   file <- path.expand(file)
@@ -38,7 +58,9 @@ h5_ls_attr <- function(file, name) {
 #' 
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset.
-#' @return A string representing the HDF5 storage type.
+#' @return A character string representing the HDF5 storage type (e.g., "float64", "int32", "STRING").
+#' 
+#' @seealso [h5_typeof_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -49,8 +71,8 @@ h5_ls_attr <- function(file, name) {
 #' h5_write(file, "doubles", c(1.1, 2.2))
 #' 
 #' # Check types
-#' h5_typeof(file, "integers") # "uint8"
-#' h5_typeof(file, "doubles")  # "float16"
+#' h5_typeof(file, "integers") # "uint8" (auto-selected)
+#' h5_typeof(file, "doubles")  # "float64" (auto-selected)
 #' 
 #' unlink(file)
 h5_typeof <- function(file, name) {
@@ -66,7 +88,9 @@ h5_typeof <- function(file, name) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object attached to.
 #' @param attribute Name of the attribute.
-#' @return A string representing the HDF5 storage type.
+#' @return A character string representing the HDF5 storage type.
+#' 
+#' @seealso [h5_typeof()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -89,7 +113,9 @@ h5_typeof_attr <- function(file, name, attribute) {
 #' 
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset.
-#' @return Integer vector of dimensions, or \code{integer(0)} for scalars.
+#' @return An integer vector of dimensions, or \code{integer(0)} for scalars.
+#' 
+#' @seealso [h5_dim_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -114,7 +140,9 @@ h5_dim <- function(file, name) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object attached to.
 #' @param attribute Name of the attribute.
-#' @return Integer vector of dimensions, or \code{integer(0)} for scalars.
+#' @return An integer vector of dimensions, or \code{integer(0)} for scalars.
+#' 
+#' @seealso [h5_dim()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
