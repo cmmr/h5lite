@@ -261,7 +261,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   H5Pclose(dcpl_id);
   
   if (dset_id < 0) {
-    if(h5_dims) free(h5_dims);
+    /* No free(h5_dims) needed here! R handles it. */
     H5Sclose(space_id); H5Tclose(file_type_id); H5Fclose(file_id);
     error("Failed to create dataset");
   }
@@ -324,7 +324,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
     }
   }
   
-  if (h5_dims) free(h5_dims);
+  /* No free(h5_dims) needed here! R handles it. */
   H5Dclose(dset_id); H5Tclose(file_type_id); H5Sclose(space_id); H5Fclose(file_id);
   
   if (status < 0) error("Failed to write data to dataset: %s", dname);
@@ -349,7 +349,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   
   hid_t obj_id = H5Oopen(file_id, oname, H5P_DEFAULT);
   if (obj_id < 0) {
-    if(h5_dims) { free(h5_dims); }
+    /* No free(h5_dims) needed here! R handles it. */
     H5Sclose(space_id); 
     H5Tclose(file_type_id); 
     H5Fclose(file_id);
@@ -365,7 +365,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   
   hid_t attr_id = H5Acreate2(obj_id, aname, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
   if (attr_id < 0) {
-    if(h5_dims) { free(h5_dims); }
+    /* No free(h5_dims) needed here! R handles it. */
     H5Oclose(obj_id); 
     H5Sclose(space_id); 
     H5Tclose(file_type_id); 
@@ -427,7 +427,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
     }
   }
   
-  if (h5_dims) free(h5_dims);
+  /* No free(h5_dims) needed here! R handles it. */
   H5Aclose(attr_id); H5Tclose(file_type_id); H5Sclose(space_id); H5Oclose(obj_id); H5Fclose(file_id);
   
   if (status < 0) error("Failed to write data to attribute: %s", aname);

@@ -1,6 +1,7 @@
 #' Helper to find the smallest fitting data type for numeric data
 #' @param data The numeric or integer vector.
 #' @return A string representing the best HDF5 data type.
+#' @noRd
 #' @keywords internal
 get_best_dtype <- function(data, dtype) {
   
