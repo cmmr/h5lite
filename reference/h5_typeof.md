@@ -22,7 +22,12 @@ h5_typeof(file, name)
 
 ## Value
 
-A string representing the HDF5 storage type.
+A character string representing the HDF5 storage type (e.g., "float64",
+"int32", "STRING").
+
+## See also
+
+[`h5_typeof_attr()`](https://cmmr.github.io/h5lite/reference/h5_typeof_attr.md)
 
 ## Examples
 
@@ -31,15 +36,13 @@ file <- tempfile(fileext = ".h5")
 
 # Write integers
 h5_write(file, "integers", 1:5)
-#> NULL
 # Write doubles
 h5_write(file, "doubles", c(1.1, 2.2))
-#> NULL
 
 # Check types
-h5_typeof(file, "integers") # "uint8"
+h5_typeof(file, "integers") # "uint8" (auto-selected)
 #> [1] "uint8"
-h5_typeof(file, "doubles")  # "float16"
+h5_typeof(file, "doubles")  # "float64" (auto-selected)
 #> [1] "float64"
 
 unlink(file)

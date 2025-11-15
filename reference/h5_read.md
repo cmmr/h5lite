@@ -20,7 +20,7 @@ h5_read(file, name)
 
 ## Value
 
-A `numeric`, `character`, or `raw` vector/array.
+A `numeric`, `character`, `factor`, or `raw` vector/array.
 
 ## Details
 
@@ -28,9 +28,15 @@ A `numeric`, `character`, or `raw` vector/array.
 
 - String datasets are read as `character`.
 
+- `ENUM` datasets are read as `factor`.
+
 - 1-byte `OPAQUE` datasets are read as `raw`.
 
 Dimensions are preserved and transposed to match R's column-major order.
+
+## See also
+
+[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md)
 
 ## Examples
 
@@ -40,18 +46,27 @@ file <- tempfile(fileext = ".h5")
 # Write a matrix
 mat <- matrix(1:12, nrow = 3, ncol = 4)
 h5_write(file, "example_matrix", mat)
-#> NULL
+# Write a factor
+fac <- factor(c("a", "b", "a", "c"))
+h5_write(file, "example_factor", fac)
 
 # Read it back
 mat2 <- h5_read(file, "example_matrix")
+fac2 <- h5_read(file, "example_factor")
+
+# Print and verify
 print(mat2)
 #>      [,1] [,2] [,3] [,4]
 #> [1,]    1    4    7   10
 #> [2,]    2    5    8   11
 #> [3,]    3    6    9   12
-
-# Verify equality
 all.equal(mat, mat2)
+#> [1] TRUE
+
+print(fac2)
+#> [1] a b a c
+#> Levels: a b c
+all.equal(fac, fac2)
 #> [1] TRUE
 
 unlink(file)

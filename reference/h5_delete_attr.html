@@ -57,20 +57,25 @@
 <dd><p>The name of the attribute to delete.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p>Invisibly returns <code>NULL</code>. This function is called for its side effects.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="h5_delete.html">h5_delete()</a></code>, <code><a href="h5_delete_group.html">h5_delete_group()</a></code></p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="fu"><a href="h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span>, <span class="st">"attr1"</span>, <span class="fl">123</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="fu"><a href="h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span><span class="op">)</span> <span class="co"># "attr1"</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span>, <span class="st">"attr1"</span>, <span class="st">"some info"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span><span class="op">)</span><span class="op">)</span> <span class="co"># "attr1"</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "attr1"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">h5_delete_attr</span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span>, <span class="st">"attr1"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="fu"><a href="h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span><span class="op">)</span> <span class="co"># character(0)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span><span class="op">)</span><span class="op">)</span> <span class="co"># character(0)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> character(0)</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

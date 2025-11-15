@@ -58,7 +58,11 @@ This allows inspecting the file storage type before reading the data into R.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A string representing the HDF5 storage type.</p>
+    <p>A character string representing the HDF5 storage type (e.g., "float64", "int32", "STRING").</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="h5_typeof_attr.html">h5_typeof_attr()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -67,15 +71,13 @@ This allows inspecting the file storage type before reading the data into R.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Write integers</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"integers"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-in"><span><span class="co"># Write doubles</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"doubles"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check types</span></span></span>
-<span class="r-in"><span><span class="fu">h5_typeof</span><span class="op">(</span><span class="va">file</span>, <span class="st">"integers"</span><span class="op">)</span> <span class="co"># "uint8"</span></span></span>
+<span class="r-in"><span><span class="fu">h5_typeof</span><span class="op">(</span><span class="va">file</span>, <span class="st">"integers"</span><span class="op">)</span> <span class="co"># "uint8" (auto-selected)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "uint8"</span>
-<span class="r-in"><span><span class="fu">h5_typeof</span><span class="op">(</span><span class="va">file</span>, <span class="st">"doubles"</span><span class="op">)</span>  <span class="co"># "float16"</span></span></span>
+<span class="r-in"><span><span class="fu">h5_typeof</span><span class="op">(</span><span class="va">file</span>, <span class="st">"doubles"</span><span class="op">)</span>  <span class="co"># "float64" (auto-selected)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "float64"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>

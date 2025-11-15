@@ -24,17 +24,19 @@ h5_dim_attr(file, name, attribute)
 
 ## Value
 
-Integer vector of dimensions, or `integer(0)` for scalars.
+An integer vector of dimensions, or `integer(0)` for scalars.
+
+## See also
+
+[`h5_dim()`](https://cmmr.github.io/h5lite/reference/h5_dim.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-#> NULL
 
 h5_write_attr(file, "data", "vec_attr", 1:10)
-#> NULL
 h5_dim_attr(file, "data", "vec_attr") # 10
 #> [1] 10
 

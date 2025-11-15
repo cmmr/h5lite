@@ -57,7 +57,6 @@ dataset.
 sensor_data <- matrix(rnorm(12, mean = 25, sd = 0.5), nrow = 3, ncol = 4)
 
 h5_write(file, "experiment_1/sensor_readings", sensor_data)
-#> NULL
 ```
 
 That’s it! You’ve just created an HDF5 file and stored a matrix in it.
@@ -79,7 +78,6 @@ identifiers, explicitly telling `h5lite` to use a 32-bit integer type.
 ``` r
 trial_ids <- 1L:12L
 h5_write(file, "experiment_1/trial_ids", trial_ids, dtype = "int32")
-#> NULL
 ```
 
 ### Writing Scalars
@@ -89,7 +87,6 @@ specify `dims = NULL`.
 
 ``` r
 h5_write(file, "experiment_1/run_id", "run-abc-123", dims = NULL)
-#> NULL
 ```
 
 ## 2. Inspecting the File
@@ -174,11 +171,9 @@ Let’s add some attributes to our `sensor_readings` dataset.
 ``` r
 # Add a scalar string attribute for units
 h5_write_attr(file, "experiment_1/sensor_readings", "units", "celsius", dims = NULL)
-#> NULL
 
 # Add a numeric vector attribute for calibration coefficients
 h5_write_attr(file, "experiment_1/sensor_readings", "calibration", c(1.02, -0.5))
-#> NULL
 ```
 
 You can list and read attributes using
@@ -209,7 +204,6 @@ character labels.
 conditions <- as.factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))
 
 h5_write(file, "experiment_1/conditions", conditions)
-#> NULL
 
 # Let's check the on-disk type
 h5_typeof(file, "experiment_1/conditions")
@@ -230,7 +224,6 @@ sequence of bytes.
 ``` r
 binary_blob <- as.raw(c(0xDE, 0xAD, 0xBE, 0xEF))
 h5_write(file, "experiment_1/binary_config", binary_blob)
-#> NULL
 
 read_blob <- h5_read(file, "experiment_1/binary_config")
 identical(binary_blob, read_blob)
@@ -250,7 +243,6 @@ h5_read(file, "experiment_1/run_id")
 
 # Overwrite with a new value
 h5_write(file, "experiment_1/run_id", "run-xyz-987", dims = NULL)
-#> NULL
 
 h5_read(file, "experiment_1/run_id")
 #> [1] "run-xyz-987"
@@ -263,19 +255,14 @@ You can explicitly delete datasets, groups, or attributes.
 ``` r
 # Delete a single dataset
 h5_delete(file, "experiment_1/trial_ids")
-#> NULL
 
 # Delete an attribute
 h5_delete_attr(file, "experiment_1/sensor_readings", "calibration")
-#> NULL
 
 # Delete an entire group and all its contents
 h5_delete_group(file, "experiment_1/binary_config") # This will fail, as it's a dataset
-#> NULL
 h5_create_group(file, "old_data/logs")
-#> NULL
 h5_delete_group(file, "old_data")
-#> NULL
 
 h5_ls(file, recursive = TRUE)
 #> [1] "experiment_1"                 "experiment_1/conditions"     

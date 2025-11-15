@@ -24,17 +24,19 @@ h5_typeof_attr(file, name, attribute)
 
 ## Value
 
-A string representing the HDF5 storage type.
+A character string representing the HDF5 storage type.
+
+## See also
+
+[`h5_typeof()`](https://cmmr.github.io/h5lite/reference/h5_typeof.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-#> NULL
 
 h5_write_attr(file, "data", "meta", "info", dims = NULL)
-#> NULL
 h5_typeof_attr(file, "data", "meta") # "STRING"
 #> [1] "STRING"
 

@@ -58,7 +58,11 @@ These dimensions match the R-style (column-major) interpretation.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Integer vector of dimensions, or <code>integer(0)</code> for scalars.</p>
+    <p>An integer vector of dimensions, or <code>integer(0)</code> for scalars.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="h5_dim_attr.html">h5_dim_attr()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -67,7 +71,6 @@ These dimensions match the R-style (column-major) interpretation.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, nrow <span class="op">=</span> <span class="fl">2</span>, ncol <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"matrix"</span>, <span class="va">mat</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check dims without reading the whole dataset</span></span></span>
 <span class="r-in"><span><span class="fu">h5_dim</span><span class="op">(</span><span class="va">file</span>, <span class="st">"matrix"</span><span class="op">)</span> <span class="co"># Returns c(2, 5)</span></span></span>

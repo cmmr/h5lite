@@ -22,3 +22,7 @@ h5_ls_attr(file, name)
 ## Value
 
 A character vector of attribute names.
+
+## See also
+
+[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md)

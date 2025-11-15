@@ -21,7 +21,11 @@ h5_dim(file, name)
 
 ## Value
 
-Integer vector of dimensions, or `integer(0)` for scalars.
+An integer vector of dimensions, or `integer(0)` for scalars.
+
+## See also
+
+[`h5_dim_attr()`](https://cmmr.github.io/h5lite/reference/h5_dim_attr.md)
 
 ## Examples
 
@@ -30,7 +34,6 @@ file <- tempfile(fileext = ".h5")
 
 mat <- matrix(1:10, nrow = 2, ncol = 5)
 h5_write(file, "matrix", mat)
-#> NULL
 
 # Check dims without reading the whole dataset
 h5_dim(file, "matrix") # Returns c(2, 5)

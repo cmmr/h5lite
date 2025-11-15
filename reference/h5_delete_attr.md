@@ -22,20 +22,26 @@ h5_delete_attr(file, name, attribute)
 
   The name of the attribute to delete.
 
+## Value
+
+Invisibly returns `NULL`. This function is called for its side effects.
+
+## See also
+
+[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md),
+[`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md)
+
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-#> NULL
-h5_write_attr(file, "data", "attr1", 123, dims = NULL)
-#> NULL
-h5_ls_attr(file, "data") # "attr1"
+h5_write_attr(file, "data", "attr1", "some info")
+print(h5_ls_attr(file, "data")) # "attr1"
 #> [1] "attr1"
 
 h5_delete_attr(file, "data", "attr1")
-#> NULL
-h5_ls_attr(file, "data") # character(0)
+print(h5_ls_attr(file, "data")) # character(0)
 #> character(0)
 unlink(file)
 ```

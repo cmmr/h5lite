@@ -36,6 +36,10 @@ h5_write_attr(file, name, attribute, data, dtype = "auto", dims = length(data))
   An integer vector specifying dimensions, or `NULL` for a scalar.
   Defaults to `dim(data)` or `length(data)`.
 
+## Value
+
+Invisibly returns `NULL`. This function is called for its side effects.
+
 ## Details
 
 The `dtype` argument controls the on-disk storage type **for numeric
@@ -71,3 +75,28 @@ For non-numeric data (`character`, `factor`, `raw`, `logical`), the
 storage type is determined automatically and **cannot be changed** by
 the `dtype` argument. R `logical` vectors are stored as 8-bit unsigned
 integers (`uint8`), as HDF5 does not have a native boolean datatype.
+
+## See also
+
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+
+## Examples
+
+``` r
+file <- tempfile(fileext = ".h5")
+
+# First, create an object to attach attributes to
+h5_write(file, "my_data", 1:10)
+
+# Write a scalar string attribute
+h5_write_attr(file, "my_data", "units", "meters", dims = NULL)
+
+# Write a numeric vector attribute
+h5_write_attr(file, "my_data", "range", c(0, 100))
+
+# List attributes to confirm they were written
+h5_ls_attr(file, "my_data")
+#> [1] "units" "range"
+
+unlink(file)
+```

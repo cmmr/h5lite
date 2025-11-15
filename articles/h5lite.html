@@ -118,8 +118,7 @@ dataset.</p>
 <code class="sourceCode R"><span><span class="co"># A 3x4 matrix of sensor data</span></span>
 <span><span class="va">sensor_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">12</span>, mean <span class="op">=</span> <span class="fl">25</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="va">sensor_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="va">sensor_data</span><span class="op">)</span></span></code></pre></div>
 <p>That’s it! You’ve just created an HDF5 file and stored a matrix in
 it.</p>
 <blockquote>
@@ -141,8 +140,7 @@ some integer identifiers, explicitly telling <code>h5lite</code> to use
 a 32-bit integer type.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trial_ids</span> <span class="op">&lt;-</span> <span class="fl">1L</span><span class="op">:</span><span class="fl">12L</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span>, <span class="va">trial_ids</span>, dtype <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span>, <span class="va">trial_ids</span>, dtype <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="writing-scalars">Writing Scalars<a class="anchor" aria-label="anchor" href="#writing-scalars"></a>
@@ -150,8 +148,7 @@ a 32-bit integer type.</p>
 <p>To write a single value as a scalar instead of an array, you must
 specify <code>dims = NULL</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-abc-123"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-abc-123"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -236,11 +233,9 @@ dataset.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Add a scalar string attribute for units</span></span>
 <span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"units"</span>, <span class="st">"celsius"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="co"># Add a numeric vector attribute for calibration coefficients</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.02</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.02</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>You can list and read attributes using <code><a href="../reference/h5_ls_attr.html">h5_ls_attr()</a></code> and
 <code><a href="../reference/h5_read_attr.html">h5_read_attr()</a></code>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
@@ -266,7 +261,6 @@ preserving both the integer values and the character labels.</p>
 <code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span>, <span class="va">conditions</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="co"># Let's check the on-disk type</span></span>
 <span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span><span class="op">)</span></span>
@@ -286,7 +280,6 @@ the data as a sequence of bytes.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">binary_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0xDE</span>, <span class="fl">0xAD</span>, <span class="fl">0xBE</span>, <span class="fl">0xEF</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span>, <span class="va">binary_blob</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="va">read_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">binary_blob</span>, <span class="va">read_blob</span><span class="op">)</span></span>
@@ -307,7 +300,6 @@ you write to an existing path, the old data is replaced.</p>
 <span></span>
 <span><span class="co"># Overwrite with a new value</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-xyz-987"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "run-xyz-987"</span></span></code></pre></div>
@@ -319,19 +311,14 @@ you write to an existing path, the old data is replaced.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Delete a single dataset</span></span>
 <span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="co"># Delete an attribute</span></span>
 <span><span class="fu"><a href="../reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="co"># Delete an entire group and all its contents</span></span>
 <span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span><span class="op">)</span> <span class="co"># This will fail, as it's a dataset</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data/logs"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "experiment_1"                 "experiment_1/conditions"     </span></span>
