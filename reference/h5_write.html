@@ -45,7 +45,7 @@ it does not exist. Handles dimension transposition automatically.</p>
 <span>  <span class="va">file</span>,</span>
 <span>  <span class="va">name</span>,</span>
 <span>  <span class="va">data</span>,</span>
-<span>  dtype <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/typeof.html" class="external-link">typeof</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span>,</span>
+<span>  dtype <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  dims <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span>,</span>
 <span>  compress <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -69,8 +69,7 @@ it does not exist. Handles dimension transposition automatically.</p>
 
 
 <dt id="arg-dtype">dtype<a class="anchor" aria-label="anchor" href="#arg-dtype"></a></dt>
-<dd><p>The target HDF5 data type. Defaults to <code>typeof(data)</code>.
-Options: "double", "integer", "logical", "character", "opaque", "float", etc.</p></dd>
+<dd><p>The target HDF5 data type. Defaults to <code>typeof(data)</code>.</p></dd>
 
 
 <dt id="arg-dims">dims<a class="anchor" aria-label="anchor" href="#arg-dims"></a></dt>
@@ -79,47 +78,36 @@ Defaults to <code>dim(data)</code> if it exists, or <code>length(data)</code> ot
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
-<dd><p>A logical or an integer from 0-9. If <code>TRUE</code> (default),
+<dd><p>A logical or an integer from 0-9. If <code>TRUE</code>,
 compression level 5 is used. If <code>FALSE</code> or <code>0</code>, no compression is used.
 An integer <code>1-9</code> specifies the zlib compression level directly.</p></dd>
 
 </dl></div>
-
     <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 1. Write a vector as a double</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_double"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="fl">2.5</span>, <span class="fl">3.5</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 2. Write integers with compression</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_int_compressed"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">1000</span>, dtype <span class="op">=</span> <span class="st">"integer"</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 3. Write integers, enforcing integer storage on disk (uncompressed)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_int"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, dtype <span class="op">=</span> <span class="st">"integer"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 4. Write a 3D array (uncompressed)</span></span></span>
-<span class="r-in"><span><span class="va">arr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">24</span>, dim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">file</span>, <span class="st">"3d_array"</span>, <span class="va">arr</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 5. Write a raw vector (as 1-byte OPAQUE)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">file</span>, <span class="st">"raw_data"</span>, <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0x01</span>, <span class="fl">0xFF</span>, <span class="fl">0x10</span><span class="op">)</span><span class="op">)</span>, dtype <span class="op">=</span> <span class="st">"opaque"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Verify types</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "3d_array"           "raw_data"           "vec_double"        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4] "vec_int"            "vec_int_compressed"</span>
-<span class="r-in"><span><span class="fu"><a href="h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"raw_data"</span><span class="op">)</span> <span class="co"># "OPAQUE"</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "OPAQUE"</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
-</code></pre></div>
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The <code>dtype</code> argument controls the on-disk storage type <strong>for numeric data only</strong>.</p>
+<p>If <code>dtype</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
+select the most space-efficient type for numeric data that can safely
+represent the full range of values. For example, writing <code>1:100</code> will
+result in an 8-bit unsigned integer (<code>uint8</code>) dataset, which helps minimize
+file size.</p>
+<p>To override this for numeric data, you can specify an exact type. The input
+is case-insensitive and allows for unambiguous partial matching. The full
+list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</code>, <code>"double"</code></p></li>
+<li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
+<li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
+<li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
+<li><p><code>"char"</code>, <code>"short"</code>, <code>"int"</code>, <code>"long"</code>, <code>"llong"</code></p></li>
+<li><p><code>"uchar"</code>, <code>"ushort"</code>, <code>"uint"</code>, <code>"ulong"</code>, <code>"ullong"</code></p></li>
+</ul><p>Note: Types without a bit-width suffix (e.g., <code>"int"</code>, <code>"long"</code>) are system-
+dependent and may have different sizes on different machines. For maximum file
+portability, it is recommended to use types with explicit widths (e.g., <code>"int32"</code>).</p>
+<p>For non-numeric data (<code>character</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the storage
+type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
+argument. R <code>logical</code> vectors are stored as 8-bit unsigned integers (<code>uint8</code>),
+as HDF5 does not have a native boolean datatype.</p>
     </div>
+
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

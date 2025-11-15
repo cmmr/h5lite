@@ -30,17 +30,17 @@ A string representing the HDF5 storage type.
 file <- tempfile(fileext = ".h5")
 
 # Write integers
-h5_write(file, "integers", 1:5, dtype = "integer")
+h5_write(file, "integers", 1:5)
 #> NULL
 # Write doubles
 h5_write(file, "doubles", c(1.1, 2.2))
 #> NULL
 
 # Check types
-h5_typeof(file, "integers") # "INT"
-#> [1] "INT"
-h5_typeof(file, "doubles")  # "DOUBLE"
-#> [1] "DOUBLE"
+h5_typeof(file, "integers") # "uint8"
+#> [1] "uint8"
+h5_typeof(file, "doubles")  # "float16"
+#> [1] "float64"
 
 unlink(file)
 ```

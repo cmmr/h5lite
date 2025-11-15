@@ -79,9 +79,9 @@
 <div class="section level3">
 <h3 id="id_1-write-data">1. Write Data<a class="anchor" aria-label="anchor" href="#id_1-write-data"></a>
 </h3>
-<p>Use <code><a href="reference/h5_write.html">h5_write()</a></code> to write vectors, matrices, or arrays.</p>
+<p>Use <code><a href="reference/h5_write.html">h5_write()</a></code> to write vectors, matrices, or arrays. By default, it automatically chooses the most space-efficient data type.</p>
 <pre><code><span><span class="co"># Write a vector</span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, dtype <span class="op">=</span> <span class="st">"integer"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write an R matrix</span></span>
 <span><span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span>, <span class="fl">4.4</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">2</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
@@ -89,7 +89,7 @@
 <span></span>
 <span><span class="co"># Write a 3D array</span></span>
 <span><span class="va">arr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fl">1L</span><span class="op">:</span><span class="fl">24L</span>, dim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/array"</span>, <span class="va">arr</span>, dtype <span class="op">=</span> <span class="st">"integer"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/array"</span>, <span class="va">arr</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write a scalar (dims = NULL)</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"scalar_string"</span>, <span class="st">"Hello!"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
@@ -106,9 +106,9 @@
 </h3>
 <p>Use <code><a href="reference/h5_ls.html">h5_ls()</a></code> to see the file structure.</p>
 <pre><code><span><span class="co"># List all objects recursively</span></span>
-<span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "data"              "data/array"        "data/matrix"</span></span>
-<span><span class="co">#&gt; [4] "data/vector"       "scalar_string"</span></span>
+<span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "compressed_data" "data"            "data/array"      "data/matrix"</span></span>
+<span><span class="co">#&gt; [5] "data/vector"     "factor_data"     "scalar_string"</span></span>
 <span></span>
 <span><span class="co"># List only the top level</span></span>
 <span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -228,23 +228,21 @@
 <tr class="even">
 <td><strong>Group Creation</strong></td>
 <td>
-<strong>Automatic</strong> (<code>mkdir -p</code>).</td>
+<strong>Automatic</strong>.</td>
 <td>
 <strong>Manual</strong> (requires explicit <code>h5createGroup</code>).</td>
 </tr>
 <tr class="odd">
 <td><strong>Object Overwrite</strong></td>
 <td>
-<strong>Automatic</strong>. <code>h5_write</code> overwrites.</td>
+<strong>Automatic</strong>.</td>
 <td>
 <strong>Manual</strong> (requires check/delete first).</td>
 </tr>
 <tr class="even">
-<td><strong>Chunking/Compression</strong></td>
-<td>
-<strong>Automatic Decompression Only</strong>.</td>
-<td>
-<strong>Full support</strong>.</td>
+<td><strong>Compression</strong></td>
+<td><strong>Automatic gzip (deflate) compression.</strong></td>
+<td><strong>Full manual control over multiple filters (gzip, Szip, etc.).</strong></td>
 </tr>
 </tbody>
 </table>
@@ -256,47 +254,11 @@
 <p><code>h5lite</code> is intentionally simple and is <strong>not</strong> a complete HDF5 wrapper. It focuses on reading and writing R’s atomic vectors, matrices, and arrays.</p>
 <p>Features that are <strong>not supported</strong> include:</p>
 <ul>
-<li><p><strong>Writing Compressed or Chunked Data:</strong> <code>h5lite</code> writes data in a simple, contiguous layout. It does not provide options to set chunking or compression filters (like gzip). It <em>can</em>, however, read data that was compressed by another program.</p></li>
-<li><p><strong>Compound Datatypes:</strong> HDF5’s struct-like <code>H5T_COMPOUND</code> type is not supported. <code>h5lite</code> cannot read or write R data frames as compound types.</p></li>
-<li><p><strong>Complex Datatypes:</strong> <code>H5T_ENUM</code> (enumerations/factors), <code>H5T_BITFIELD</code>, and most <code>H5T_REFERENCE</code> types are not supported.</p></li>
+<li><p><strong>Compound Datatypes:</strong> HDF5’s struct-like <code>H5T_COMPOUND</code> type is not supported for writing. <code>h5lite</code> cannot write R data frames as compound types.</p></li>
+<li><p><strong>Other Complex Datatypes:</strong> <code>H5T_BITFIELD</code> and most <code>H5T_REFERENCE</code> types are not supported.</p></li>
 <li><p><strong>Property Lists:</strong> <code>h5lite</code> does not expose advanced property lists (e.g., for setting fill values, link creation properties, etc.).</p></li>
 </ul>
 <p>If you need any of these advanced features, please use <code>rhdf5</code> or <code>hdf5r</code>.</p>
-</div>
-<div class="section level2">
-<h2 id="file-structure-utility-functions">File Structure Utility Functions<a class="anchor" aria-label="anchor" href="#file-structure-utility-functions"></a>
-</h2>
-<div class="section level3">
-<h3 id="inspecting-on-disk-types">Inspecting On-Disk Types<a class="anchor" aria-label="anchor" href="#inspecting-on-disk-types"></a>
-</h3>
-<p>Since <code>h5_read</code> converts all numbers to <code>double</code> for safety, you can use <code>h5_typeof</code> to see the <em>actual</em> on-disk storage type.</p>
-<pre><code><span><span class="co"># Write data as 32-bit floats and 16-bit integers</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"floats"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, dtype <span class="op">=</span> <span class="st">"float"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"shorts"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, dtype <span class="op">=</span> <span class="st">"short"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"floats"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "FLOAT"</span></span>
-<span><span class="fu"><a href="reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"shorts"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "SHORT"</span></span>
-<span><span class="fu"><a href="reference/h5_typeof_attr.html">h5_typeof_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/matrix"</span>, <span class="st">"scale"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "DOUBLE"</span></span></code></pre>
-</div>
-<div class="section level3">
-<h3 id="inspecting-dimensions">Inspecting Dimensions<a class="anchor" aria-label="anchor" href="#inspecting-dimensions"></a>
-</h3>
-<p>Use <code>h5_dim</code> to check the dimensions of a dataset without reading its (potentially very large) data.</p>
-<pre><code><span><span class="fu"><a href="reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/array"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 2 3 4</span></span></code></pre>
-</div>
-<div class="section level3">
-<h3 id="creating-empty-groups">Creating Empty Groups<a class="anchor" aria-label="anchor" href="#creating-empty-groups"></a>
-</h3>
-<p>If you want to create an empty group structure, use <code>h5_create_group</code>.</p>
-<pre><code><span><span class="fu"><a href="reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/metadata/logs"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "metadata"       "metadata/logs"  "scalar_string"</span></span></code></pre>
-</div>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="license">

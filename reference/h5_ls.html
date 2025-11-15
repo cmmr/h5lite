@@ -63,34 +63,6 @@ under <code>name</code>. If <code>FALSE</code>, lists only the immediate childre
     <p>A character vector of object names (relative paths).</p>
     </div>
 
-    <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Create nested structure</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"group1/data1"</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"group1/subgroup/data2"</span>, <span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"group2/data3"</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># List everything (Recursive)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group1"                "group1/data1"          "group1/subgroup"      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4] "group1/subgroup/data2" "group2"                "group2/data3"         </span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># List top level only</span></span></span>
-<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group1" "group2"</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># List inside a specific group</span></span></span>
-<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, <span class="st">"group1"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "data1"          "subgroup"       "subgroup/data2"</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
-</code></pre></div>
-    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

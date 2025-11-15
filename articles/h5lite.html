@@ -109,8 +109,7 @@ creates a <strong>dataset</strong> inside the HDF5 file and
 automatically handles:</p>
 <ul>
 <li>Creating the HDF5 file itself if it doesn’t exist.</li>
-<li>Creating parent <strong>groups</strong> as needed (like the command
-<code>mkdir -p</code>).</li>
+<li>Creating parent <strong>groups</strong> as needed.</li>
 <li>Overwriting any existing dataset at the same path.</li>
 </ul>
 <p>Let’s start by writing a matrix of simulated sensor readings to a
@@ -132,20 +131,24 @@ creating the dataset <code>sensor_readings</code> inside it.</p>
 <div class="section level3">
 <h3 id="specifying-data-types">Specifying Data Types<a class="anchor" aria-label="anchor" href="#specifying-data-types"></a>
 </h3>
-<p>By default, <code>h5lite</code> saves numeric data as
-<code>double</code> (64-bit float). If you need to control the on-disk
-storage type for efficiency, use the <code>dtype</code> argument. Let’s
-save some integer identifiers.</p>
+<p>By default (<code>dtype = "auto"</code>), <code>h5lite</code>
+automatically chooses the most space-efficient data type that can safely
+store your numeric data. For example, small integers are stored as
+<code>int8</code> or <code>uint8</code> instead of <code>double</code>
+to save space.</p>
+<p>You can override this by specifying a <code>dtype</code>. Let’s save
+some integer identifiers, explicitly telling <code>h5lite</code> to use
+a 32-bit integer type.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">trial_ids</span> <span class="op">&lt;-</span> <span class="fl">1L</span><span class="op">:</span><span class="fl">12L</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span>, <span class="va">trial_ids</span>, dtype <span class="op">=</span> <span class="st">"integer"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span>, <span class="va">trial_ids</span>, dtype <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="writing-scalars">Writing Scalars<a class="anchor" aria-label="anchor" href="#writing-scalars"></a>
 </h3>
-<p>To write a single value (a scalar), you must specify
-<code>dims = NULL</code>.</p>
+<p>To write a single value as a scalar instead of an array, you must
+specify <code>dims = NULL</code>.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-abc-123"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NULL</span></span></code></pre></div>
@@ -191,7 +194,9 @@ type.</li>
 <span><span class="co">#&gt; [1] 3 4</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "INT"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "int32"</span></span>
+<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "float64"</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -276,12 +281,11 @@ preserving both the integer values and the character labels.</p>
 <div class="section level3">
 <h3 id="raw-data">Raw Data<a class="anchor" aria-label="anchor" href="#raw-data"></a>
 </h3>
-<p>To store binary data, use an R <code>raw</code> vector and specify
-<code>dtype = "opaque"</code>. This stores the data as a sequence of
-bytes.</p>
+<p>To store binary data, use an R <code>raw</code> vector. This stores
+the data as a sequence of bytes.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">binary_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0xDE</span>, <span class="fl">0xAD</span>, <span class="fl">0xBE</span>, <span class="fl">0xEF</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span>, <span class="va">binary_blob</span>, dtype <span class="op">=</span> <span class="st">"opaque"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span>, <span class="va">binary_blob</span><span class="op">)</span></span>
 <span><span class="co">#&gt; NULL</span></span>
 <span></span>
 <span><span class="va">read_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span><span class="op">)</span></span>

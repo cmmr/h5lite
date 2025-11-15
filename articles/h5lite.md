@@ -46,7 +46,7 @@ The primary function for writing data is
 creates a **dataset** inside the HDF5 file and automatically handles:
 
 - Creating the HDF5 file itself if it doesn’t exist.
-- Creating parent **groups** as needed (like the command `mkdir -p`).
+- Creating parent **groups** as needed.
 - Overwriting any existing dataset at the same path.
 
 Let’s start by writing a matrix of simulated sensor readings to a
@@ -68,19 +68,24 @@ That’s it! You’ve just created an HDF5 file and stored a matrix in it.
 
 ### Specifying Data Types
 
-By default, `h5lite` saves numeric data as `double` (64-bit float). If
-you need to control the on-disk storage type for efficiency, use the
-`dtype` argument. Let’s save some integer identifiers.
+By default (`dtype = "auto"`), `h5lite` automatically chooses the most
+space-efficient data type that can safely store your numeric data. For
+example, small integers are stored as `int8` or `uint8` instead of
+`double` to save space.
+
+You can override this by specifying a `dtype`. Let’s save some integer
+identifiers, explicitly telling `h5lite` to use a 32-bit integer type.
 
 ``` r
 trial_ids <- 1L:12L
-h5_write(file, "experiment_1/trial_ids", trial_ids, dtype = "integer")
+h5_write(file, "experiment_1/trial_ids", trial_ids, dtype = "int32")
 #> NULL
 ```
 
 ### Writing Scalars
 
-To write a single value (a scalar), you must specify `dims = NULL`.
+To write a single value as a scalar instead of an array, you must
+specify `dims = NULL`.
 
 ``` r
 h5_write(file, "experiment_1/run_id", "run-abc-123", dims = NULL)
@@ -127,7 +132,9 @@ h5_dim(file, "experiment_1/sensor_readings")
 #> [1] 3 4
 
 h5_typeof(file, "experiment_1/trial_ids")
-#> [1] "INT"
+#> [1] "int32"
+h5_typeof(file, "experiment_1/sensor_readings")
+#> [1] "float64"
 ```
 
 ## 3. Reading Data
@@ -217,12 +224,12 @@ identical(conditions, read_conditions)
 
 ### Raw Data
 
-To store binary data, use an R `raw` vector and specify
-`dtype = "opaque"`. This stores the data as a sequence of bytes.
+To store binary data, use an R `raw` vector. This stores the data as a
+sequence of bytes.
 
 ``` r
 binary_blob <- as.raw(c(0xDE, 0xAD, 0xBE, 0xEF))
-h5_write(file, "experiment_1/binary_config", binary_blob, dtype = "opaque")
+h5_write(file, "experiment_1/binary_config", binary_blob)
 #> NULL
 
 read_blob <- h5_read(file, "experiment_1/binary_config")

@@ -10,7 +10,7 @@ h5_write(
   file,
   name,
   data,
-  dtype = typeof(data),
+  dtype = "auto",
   dims = length(data),
   compress = TRUE
 )
@@ -33,8 +33,7 @@ h5_write(
 
 - dtype:
 
-  The target HDF5 data type. Defaults to `typeof(data)`. Options:
-  "double", "integer", "logical", "character", "opaque", "float", etc.
+  The target HDF5 data type. Defaults to `typeof(data)`.
 
 - dims:
 
@@ -43,42 +42,43 @@ h5_write(
 
 - compress:
 
-  A logical or an integer from 0-9. If `TRUE` (default), compression
-  level 5 is used. If `FALSE` or `0`, no compression is used. An integer
-  `1-9` specifies the zlib compression level directly.
+  A logical or an integer from 0-9. If `TRUE`, compression level 5 is
+  used. If `FALSE` or `0`, no compression is used. An integer `1-9`
+  specifies the zlib compression level directly.
 
-## Examples
+## Details
 
-``` r
-file <- tempfile(fileext = ".h5")
+The `dtype` argument controls the on-disk storage type **for numeric
+data only**.
 
-# 1. Write a vector as a double
-h5_write(file, "vec_double", c(1.5, 2.5, 3.5))
-#> NULL
+If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
+select the most space-efficient type for numeric data that can safely
+represent the full range of values. For example, writing `1:100` will
+result in an 8-bit unsigned integer (`uint8`) dataset, which helps
+minimize file size.
 
-# 2. Write integers with compression
-h5_write(file, "vec_int_compressed", 1:1000, dtype = "integer", compress = TRUE)
-#> NULL
+To override this for numeric data, you can specify an exact type. The
+input is case-insensitive and allows for unambiguous partial matching.
+The full list of supported values is:
 
-# 3. Write integers, enforcing integer storage on disk (uncompressed)
-h5_write(file, "vec_int", 1:10, dtype = "integer")
-#> NULL
+- `"auto"`, `"float"`, `"double"`
 
-# 4. Write a 3D array (uncompressed)
-arr <- array(1:24, dim = c(2, 3, 4))
-h5_write(file, "3d_array", arr)
-#> NULL
+- `"float16"`, `"float32"`, `"float64"`
 
-# 5. Write a raw vector (as 1-byte OPAQUE)
-h5_write(file, "raw_data", as.raw(c(0x01, 0xFF, 0x10)), dtype = "opaque")
-#> NULL
+- `"int8"`, `"int16"`, `"int32"`, `"int64"`
 
-# Verify types
-h5_ls(file, recursive = TRUE)
-#> [1] "3d_array"           "raw_data"           "vec_double"        
-#> [4] "vec_int"            "vec_int_compressed"
-h5_typeof(file, "raw_data") # "OPAQUE"
-#> [1] "OPAQUE"
+- `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
-unlink(file)
-```
+- `"char"`, `"short"`, `"int"`, `"long"`, `"llong"`
+
+- `"uchar"`, `"ushort"`, `"uint"`, `"ulong"`, `"ullong"`
+
+Note: Types without a bit-width suffix (e.g., `"int"`, `"long"`) are
+system- dependent and may have different sizes on different machines.
+For maximum file portability, it is recommended to use types with
+explicit widths (e.g., `"int32"`).
+
+For non-numeric data (`character`, `factor`, `raw`, `logical`), the
+storage type is determined automatically and **cannot be changed** by
+the `dtype` argument. R `logical` vectors are stored as 8-bit unsigned
+integers (`uint8`), as HDF5 does not have a native boolean datatype.

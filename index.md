@@ -38,10 +38,11 @@ The API is designed to be simple and predictable.
 ### 1. Write Data
 
 Use [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
-to write vectors, matrices, or arrays.
+to write vectors, matrices, or arrays. By default, it automatically
+chooses the most space-efficient data type.
 
     # Write a vector
-    h5_write(file, "data/vector", 1:10, dtype = "integer")
+    h5_write(file, "data/vector", 1:10)
 
     # Write an R matrix
     mat <- matrix(c(1.1, 2.2, 3.3, 4.4), nrow = 2, ncol = 2)
@@ -49,7 +50,7 @@ to write vectors, matrices, or arrays.
 
     # Write a 3D array
     arr <- array(1L:24L, dim = c(2, 3, 4))
-    h5_write(file, "data/array", arr, dtype = "integer")
+    h5_write(file, "data/array", arr)
 
     # Write a scalar (dims = NULL)
     h5_write(file, "scalar_string", "Hello!", dims = NULL)
@@ -67,9 +68,9 @@ Use [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md) to see
 the file structure.
 
     # List all objects recursively
-    h5_ls(file)
-    #> [1] "data"              "data/array"        "data/matrix"
-    #> [4] "data/vector"       "scalar_string"
+    h5_ls(file, recursive = TRUE)
+    #> [1] "compressed_data" "data"            "data/array"      "data/matrix"
+    #> [5] "data/vector"     "factor_data"     "scalar_string"
 
     # List only the top level
     h5_ls(file, recursive = FALSE)
@@ -153,16 +154,16 @@ explicitly delete objects:
   functional syntax (`h5_read`, `h5_write`) and **bundles its HDF5
   dependency** (via `hdf5lib`) for easy installation.
 
-| Feature                  | `h5lite`                                   | `rhdf5` / `hdf5r`                               |
-|--------------------------|--------------------------------------------|-------------------------------------------------|
-| **API Style**            | Simple R functions (`h5_read`, `h5_write`) | Comprehensive HDF5 API wrappers                 |
-| **Ease of Use**          | **High**. Designed for R users.            | **Medium**. Requires HDF5 knowledge.            |
-| **HDF5 Dependency**      | **Bundled** (via `hdf5lib`)                | Bundled (`rhdf5`) or External (`hdf5r`)         |
-| **Dimension Order**      | **Automatic**. Transposes C \<-\> R order. | **Manual**. User must manage transposing.       |
-| **Integer Reading**      | **Safe** (always `double`).                | **Precise** (can overflow `int`).               |
-| **Group Creation**       | **Automatic** (`mkdir -p`).                | **Manual** (requires explicit `h5createGroup`). |
-| **Object Overwrite**     | **Automatic**. `h5_write` overwrites.      | **Manual** (requires check/delete first).       |
-| **Chunking/Compression** | **Automatic Decompression Only**.          | **Full support**.                               |
+| Feature              | `h5lite`                                   | `rhdf5` / `hdf5r`                                                 |
+|----------------------|--------------------------------------------|-------------------------------------------------------------------|
+| **API Style**        | Simple R functions (`h5_read`, `h5_write`) | Comprehensive HDF5 API wrappers                                   |
+| **Ease of Use**      | **High**. Designed for R users.            | **Medium**. Requires HDF5 knowledge.                              |
+| **HDF5 Dependency**  | **Bundled** (via `hdf5lib`)                | Bundled (`rhdf5`) or External (`hdf5r`)                           |
+| **Dimension Order**  | **Automatic**. Transposes C \<-\> R order. | **Manual**. User must manage transposing.                         |
+| **Integer Reading**  | **Safe** (always `double`).                | **Precise** (can overflow `int`).                                 |
+| **Group Creation**   | **Automatic**.                             | **Manual** (requires explicit `h5createGroup`).                   |
+| **Object Overwrite** | **Automatic**.                             | **Manual** (requires check/delete first).                         |
+| **Compression**      | **Automatic gzip (deflate) compression.**  | **Full manual control over multiple filters (gzip, Szip, etc.).** |
 
 **Conclusion:** Use `rhdf5` or `hdf5r` if you are an advanced user who
 needs fine-grained control over HDF5 file properties. Use `h5lite` if
@@ -177,55 +178,15 @@ arrays.
 
 Features that are **not supported** include:
 
-- **Writing Compressed or Chunked Data:** `h5lite` writes data in a
-  simple, contiguous layout. It does not provide options to set chunking
-  or compression filters (like gzip). It *can*, however, read data that
-  was compressed by another program.
-
 - **Compound Datatypes:** HDF5’s struct-like `H5T_COMPOUND` type is not
-  supported. `h5lite` cannot read or write R data frames as compound
+  supported for writing. `h5lite` cannot write R data frames as compound
   types.
 
-- **Complex Datatypes:** `H5T_ENUM` (enumerations/factors),
-  `H5T_BITFIELD`, and most `H5T_REFERENCE` types are not supported.
+- **Other Complex Datatypes:** `H5T_BITFIELD` and most `H5T_REFERENCE`
+  types are not supported.
 
 - **Property Lists:** `h5lite` does not expose advanced property lists
   (e.g., for setting fill values, link creation properties, etc.).
 
 If you need any of these advanced features, please use `rhdf5` or
 `hdf5r`.
-
-## File Structure Utility Functions
-
-### Inspecting On-Disk Types
-
-Since `h5_read` converts all numbers to `double` for safety, you can use
-`h5_typeof` to see the *actual* on-disk storage type.
-
-    # Write data as 32-bit floats and 16-bit integers
-
-    h5_write(file, "floats", 1:5, dtype = "float")
-    h5_write(file, "shorts", 1:5, dtype = "short")
-
-    h5_typeof(file, "floats")
-    #> [1] "FLOAT"
-    h5_typeof(file, "shorts")
-    #> [1] "SHORT"
-    h5_typeof_attr(file, "data/matrix", "scale")
-    #> [1] "DOUBLE"
-
-### Inspecting Dimensions
-
-Use `h5_dim` to check the dimensions of a dataset without reading its
-(potentially very large) data.
-
-    h5_dim(file, "data/array")
-    #> [1] 2 3 4
-
-### Creating Empty Groups
-
-If you want to create an empty group structure, use `h5_create_group`.
-
-    h5_create_group(file, "/metadata/logs")
-    h5_ls(file)
-    #> [1] "metadata"       "metadata/logs"  "scalar_string"
