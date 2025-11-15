@@ -6,7 +6,7 @@ group.
 ## Usage
 
 ``` r
-h5_ls(file, name = "/", recursive = TRUE)
+h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
 ```
 
 ## Arguments
@@ -22,13 +22,18 @@ h5_ls(file, name = "/", recursive = TRUE)
 - recursive:
 
   If `TRUE` (default), lists all objects found recursively under `name`.
-  If `FALSE`, lists only the immediate children of `name`.
+  If `FALSE`, lists only the immediate children.
+
+- full.names:
+
+  If `TRUE`, the full paths from the file's root are returned. If
+  `FALSE` (the default), names are relative to `name`.
 
 ## Value
 
 A character vector of object names. If `name` is `/` (the default), the
 paths are relative to the root of the file. If `name` is another group,
-the paths are relative to that group.
+the paths are relative to that group (unless `full.names = TRUE`).
 
 ## See also
 

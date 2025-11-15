@@ -1,11 +1,11 @@
-# Read a Dataset from HDF5
+# Read an HDF5 Dataset
 
 Reads a dataset from an HDF5 file and returns it as an R object.
 
 ## Usage
 
 ``` r
-h5_read(file, name)
+h5_read(file, name, attrs = FALSE)
 ```
 
 ## Arguments
@@ -17,6 +17,15 @@ h5_read(file, name)
 - name:
 
   Name of the dataset (e.g., "/data/matrix").
+
+- attrs:
+
+  Controls which HDF5 attributes are read and attached to the returned R
+  object. Can be `FALSE` (the default, no attributes), `TRUE` (all
+  attributes), a character vector of attribute names to include (e.g.,
+  `c("info", "version")`), or a character vector of names to exclude,
+  prefixed with `-` (e.g., `c("-class")`). Non-existent attributes are
+  silently skipped.
 
 ## Value
 

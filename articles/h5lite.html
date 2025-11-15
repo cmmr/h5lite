@@ -247,7 +247,46 @@ dataset.</p>
 <span><span class="co">#&gt; [1] "celsius"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="handling-special-r-types">5. Handling Special R Types<a class="anchor" aria-label="anchor" href="#handling-special-r-types"></a>
+<h2 id="recursive-io-with-lists-h5_write_all-and-h5_read_all">5. Recursive I/O with Lists (<code>h5_write_all</code> and
+<code>h5_read_all</code>)<a class="anchor" aria-label="anchor" href="#recursive-io-with-lists-h5_write_all-and-h5_read_all"></a>
+</h2>
+<p>For more complex data structures, <code>h5lite</code> provides
+<code><a href="../reference/h5_write_all.html">h5_write_all()</a></code> and <code><a href="../reference/h5_read_all.html">h5_read_all()</a></code> to seamlessly
+save and load nested R <code>list</code> objects.</p>
+<ul>
+<li>R <code>list</code> objects are saved as HDF5
+<strong>groups</strong>.</li>
+<li>Attributes on a <code>list</code> are saved as attributes on the
+corresponding group.</li>
+<li>All other objects inside the list (vectors, matrices, etc.) are
+saved as <strong>datasets</strong>.</li>
+</ul>
+<p>This allows you to perform a “round-trip” for a complex R object,
+preserving its structure and metadata.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a nested list with attributes</span></span>
+<span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>version <span class="op">=</span> <span class="fl">1.2</span>, user <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span>,</span>
+<span>  data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    matrix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>    vector <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"This is the data group"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">matrix</span>, <span class="st">"my_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"matrix attribute"</span></span>
+<span></span>
+<span><span class="co"># Write the entire list to a group called "session_data"</span></span>
+<span><span class="fu"><a href="../reference/h5_write_all.html">h5_write_all</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Read it all back in one command</span></span>
+<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read_all.html">h5_read_all</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Verify the round-trip was successful</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">read_list</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="handling-special-r-types">6. Handling Special R Types<a class="anchor" aria-label="anchor" href="#handling-special-r-types"></a>
 </h2>
 <p><code>h5lite</code> has special support for some of R’s unique data
 types.</p>
@@ -257,7 +296,7 @@ types.</p>
 <p>When you write an R <code>factor</code>, <code>h5lite</code>
 automatically saves it as a native HDF5 <code>ENUM</code> type,
 preserving both the integer values and the character labels.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span>, <span class="va">conditions</span><span class="op">)</span></span>
@@ -277,7 +316,7 @@ preserving both the integer values and the character labels.</p>
 </h3>
 <p>To store binary data, use an R <code>raw</code> vector. This stores
 the data as a sequence of bytes.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">binary_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0xDE</span>, <span class="fl">0xAD</span>, <span class="fl">0xBE</span>, <span class="fl">0xEF</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span>, <span class="va">binary_blob</span><span class="op">)</span></span>
 <span></span>
@@ -287,14 +326,14 @@ the data as a sequence of bytes.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="managing-file-contents">6. Managing File Contents<a class="anchor" aria-label="anchor" href="#managing-file-contents"></a>
+<h2 id="managing-file-contents">7. Managing File Contents<a class="anchor" aria-label="anchor" href="#managing-file-contents"></a>
 </h2>
 <div class="section level3">
 <h3 id="overwriting">Overwriting<a class="anchor" aria-label="anchor" href="#overwriting"></a>
 </h3>
 <p><code>h5lite</code> follows an “overwrite-by-default” philosophy. If
 you write to an existing path, the old data is replaced.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "run-abc-123"</span></span>
 <span></span>
@@ -308,7 +347,7 @@ you write to an existing path, the old data is replaced.</p>
 <h3 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
 </h3>
 <p>You can explicitly delete datasets, groups, or attributes.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Delete a single dataset</span></span>
 <span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
 <span></span>
@@ -316,14 +355,18 @@ you write to an existing path, the old data is replaced.</p>
 <span><span class="fu"><a href="../reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Delete an entire group and all its contents</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span><span class="op">)</span> <span class="co"># This will fail, as it's a dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data/logs"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in h5_delete_group(file, "old_data"): Object 'old_data' not found.</span></span>
+<span><span class="co">#&gt; Nothing to delete.</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "experiment_1"                 "experiment_1/conditions"     </span></span>
-<span><span class="co">#&gt; [3] "experiment_1/run_id"          "experiment_1/sensor_readings"</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt;  [1] "experiment_1"                 "experiment_1/binary_config"  </span></span>
+<span><span class="co">#&gt;  [3] "experiment_1/conditions"      "experiment_1/run_id"         </span></span>
+<span><span class="co">#&gt;  [5] "experiment_1/sensor_readings" "session_data"                </span></span>
+<span><span class="co">#&gt;  [7] "session_data/config"          "session_data/config/user"    </span></span>
+<span><span class="co">#&gt;  [9] "session_data/config/version"  "session_data/data"           </span></span>
+<span><span class="co">#&gt; [11] "session_data/data/matrix"     "session_data/data/vector"</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
 </div>

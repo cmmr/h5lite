@@ -11,8 +11,9 @@ h5_write(
   name,
   data,
   dtype = "auto",
-  dims = length(data),
-  compress = TRUE
+  dims = "auto",
+  compress = TRUE,
+  attrs = FALSE
 )
 ```
 
@@ -45,6 +46,15 @@ h5_write(
   A logical or an integer from 0-9. If `TRUE`, compression level 5 is
   used. If `FALSE` or `0`, no compression is used. An integer `1-9`
   specifies the zlib compression level directly.
+
+- attrs:
+
+  Controls which R attributes of `data` are written to the HDF5 dataset.
+  Can be `FALSE` (the default, no attributes), `TRUE` (all attributes
+  except `dim`), a character vector of attribute names to include (e.g.,
+  `c("info", "version")`), or a character vector of names to exclude,
+  prefixed with `-` (e.g., `c("-class")`). Mixing inclusive and
+  exclusive names is not allowed.
 
 ## Value
 

@@ -1,4 +1,4 @@
-# Read an Attribute from HDF5
+# Read an HDF5 Attribute
 
 Reads an attribute associated with an HDF5 object (dataset or group).
 

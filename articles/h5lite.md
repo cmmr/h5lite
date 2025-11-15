@@ -190,7 +190,47 @@ print(units)
 #> [1] "celsius"
 ```
 
-## 5. Handling Special R Types
+## 5. Recursive I/O with Lists (`h5_write_all` and `h5_read_all`)
+
+For more complex data structures, `h5lite` provides
+[`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md)
+and
+[`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md)
+to seamlessly save and load nested R `list` objects.
+
+- R `list` objects are saved as HDF5 **groups**.
+- Attributes on a `list` are saved as attributes on the corresponding
+  group.
+- All other objects inside the list (vectors, matrices, etc.) are saved
+  as **datasets**.
+
+This allows you to perform a “round-trip” for a complex R object,
+preserving its structure and metadata.
+
+``` r
+# Create a nested list with attributes
+my_list <- list(
+  config = list(version = 1.2, user = "test"),
+  data = list(
+    matrix = matrix(1:4, 2),
+    vector = 1:10
+  )
+)
+attr(my_list$data, "info") <- "This is the data group"
+attr(my_list$data$matrix, "my_attr") <- "matrix attribute"
+
+# Write the entire list to a group called "session_data"
+h5_write_all(file, "session_data", my_list)
+
+# Read it all back in one command
+read_list <- h5_read_all(file, "session_data")
+
+# Verify the round-trip was successful
+identical(my_list, read_list)
+#> [1] FALSE
+```
+
+## 6. Handling Special R Types
 
 `h5lite` has special support for some of R’s unique data types.
 
@@ -230,7 +270,7 @@ identical(binary_blob, read_blob)
 #> [1] TRUE
 ```
 
-## 6. Managing File Contents
+## 7. Managing File Contents
 
 ### Overwriting
 
@@ -260,13 +300,17 @@ h5_delete(file, "experiment_1/trial_ids")
 h5_delete_attr(file, "experiment_1/sensor_readings", "calibration")
 
 # Delete an entire group and all its contents
-h5_delete_group(file, "experiment_1/binary_config") # This will fail, as it's a dataset
-h5_create_group(file, "old_data/logs")
 h5_delete_group(file, "old_data")
+#> Warning in h5_delete_group(file, "old_data"): Object 'old_data' not found.
+#> Nothing to delete.
 
 h5_ls(file, recursive = TRUE)
-#> [1] "experiment_1"                 "experiment_1/conditions"     
-#> [3] "experiment_1/run_id"          "experiment_1/sensor_readings"
+#>  [1] "experiment_1"                 "experiment_1/binary_config"  
+#>  [3] "experiment_1/conditions"      "experiment_1/run_id"         
+#>  [5] "experiment_1/sensor_readings" "session_data"                
+#>  [7] "session_data/config"          "session_data/config/user"    
+#>  [9] "session_data/config/version"  "session_data/data"           
+#> [11] "session_data/data/matrix"     "session_data/data/vector"
 ```
 
 ``` r
