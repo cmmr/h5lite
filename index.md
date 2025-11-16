@@ -144,7 +144,7 @@ print(units)
 ### 5. Overwriting & Deleting
 
 Writing to an existing path automatically overwrites the data. Use the
-`h5_delete*` functions to explicitly remove objects.
+`h5_delete_dataset*` functions to explicitly remove objects.
 
 ``` r
 # Overwrite the vector
@@ -153,7 +153,7 @@ h5_read(file, "data/vector")
 #> 99 100
 
 # Delete the dataset
-h5_delete(file, "data/vector")
+h5_delete_dataset(file, "data/vector")
 
 # Delete the attribute
 h5_delete_attr(file, "data/matrix", "units")

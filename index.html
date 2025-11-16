@@ -178,7 +178,7 @@
 <div class="section level3">
 <h3 id="id_5-overwriting--deleting">5. Overwriting &amp; Deleting<a class="anchor" aria-label="anchor" href="#id_5-overwriting--deleting"></a>
 </h3>
-<p>Writing to an existing path automatically overwrites the data. Use the <code>h5_delete*</code> functions to explicitly remove objects.</p>
+<p>Writing to an existing path automatically overwrites the data. Use the <code>h5_delete_dataset*</code> functions to explicitly remove objects.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Overwrite the vector</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">99</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
@@ -186,7 +186,7 @@
 <span><span class="co">#&gt; 99 100</span></span>
 <span></span>
 <span><span class="co"># Delete the dataset</span></span>
-<span><span class="fu"><a href="reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/h5_delete_dataset.html">h5_delete_dataset</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Delete the attribute</span></span>
 <span><span class="fu"><a href="reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/matrix"</span>, <span class="st">"units"</span><span class="op">)</span></span>

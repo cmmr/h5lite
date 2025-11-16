@@ -294,7 +294,7 @@ You can explicitly delete datasets, groups, or attributes.
 
 ``` r
 # Delete a single dataset
-h5_delete(file, "experiment_1/trial_ids")
+h5_delete_dataset(file, "experiment_1/trial_ids")
 
 # Delete an attribute
 h5_delete_attr(file, "experiment_1/sensor_readings", "calibration")

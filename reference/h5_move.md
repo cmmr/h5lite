@@ -43,7 +43,7 @@ parent group will be automatically created if it does not exist.
 
 [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md),
 [`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md),
-[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md)
+[`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md)
 
 ## Examples
 

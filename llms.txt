@@ -144,7 +144,7 @@ print(units)
 ### 5. Overwriting & Deleting
 
 Writing to an existing path automatically overwrites the data. Use the
-`h5_delete*` functions to explicitly remove objects.
+`h5_delete_dataset*` functions to explicitly remove objects.
 
 ``` r
 # Overwrite the vector
@@ -153,7 +153,7 @@ h5_read(file, "data/vector")
 #> 99 100
 
 # Delete the dataset
-h5_delete(file, "data/vector")
+h5_delete_dataset(file, "data/vector")
 
 # Delete the attribute
 h5_delete_attr(file, "data/matrix", "units")
@@ -243,9 +243,11 @@ Functions for exploring the contents and properties of an HDF5 file.
 
 Functions for creating and deleting groups, datasets, and attributes.
 
+- [`h5_create_file()`](https://cmmr.github.io/h5lite/reference/h5_create_file.md)
+  : Create an HDF5 File
 - [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md)
   : Create an HDF5 Group
-- [`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md)
+- [`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md)
   : Delete an HDF5 Dataset
 - [`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md)
   : Delete an HDF5 Group

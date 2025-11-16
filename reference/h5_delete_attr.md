@@ -28,7 +28,7 @@ Invisibly returns `NULL`. This function is called for its side effects.
 
 ## See also
 
-[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md),
+[`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md),
 [`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md)
 
 ## Examples

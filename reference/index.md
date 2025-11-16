@@ -49,9 +49,11 @@ Functions for exploring the contents and properties of an HDF5 file.
 
 Functions for creating and deleting groups, datasets, and attributes.
 
+- [`h5_create_file()`](https://cmmr.github.io/h5lite/reference/h5_create_file.md)
+  : Create an HDF5 File
 - [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md)
   : Create an HDF5 Group
-- [`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md)
+- [`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md)
   : Delete an HDF5 Dataset
 - [`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md)
   : Delete an HDF5 Group
