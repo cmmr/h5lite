@@ -54,11 +54,15 @@ h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
 
 # Display the structure of the entire file
 h5_str(file)
-#> List of 2
-#>  $ config:List of 1
-#>   ..$ version: num 1.2
-#>  $ data  :List of 1
-#>   ..$ matrix: num [1:2, 1:2] 1 2 3 4
+#> Listing contents of: /tmp/RtmpkohwDW/file190c70f691e6.h5
+#> Root group: /
+#> ----------------------------------------------------------------
+#> Type         Name
+#> ----------------------------------------------------------------
+#> Group        config
+#> float64[1]   config/version
+#> Group        data
+#> uint8[2,2]   data/matrix
 
 unlink(file)
 ```

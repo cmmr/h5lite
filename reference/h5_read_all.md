@@ -39,7 +39,9 @@ order.
 
 ## See also
 
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
+[`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md),
+[`h5_is_group()`](https://cmmr.github.io/h5lite/reference/h5_is_group.md)
 
 ## Examples
 

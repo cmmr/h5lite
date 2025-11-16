@@ -293,7 +293,7 @@ types.</p>
 <h3 id="factors">Factors<a class="anchor" aria-label="anchor" href="#factors"></a>
 </h3>
 <p>When you write an R <code>factor</code>, <code>h5lite</code>
-automatically saves it as a native HDF5 <code>ENUM</code> type,
+automatically saves it as a native HDF5 <code>enum</code> type,
 preserving both the integer values and the character labels.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
@@ -302,7 +302,7 @@ preserving both the integer values and the character labels.</p>
 <span></span>
 <span><span class="co"># Let's check the on-disk type</span></span>
 <span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "ENUM"</span></span>
+<span><span class="co">#&gt; [1] "enum"</span></span>
 <span></span>
 <span><span class="co"># Read it back - it's a perfect match!</span></span>
 <span><span class="va">read_conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span><span class="op">)</span></span>

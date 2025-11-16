@@ -57,3 +57,5 @@ Functions for creating and deleting groups, datasets, and attributes.
   : Delete an HDF5 Group
 - [`h5_delete_attr()`](https://cmmr.github.io/h5lite/reference/h5_delete_attr.md)
   : Delete an HDF5 Attribute
+- [`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md) :
+  Move or Rename an HDF5 Object

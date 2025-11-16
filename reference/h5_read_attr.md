@@ -32,13 +32,16 @@ A `numeric`, `character`, `factor`, or `raw` vector/array.
 
 - String attributes are read as `character`.
 
-- `ENUM` datasets are read as `factor`.
+- `enum` attributes are read as `factor`.
 
-- 1-byte `OPAQUE` attributes are read as `raw`.
+- 1-byte `opaque` attributes are read as `raw`.
 
 ## See also
 
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
+[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
+[`h5_ls_attr()`](https://cmmr.github.io/h5lite/reference/h5_ls_attr.md),
+[`h5_exists_attr()`](https://cmmr.github.io/h5lite/reference/h5_exists_attr.md)
 
 ## Examples
 

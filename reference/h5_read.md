@@ -37,15 +37,18 @@ A `numeric`, `character`, `factor`, or `raw` vector/array.
 
 - String datasets are read as `character`.
 
-- `ENUM` datasets are read as `factor`.
+- `enum` datasets are read as `factor`.
 
-- 1-byte `OPAQUE` datasets are read as `raw`.
+- 1-byte `opaque` datasets are read as `raw`.
 
 Dimensions are preserved and transposed to match R's column-major order.
 
 ## See also
 
-[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md)
+[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
+[`h5_is_dataset()`](https://cmmr.github.io/h5lite/reference/h5_is_dataset.md)
 
 ## Examples
 

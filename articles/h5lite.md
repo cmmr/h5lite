@@ -237,7 +237,7 @@ identical(my_list, read_list)
 ### Factors
 
 When you write an R `factor`, `h5lite` automatically saves it as a
-native HDF5 `ENUM` type, preserving both the integer values and the
+native HDF5 `enum` type, preserving both the integer values and the
 character labels.
 
 ``` r
@@ -247,7 +247,7 @@ h5_write(file, "experiment_1/conditions", conditions)
 
 # Let's check the on-disk type
 h5_typeof(file, "experiment_1/conditions")
-#> [1] "ENUM"
+#> [1] "enum"
 
 # Read it back - it's a perfect match!
 read_conditions <- h5_read(file, "experiment_1/conditions")

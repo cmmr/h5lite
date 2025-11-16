@@ -1,8 +1,8 @@
 # Get HDF5 Object Type
 
-Returns the low-level HDF5 storage type of a dataset (e.g., "INT",
-"FLOAT", "STRING"). This allows inspecting the file storage type before
-reading the data into R.
+Returns the low-level HDF5 storage type of a dataset (e.g., "int8",
+"float64", "string"). This allows inspecting the file storage type
+before reading the data into R.
 
 ## Usage
 
@@ -22,8 +22,8 @@ h5_typeof(file, name)
 
 ## Value
 
-A character string representing the HDF5 storage type (e.g., "float64",
-"int32", "STRING").
+A character string representing the HDF5 storage type (e.g., "float32",
+"uint32", "string").
 
 ## See also
 

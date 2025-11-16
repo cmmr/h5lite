@@ -30,11 +30,11 @@ h5_write(
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `raw`.
+  `character`, `factor`, `raw`.
 
 - dtype:
 
-  The target HDF5 data type. Defaults to `typeof(data)`.
+  The target HDF5 data type. See details.
 
 - dims:
 
@@ -99,6 +99,8 @@ integers (`uint8`), as HDF5 does not have a native boolean datatype.
 
 ## See also
 
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
+[`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md),
 [`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
 
 ## Examples

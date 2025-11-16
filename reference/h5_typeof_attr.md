@@ -37,8 +37,8 @@ file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
 h5_write_attr(file, "data", "meta", "info", dims = NULL)
-h5_typeof_attr(file, "data", "meta") # "STRING"
-#> [1] "STRING"
+h5_typeof_attr(file, "data", "meta") # "string"
+#> [1] "string"
 
 unlink(file)
 ```

@@ -88,11 +88,15 @@ memory-intensive for very large files or groups.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Display the structure of the entire file</span></span></span>
 <span class="r-in"><span><span class="fu">h5_str</span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ config:List of 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ version: num 1.2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ data  :List of 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ matrix: num [1:2, 1:2] 1 2 3 4</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Listing contents of: /tmp/RtmpkohwDW/file190c70f691e6.h5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Root group: /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ----------------------------------------------------------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Type         Name</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ----------------------------------------------------------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Group        config</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> float64[1]   config/version</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Group        data</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> uint8[2,2]   data/matrix</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

@@ -78,7 +78,8 @@ integers (`uint8`), as HDF5 does not have a native boolean datatype.
 
 ## See also
 
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md)
 
 ## Examples
 
