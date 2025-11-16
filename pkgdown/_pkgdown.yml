@@ -36,6 +36,7 @@ reference:
   - title: "Object Management"
     desc: "Functions for creating and deleting groups, datasets, and attributes."
     contents:
+      - h5_create_file
       - h5_create_group
       - h5_delete_dataset
       - h5_delete_group
