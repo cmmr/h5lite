@@ -3,6 +3,7 @@ url: https://cmmr.github.io/h5lite
 template:
   bootstrap: 5
   bootswatch: darkly
+  theme: breeze-dark
   bslib:
     code-bg: "#2b2b2b"
     base_font: {google: "Noto Sans"}
@@ -11,7 +12,6 @@ template:
 reference:
   - title: "Read & Write"
     desc: "Functions for reading and writing datasets, attributes, and nested lists."
-    layout: table
     contents:
       - h5_read
       - h5_read_all
