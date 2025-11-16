@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   h5lite: h5lite.html
-last_built: 2025-11-16T00:20Z
+last_built: 2025-11-16T00:30Z
 urls:
   reference: https://cmmr.github.io/h5lite/reference
   article: https://cmmr.github.io/h5lite/articles
