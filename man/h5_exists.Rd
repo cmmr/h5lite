@@ -2,30 +2,62 @@
 % Please edit documentation in R/info.r
 \name{h5_exists}
 \alias{h5_exists}
-\title{Check if an HDF5 Object Exists}
+\title{Check if an HDF5 File or Object Exists}
 \usage{
-h5_exists(file, name)
+h5_exists(file, name = "/")
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
-\item{name}{The full path of the object to check (e.g., "/data/matrix").}
+\item{name}{The full path of the object to check (e.g., \code{"/data/matrix"}).
+Defaults to \code{"/"}, which tests if the file itself is a valid HDF5 file.}
 }
 \value{
-A logical value: \code{TRUE} if the object exists, \code{FALSE} otherwise.
+A logical value: \code{TRUE} if the file/object exists and is valid HDF5,
+\code{FALSE} otherwise.
 }
 \description{
-Checks for the existence of a dataset or group within an HDF5 file without
-raising an error if it does not exist.
+Safely checks if a file is a valid HDF5 file or if a specific object
+(group or dataset) exists within a valid HDF5 file.
+}
+\details{
+This function provides a robust, error-free way to test for existence.
+
+\itemize{
+\item \strong{Testing for a File:} If \code{name} is \code{"/"} (the default),
+the function checks if \code{file} is a valid, readable HDF5 file.
+It will return \code{FALSE} for non-existent files, text files, or
+corrupted files without raising an error.
+
+\item \strong{Testing for an Object:} If \code{name} is a path (e.g., \code{"/data/matrix"}),
+the function first confirms the file is valid HDF5, and then checks
+if the specific object exists within it.
+}
 }
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_write(file, "my_data", 1:10)
 
+# --- Test 1: Check for a specific object ---
 h5_exists(file, "my_data") # TRUE
 h5_exists(file, "nonexistent_data") # FALSE
 
+# --- Test 2: Check for a valid HDF5 file ---
+h5_exists(file) # TRUE
+h5_exists(file, "/") # TRUE
+
+# --- Test 3: Check invalid or non-existent files ---
+h5_exists("not_a_real_file.h5") # FALSE
+
+text_file <- tempfile()
+writeLines("this is not hdf5", text_file)
+h5_exists(text_file) # FALSE
+
+# Check for an object in an invalid file (also FALSE)
+h5_exists(text_file, "my_data") # FALSE
+
 unlink(file)
+unlink(text_file)
 }
 \seealso{
 \code{\link[=h5_exists_attr]{h5_exists_attr()}}, \code{\link[=h5_is_group]{h5_is_group()}}, \code{\link[=h5_is_dataset]{h5_is_dataset()}}

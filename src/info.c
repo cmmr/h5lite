@@ -30,7 +30,7 @@ SEXP h5_type_to_rstr(hid_t type_id) {
     if (H5Tequal(type_id, H5T_IEEE_F16LE) > 0 || H5Tequal(type_id, H5T_IEEE_F16BE) > 0) return mkString("float16");
     if (H5Tequal(type_id, H5T_IEEE_F32LE) > 0 || H5Tequal(type_id, H5T_IEEE_F32BE) > 0) return mkString("float32");
     if (H5Tequal(type_id, H5T_IEEE_F64LE) > 0 || H5Tequal(type_id, H5T_IEEE_F64BE) > 0) return mkString("float64");
-
+    
     /* Generic fallback */
     return mkString("float");
   }
@@ -38,15 +38,15 @@ SEXP h5_type_to_rstr(hid_t type_id) {
   /* Handle other classes */
   const char *s = "unknown";
   switch(class_id) {
-    case H5T_STRING:    s = "string";    break;
-    case H5T_BITFIELD:  s = "bitfield";  break;
-    case H5T_OPAQUE:    s = "opaque";    break;
-    case H5T_COMPOUND:  s = "compound";  break;
-    case H5T_REFERENCE: s = "reference"; break;
-    case H5T_ENUM:      s = "enum";      break;
-    case H5T_VLEN:      s = "vlen";      break; 
-    case H5T_ARRAY:     s = "array";     break;
-    default: break;
+  case H5T_STRING:    s = "string";    break;
+  case H5T_BITFIELD:  s = "bitfield";  break;
+  case H5T_OPAQUE:    s = "opaque";    break;
+  case H5T_COMPOUND:  s = "compound";  break;
+  case H5T_REFERENCE: s = "reference"; break;
+  case H5T_ENUM:      s = "enum";      break;
+  case H5T_VLEN:      s = "vlen";      break; 
+  case H5T_ARRAY:     s = "array";     break;
+  default: break;
   }
   return mkString(s);
 }
@@ -162,23 +162,32 @@ SEXP C_h5_exists(SEXP filename, SEXP name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *oname = CHAR(STRING_ELT(name, 0));
   
-  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
-  if (file_id < 0) return ScalarLogical(0); // File doesn't exist or isn't HDF5
-  
-  // Suppress errors for H5Lexists, as a non-existent link is a valid check
+  /* Suppress all HDF5 errors for this function */
   herr_t (*old_func)(hid_t, void*);
   void *old_client_data;
   H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
   H5Eset_auto(H5E_DEFAULT, NULL, NULL);
   
-  htri_t link_exists = H5Lexists(file_id, oname, H5P_DEFAULT);
+  htri_t result = 0; // Default to FALSE
   
-  // Restore error handler
+  /*
+   * Try to open the file. 
+   * If H5Fopen fails (e.g., text file, corrupt, no permission),
+   * file_id will be < 0 and we will return FALSE.
+   */
+  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
+  
+  if (file_id >= 0) {
+    /* File is valid HDF5, now check if the link exists */
+    /* This works for "/" (root group) or any other path */
+    result = H5Lexists(file_id, oname, H5P_DEFAULT);
+    H5Fclose(file_id);
+  }
+  
+  /* Restore error handler */
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
-  H5Fclose(file_id);
-  
-  return ScalarLogical(link_exists > 0);
+  return ScalarLogical(result > 0);
 }
 
 /* --- EXISTS ATTR --- */

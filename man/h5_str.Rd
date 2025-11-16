@@ -18,24 +18,25 @@ console and returns \code{NULL} invisibly.
 }
 \description{
 Recursively prints a summary of an HDF5 group or dataset, similar to
-\code{utils::str()}. It displays the nested structure, object types,
+the structure of \code{h5ls -r}. It displays the nested structure, object types,
 dimensions, and attributes.
 }
 \details{
 This function provides a quick and convenient way to inspect the contents of
-an HDF5 file. It works by first reading the target object and all its
-children into a nested R list using \code{\link{h5_read_all}}, and then
-calling \code{utils::str()} on the resulting R object.
+an HDF5 file. It performs a recursive traversal of the file from the C-level
+and prints a formatted summary to the R console.
 
-Because this function reads the data into memory, it may be slow or
-memory-intensive for very large files or groups.
+This function \strong{does not read any data} into R. It only inspects the
+metadata (names, types, dimensions) of the objects in the file, making it
+fast and memory-safe for arbitrarily large files.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
 
 # Create a nested structure
-h5_write(file, "/config/version", 1.2)
+h5_write(file, "/config/version", 1.2, dims = NULL)
 h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
+h5_write_attr(file, "/data/matrix", "title", "my matrix")
 
 # Display the structure of the entire file
 h5_str(file)
@@ -43,5 +44,5 @@ h5_str(file)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read_all]{h5_read_all()}}, \code{\link[=h5_ls]{h5_ls()}}
+\code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_ls_attr]{h5_ls_attr()}}
 }
