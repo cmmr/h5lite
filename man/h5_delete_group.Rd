@@ -28,5 +28,5 @@ print(h5_ls(file, recursive = TRUE)) # character(0)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_delete]{h5_delete()}}, \code{\link[=h5_delete_attr]{h5_delete_attr()}}
+\code{\link[=h5_delete_dataset]{h5_delete_dataset()}}, \code{\link[=h5_delete_attr]{h5_delete_attr()}}
 }

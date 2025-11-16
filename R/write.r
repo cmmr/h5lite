@@ -455,6 +455,46 @@ h5_create_group <- function(file, name) {
   invisible(NULL)
 }
 
+#' Create an HDF5 File
+#'
+#' Explicitly creates a new, empty HDF5 file.
+#'
+#' @details
+#' This function is a simple wrapper around \code{h5_create_group(file, "/")}.
+#' Its main purpose is to allow for explicit file creation in code.
+#'
+#' Note that calling this function is almost always **unnecessary**, as all
+#' \code{h5lite} writing functions (like \code{\link[=h5_write]{h5_write()}} or
+#' \code{\link[=h5_create_group]{h5_create_group()}}) will automatically create
+#' the file if it does not exist.
+#'
+#' It is provided as a convenience for users who prefer to explicitly create
+#' a file handle before writing data to it.
+#'
+#' @param file Path to the HDF5 file to be created.
+#' @return Invisibly returns \code{NULL}. This function is called for its side
+#'   effects.
+#' @seealso [h5_create_group()], [h5_write()]
+#' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#'
+#' # Explicitly create the file (optional)
+#' h5_create_file(file)
+#'
+#' # Check that it exists
+#' file.exists(file) # TRUE
+#'
+#' # Write to the file
+#' h5_write(file, "data", 1:10)
+#'
+#' # Clean up
+#' unlink(file)
+h5_create_file <- function(file) {
+  file <- path.expand(file)
+  h5_create_group(file = file, name = "/")
+}
+
 
 #' Move or Rename an HDF5 Object
 #'
@@ -478,7 +518,7 @@ h5_create_group <- function(file, name) {
 #' @return This function is called for its side effect and returns `NULL`
 #'   invisibly.
 #'
-#' @seealso [h5_create_group()], [h5_delete_group()], [h5_delete()]
+#' @seealso [h5_create_group()], [h5_delete_group()], [h5_delete_dataset()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

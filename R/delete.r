@@ -14,10 +14,10 @@
 #' h5_write(file, "dset2", 1:5)
 #' print(h5_ls(file))
 #'
-#' h5_delete(file, "dset1")
+#' h5_delete_dataset(file, "dset1")
 #' print(h5_ls(file))
 #' unlink(file)
-h5_delete <- function(file, name) {
+h5_delete_dataset <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
   
@@ -41,7 +41,7 @@ h5_delete <- function(file, name) {
 #' @param name The full path of the group to delete (e.g., "/g1/g2").
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
-#' @seealso [h5_delete()], [h5_delete_attr()]
+#' @seealso [h5_delete_dataset()], [h5_delete_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -60,7 +60,7 @@ h5_delete_group <- function(file, name) {
     return(invisible(NULL))
   }
   if (h5_is_dataset(file, name)) {
-    stop("'", name, "' is a dataset, not a group. Use h5_delete() to delete datasets.")
+    stop("'", name, "' is a dataset, not a group. Use h5_delete_dataset() to delete datasets.")
   }
   .Call("C_h5_delete_link", file, name, PACKAGE = "h5lite")
   invisible(NULL)
@@ -75,7 +75,7 @@ h5_delete_group <- function(file, name) {
 #' @param attribute The name of the attribute to delete.
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
-#' @seealso [h5_delete()], [h5_delete_group()]
+#' @seealso [h5_delete_dataset()], [h5_delete_group()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

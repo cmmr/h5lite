@@ -29,11 +29,11 @@ test_that("Delete functions handle errors and warnings correctly", {
   h5_write_attr(file_path, "my_dataset", "my_attr", "value")
 
   # Error on mismatched delete type
-  expect_error(h5_delete(file_path, "my_group"))
+  expect_error(h5_delete_dataset(file_path, "my_group"))
   expect_error(h5_delete_group(file_path, "my_dataset"))
 
   # Warning on non-existent object/attribute
-  expect_warning(h5_delete(file_path, "nonexistent_dset"))
+  expect_warning(h5_delete_dataset(file_path, "nonexistent_dset"))
   expect_warning(h5_delete_group(file_path, "nonexistent_group"))
   expect_warning(h5_delete_attr(file_path, "my_dataset", "nonexistent_attr"))
 })
