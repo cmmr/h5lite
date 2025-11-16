@@ -22,14 +22,17 @@ reference:
   - title: "Inspection & Discovery"
     desc: "Functions for exploring the contents and properties of an HDF5 file."
     contents:
+      - h5_dim
+      - h5_dim_attr
+      - h5_exists
+      - h5_exists_attr
+      - h5_is_dataset
+      - h5_is_group
       - h5_ls
       - h5_ls_attr
       - h5_str
-      - h5_exists
-      - h5_is_group
-      - h5_is_dataset
-      - h5_dim
       - h5_typeof
+      - h5_typeof_attr
   - title: "Object Management"
     desc: "Functions for creating and deleting groups, datasets, and attributes."
     contents:
