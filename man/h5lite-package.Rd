@@ -6,6 +6,8 @@
 \alias{h5lite-package}
 \title{h5lite: Simplified HDF5 Interface}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' \url{https://www.hdfgroup.org/}.
 }
 \seealso{

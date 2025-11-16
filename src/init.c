@@ -2,6 +2,7 @@
 #include "h5lite.h"
 
 static const R_CallMethodDef CallEntries[] = {
+  
   /* read.c */
   {"C_h5_read_dataset",   (DL_FUNC) &C_h5_read_dataset, 2},
   {"C_h5_read_attribute", (DL_FUNC) &C_h5_read_attribute, 3},
@@ -9,9 +10,11 @@ static const R_CallMethodDef CallEntries[] = {
   /* write.c */
   {"C_h5_write_dataset",   (DL_FUNC) &C_h5_write_dataset, 6},
   {"C_h5_write_attribute", (DL_FUNC) &C_h5_write_attribute, 6},
-  {"C_h5_create_group", (DL_FUNC) &C_h5_create_group, 2},
+  {"C_h5_create_group",    (DL_FUNC) &C_h5_create_group, 2},
+  {"C_h5_move",            (DL_FUNC) &C_h5_move, 3},
   
   /* ls.c */
+  {"C_h5_str",     (DL_FUNC) &C_h5_str, 2},
   {"C_h5_ls",      (DL_FUNC) &C_h5_ls, 4},
   {"C_h5_ls_attr", (DL_FUNC) &C_h5_ls_attr, 2},
   

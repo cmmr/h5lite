@@ -45,5 +45,5 @@ str(all_content)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_all]{h5_write_all()}}, \code{\link[=h5_is_group]{h5_is_group()}}
 }

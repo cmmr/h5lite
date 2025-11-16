@@ -20,9 +20,9 @@ h5_write(
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
-\code{logical}, \code{character}, \code{raw}.}
+\code{logical}, \code{character}, \code{factor}, \code{raw}.}
 
-\item{dtype}{The target HDF5 data type. Defaults to \code{typeof(data)}.}
+\item{dtype}{The target HDF5 data type. See details.}
 
 \item{dims}{An integer vector specifying dimensions, or \code{NULL} for a scalar.
 Defaults to \code{dim(data)} if it exists, or \code{length(data)} otherwise.}
@@ -96,5 +96,5 @@ h5_write(file, "scalar", 3.14, dims = NULL)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_write_attr]{h5_write_attr()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_all]{h5_write_all()}}, \code{\link[=h5_write_attr]{h5_write_attr()}}
 }

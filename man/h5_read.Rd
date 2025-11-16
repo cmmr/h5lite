@@ -27,8 +27,8 @@ Reads a dataset from an HDF5 file and returns it as an R object.
 \itemize{
 \item Numeric datasets are read as \code{numeric} (double) to prevent overflow.
 \item String datasets are read as \code{character}.
-\item \code{ENUM} datasets are read as \code{factor}.
-\item 1-byte \code{OPAQUE} datasets are read as \code{raw}.
+\item \code{enum} datasets are read as \code{factor}.
+\item 1-byte \code{opaque} datasets are read as \code{raw}.
 }
 
 Dimensions are preserved and transposed to match R's column-major order.
@@ -57,5 +57,5 @@ all.equal(fac, fac2)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read_attr]{h5_read_attr()}}
+\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_is_dataset]{h5_is_dataset()}}
 }

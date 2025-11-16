@@ -179,9 +179,9 @@ static hid_t get_file_type(const char *dtype, SEXP data) {
     SEXP levels = getAttrib(data, R_LevelsSymbol);
     R_xlen_t n_levels = XLENGTH(levels);
     
-    // Base type for ENUM is INT
+    // Base type for enum is INT
     hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
-    if (type_id < 0) error("Failed to create ENUM type");
+    if (type_id < 0) error("Failed to create enum type");
     
     for (R_xlen_t i = 0; i < n_levels; i++) {
       // R factors are 1-based, so value is i+1
@@ -294,12 +294,12 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
     hid_t mem_type_id;
     
     if (strcmp(dtype_str, "opaque") == 0 || strcmp(dtype_str, "raw") == 0) {
-      /* OPAQUE: Force mem type = file type, 1-byte elements */
+      /* opaque: Force mem type = file type, 1-byte elements */
       if (TYPEOF(data) != RAWSXP) error("dtype 'opaque' requires raw data input");
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id); /* Should be 1 */
     } else if (strcmp(dtype_str, "factor") == 0) {
-      /* FACTOR: Memory type must also be the ENUM type */
+      /* FACTOR: Memory type must also be the enum type */
       if (TYPEOF(data) != INTSXP) error("dtype 'factor' requires integer-backed factor data");
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id); /* Should be 1 */
@@ -403,7 +403,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id);
     } else if (strcmp(dtype_str, "factor") == 0) {
-      /* FACTOR: Memory type must also be the ENUM type */
+      /* FACTOR: Memory type must also be the enum type */
       if (TYPEOF(data) != INTSXP) error("dtype 'factor' requires integer-backed factor data");
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id);
@@ -474,6 +474,64 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
   
   H5Gclose(group_id);
   H5Fclose(file_id);
+  
+  return R_NilValue;
+}
+
+
+/*
+ * Moves or renames an HDF5 link (dataset, group, etc.)
+ * This is an efficient metadata operation; no data is read or rewritten.
+ */
+SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *from = CHAR(STRING_ELT(from_name, 0));
+  const char *to = CHAR(STRING_ELT(to_name, 0));
+  
+  /* Open file with Read-Write access */
+  hid_t file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
+  if (file_id < 0) error("Failed to open file (read-write access required): %s", fname);
+  
+  /* Create Link Creation Property List */
+  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+  if (lcpl_id < 0) {
+    H5Fclose(file_id);
+    error("Failed to create link creation property list.");
+  }
+  
+  /* Set HDF5 to create intermediate groups (like mkdir -p) */
+  herr_t prop_status = H5Pset_create_intermediate_group(lcpl_id, 1);
+  if (prop_status < 0) {
+    H5Pclose(lcpl_id);
+    H5Fclose(file_id);
+    error("Failed to set intermediate group creation property.");
+  }
+  
+  /* --- Suppress HDF5's automatic error printing --- */
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  /* --- */
+  
+  /*
+   * H5Lmove
+   * We move from/to paths relative to the file root (file_id).
+   * We pass our new lcpl_id to the 'to' path. H5P_DEFAULT is fine for 'from'.
+   */
+  herr_t status = H5Lmove(file_id, from, file_id, to, lcpl_id, H5P_DEFAULT);
+  
+  /* --- Restore HDF5's automatic error printing --- */
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  /* --- */
+  
+  /* Close property list and file before checking status */
+  H5Pclose(lcpl_id);
+  H5Fclose(file_id);
+  
+  if (status < 0) {
+    error("Failed to move object from '%s' to '%s'. Ensure source exists and destination path is valid.", from, to);
+  }
   
   return R_NilValue;
 }

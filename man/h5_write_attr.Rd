@@ -75,5 +75,5 @@ h5_ls_attr(file, "my_data")
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_write]{h5_write()}}
+\code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_read_attr]{h5_read_attr()}}
 }

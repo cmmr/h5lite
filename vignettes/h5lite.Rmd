@@ -186,7 +186,7 @@ identical(my_list, read_list)
 
 ### Factors
 
-When you write an R `factor`, `h5lite` automatically saves it as a native HDF5 `ENUM` type, preserving both the integer values and the character labels.
+When you write an R `factor`, `h5lite` automatically saves it as a native HDF5 `enum` type, preserving both the integer values and the character labels.
 
 ```{r handle_factors}
 conditions <- as.factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))

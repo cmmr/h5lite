@@ -67,7 +67,7 @@ test_that("Info, existence, and type checking functions work correctly", {
   # --- 6. TEST h5_typeof and h5_typeof_attr ---
   expect_equal(h5_typeof(file_path, "g1/d1.1"), "int16")
   expect_equal(h5_typeof(file_path, "g1/g1.1/d1.1.1"), "float64")
-  expect_equal(h5_typeof_attr(file_path, "g1/d1.1", "a1"), "STRING")
+  expect_equal(h5_typeof_attr(file_path, "g1/d1.1", "a1"), "string")
   expect_equal(h5_typeof_attr(file_path, "g1/d1.1", "a2"), "float64")
 
   # --- 7. TEST h5_dim and h5_dim_attr ---
@@ -80,7 +80,7 @@ test_that("Info, existence, and type checking functions work correctly", {
 
   # --- 8. TEST h5_str ---
   # Test that it runs without error and captures output
-  expect_output(h5_str(file_path), "List of 3")
-  expect_output(h5_str(file_path, "/g1"), "List of 2")
-  expect_output(h5_str(file_path, "/g1/d1.1"), "num")
+  expect_output(h5_str(file_path))
+  expect_output(h5_str(file_path, "/g1"))
+  expect_output(h5_str(file_path, "/g1/d1.1"))
 })

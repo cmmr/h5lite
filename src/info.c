@@ -3,7 +3,7 @@
 #include <stdlib.h> // for malloc
 
 /* --- HELPER: Map H5T to String --- */
-static SEXP h5_type_to_rstr(hid_t type_id) {
+SEXP h5_type_to_rstr(hid_t type_id) {
   
   H5T_class_t class_id = H5Tget_class(type_id);
   
@@ -21,7 +21,7 @@ static SEXP h5_type_to_rstr(hid_t type_id) {
     if (H5Tequal(type_id, H5T_STD_U64LE) > 0 || H5Tequal(type_id, H5T_STD_U64BE) > 0) return mkString("uint64");
     
     /* Generic fallback */
-    return mkString("INTEGER"); 
+    return mkString("int"); 
   }
   
   if (class_id == H5T_FLOAT) {
@@ -32,20 +32,20 @@ static SEXP h5_type_to_rstr(hid_t type_id) {
     if (H5Tequal(type_id, H5T_IEEE_F64LE) > 0 || H5Tequal(type_id, H5T_IEEE_F64BE) > 0) return mkString("float64");
 
     /* Generic fallback */
-    return mkString("FLOAT");
+    return mkString("float");
   }
   
   /* Handle other classes */
-  const char *s = "UNKNOWN";
+  const char *s = "unknown";
   switch(class_id) {
-    case H5T_STRING:    s = "STRING";    break;
-    case H5T_BITFIELD:  s = "BITFIELD";  break;
-    case H5T_OPAQUE:    s = "OPAQUE";    break;
-    case H5T_COMPOUND:  s = "COMPOUND";  break;
-    case H5T_REFERENCE: s = "REFERENCE"; break;
-    case H5T_ENUM:      s = "ENUM";      break;
-    case H5T_VLEN:      s = "VLEN";      break; 
-    case H5T_ARRAY:     s = "ARRAY";     break;
+    case H5T_STRING:    s = "string";    break;
+    case H5T_BITFIELD:  s = "bitfield";  break;
+    case H5T_OPAQUE:    s = "opaque";    break;
+    case H5T_COMPOUND:  s = "compound";  break;
+    case H5T_REFERENCE: s = "reference"; break;
+    case H5T_ENUM:      s = "enum";      break;
+    case H5T_VLEN:      s = "vlen";      break; 
+    case H5T_ARRAY:     s = "array";     break;
     default: break;
   }
   return mkString(s);

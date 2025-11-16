@@ -23,8 +23,8 @@ Reads an attribute associated with an HDF5 object (dataset or group).
 \itemize{
 \item Numeric attributes are read as \code{numeric} (double).
 \item String attributes are read as \code{character}.
-\item \code{ENUM} datasets are read as \code{factor}.
-\item 1-byte \code{OPAQUE} attributes are read as \code{raw}.
+\item \code{enum} attributes are read as \code{factor}.
+\item 1-byte \code{opaque} attributes are read as \code{raw}.
 }
 }
 \examples{
@@ -46,5 +46,5 @@ print(vec_attr)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}}, \code{\link[=h5_ls_attr]{h5_ls_attr()}}, \code{\link[=h5_exists_attr]{h5_exists_attr()}}
 }

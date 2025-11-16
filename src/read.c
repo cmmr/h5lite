@@ -107,17 +107,17 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
     if (type_size != 1) {
       if (dims) free(dims);
       H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
-      error("h5lite only supports reading 1-byte OPAQUE types as raw vectors");
+      error("h5lite only supports reading 1-byte opaque types as raw vectors");
     }
     
     PROTECT(result = allocVector(RAWSXP, (R_xlen_t)total_elements));
     unsigned char *c_buffer = (unsigned char *)malloc(total_elements * type_size);
     if (!c_buffer) error("Memory allocation failed");
     
-    /* Create an OPAQUE memory type for a 1-to-1 byte copy */
+    /* Create an opaque memory type for a 1-to-1 byte copy */
     hid_t mem_type = H5Tcreate(H5T_OPAQUE, type_size);
     
-    /* Read as OPAQUE into the buffer, not UCHAR */
+    /* Read as opaque into the buffer, not UCHAR */
     status = H5Dread(dset_id, mem_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
     
     /* Close the custom mem type */
@@ -134,7 +134,7 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
     if (n_members <= 0) {
       if (dims) free(dims);
       H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
-      error("ENUM type has no members");
+      error("enum type has no members");
     }
     
     // 1. Read the integer data
@@ -263,17 +263,17 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
     if (type_size != 1) {
       if(dims) free(dims);
       H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
-      error("h5lite only supports reading 1-byte OPAQUE types as raw vectors");
+      error("h5lite only supports reading 1-byte opaque types as raw vectors");
     }
     
     PROTECT(result = allocVector(RAWSXP, (R_xlen_t)total_elements));
     unsigned char *c_buffer = (unsigned char *)malloc(total_elements * type_size);
     if (!c_buffer) error("Memory allocation failed");
     
-    /* Create an OPAQUE memory type for a 1-to-1 byte copy */
+    /* Create an opaque memory type for a 1-to-1 byte copy */
     hid_t mem_type = H5Tcreate(H5T_OPAQUE, type_size);
     
-    /* Read as OPAQUE into the buffer, not UCHAR */
+    /* Read as opaque into the buffer, not UCHAR */
     status = H5Aread(attr_id, mem_type, c_buffer);
     
     /* Close the custom mem type */
@@ -289,7 +289,7 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
     if (n_members <= 0) {
       if(dims) free(dims);
       H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
-      error("ENUM type has no members");
+      error("enum type has no members");
     }
     
     // 1. Read the integer data

@@ -40,3 +40,4 @@ reference:
       - h5_delete
       - h5_delete_group
       - h5_delete_attr
+      - h5_move
