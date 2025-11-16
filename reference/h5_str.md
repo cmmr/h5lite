@@ -1,8 +1,8 @@
 # Display the Structure of an HDF5 Object
 
-Recursively prints a summary of an HDF5 group or dataset, similar to
-[`utils::str()`](https://rdrr.io/r/utils/str.html). It displays the
-nested structure, object types, dimensions, and attributes.
+Recursively prints a summary of an HDF5 group or dataset, similar to the
+structure of `h5ls -r`. It displays the nested structure, object types,
+dimensions, and attributes.
 
 ## Usage
 
@@ -29,19 +29,17 @@ and returns `NULL` invisibly.
 ## Details
 
 This function provides a quick and convenient way to inspect the
-contents of an HDF5 file. It works by first reading the target object
-and all its children into a nested R list using
-[`h5_read_all`](https://cmmr.github.io/h5lite/reference/h5_read_all.md),
-and then calling [`utils::str()`](https://rdrr.io/r/utils/str.html) on
-the resulting R object.
+contents of an HDF5 file. It performs a recursive traversal of the file
+from the C-level and prints a formatted summary to the R console.
 
-Because this function reads the data into memory, it may be slow or
-memory-intensive for very large files or groups.
+This function **does not read any data** into R. It only inspects the
+metadata (names, types, dimensions) of the objects in the file, making
+it fast and memory-safe for arbitrarily large files.
 
 ## See also
 
-[`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md),
-[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md)
+[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
+[`h5_ls_attr()`](https://cmmr.github.io/h5lite/reference/h5_ls_attr.md)
 
 ## Examples
 
@@ -49,20 +47,22 @@ memory-intensive for very large files or groups.
 file <- tempfile(fileext = ".h5")
 
 # Create a nested structure
-h5_write(file, "/config/version", 1.2)
+h5_write(file, "/config/version", 1.2, dims = NULL)
 h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
+h5_write_attr(file, "/data/matrix", "title", "my matrix")
 
 # Display the structure of the entire file
 h5_str(file)
-#> Listing contents of: /tmp/RtmpkohwDW/file190c70f691e6.h5
+#> Listing contents of: /tmp/RtmpbYWSSU/file18c0426a3bfe.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type         Name
 #> ----------------------------------------------------------------
 #> Group        config
-#> float64[1]   config/version
+#> float64      config/version
 #> Group        data
 #> uint8[2,2]   data/matrix
+#> string[1]    data/matrix @title
 
 unlink(file)
 ```

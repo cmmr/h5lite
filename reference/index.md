@@ -27,7 +27,7 @@ Functions for exploring the contents and properties of an HDF5 file.
 - [`h5_dim_attr()`](https://cmmr.github.io/h5lite/reference/h5_dim_attr.md)
   : Get HDF5 Attribute Dimensions
 - [`h5_exists()`](https://cmmr.github.io/h5lite/reference/h5_exists.md)
-  : Check if an HDF5 Object Exists
+  : Check if an HDF5 File or Object Exists
 - [`h5_exists_attr()`](https://cmmr.github.io/h5lite/reference/h5_exists_attr.md)
   : Check if an HDF5 Attribute Exists
 - [`h5_is_dataset()`](https://cmmr.github.io/h5lite/reference/h5_is_dataset.md)
