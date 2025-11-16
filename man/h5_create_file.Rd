@@ -26,7 +26,7 @@ Note that calling this function is almost always \strong{unnecessary}, as all
 the file if it does not exist.
 
 It is provided as a convenience for users who prefer to explicitly create
-a file handle before writing data to it.
+a file before writing data to it.
 }
 \examples{
 file <- tempfile(fileext = ".h5")

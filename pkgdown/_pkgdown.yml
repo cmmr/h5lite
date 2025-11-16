@@ -22,6 +22,8 @@ reference:
   - title: "Inspection & Discovery"
     desc: "Functions for exploring the contents and properties of an HDF5 file."
     contents:
+      - h5_class
+      - h5_class_attr
       - h5_dim
       - h5_dim_attr
       - h5_exists

@@ -33,5 +33,5 @@ h5_typeof(file, "doubles")  # "float64" (auto-selected)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_typeof_attr]{h5_typeof_attr()}}
+\code{\link[=h5_typeof_attr]{h5_typeof_attr()}}, \code{\link[=h5_class]{h5_class()}}, \code{\link[=h5_exists]{h5_exists()}}
 }

@@ -123,7 +123,7 @@ validate_attributes <- function(data, attrs) {
 validate_write_all_recursive <- function(data, current_path, attrs_arg) {
   
   # It's a group (list)
-  if (is.list(data) && !is.data.frame(data)) {
+  if (is.list(data)) {
     # All list elements must be named to be written as groups/datasets.
     if (length(data) > 0) {
       list_names <- names(data)
@@ -167,7 +167,7 @@ validate_write_all_recursive <- function(data, current_path, attrs_arg) {
 write_all_recursive <- function(file, name, data, compress, attrs_arg) {
   
   # It's a group (list)
-  if (is.list(data) && !is.data.frame(data)) {
+  if (is.list(data)) {
     # Create the group. This is safe even if it exists.
     h5_create_group(file, name)
     
@@ -240,7 +240,7 @@ write_all_recursive <- function(file, name, data, compress, attrs_arg) {
 #' 
 #' unlink(file)
 h5_write_all <- function(file, name, data, compress = TRUE, attrs = TRUE) {
-  if (!is.list(data) || is.data.frame(data)) {
+  if (!is.list(data)) {
     stop("'data' must be a list.", call. = FALSE)
   }
   

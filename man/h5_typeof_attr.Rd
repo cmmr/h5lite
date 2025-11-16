@@ -29,5 +29,5 @@ h5_typeof_attr(file, "data", "meta") # "string"
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_typeof]{h5_typeof()}}
+\code{\link[=h5_typeof]{h5_typeof()}}, \code{\link[=h5_class_attr]{h5_class_attr()}}, \code{\link[=h5_exists_attr]{h5_exists_attr()}}
 }
