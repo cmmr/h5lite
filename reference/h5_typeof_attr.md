@@ -28,7 +28,9 @@ A character string representing the HDF5 storage type.
 
 ## See also
 
-[`h5_typeof()`](https://cmmr.github.io/h5lite/reference/h5_typeof.md)
+[`h5_typeof()`](https://cmmr.github.io/h5lite/reference/h5_typeof.md),
+[`h5_class_attr()`](https://cmmr.github.io/h5lite/reference/h5_class_attr.md),
+[`h5_exists_attr()`](https://cmmr.github.io/h5lite/reference/h5_exists_attr.md)
 
 ## Examples
 

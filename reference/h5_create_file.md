@@ -30,7 +30,7 @@ Note that calling this function is almost always **unnecessary**, as all
 will automatically create the file if it does not exist.
 
 It is provided as a convenience for users who prefer to explicitly
-create a file handle before writing data to it.
+create a file before writing data to it.
 
 ## See also
 

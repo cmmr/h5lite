@@ -53,7 +53,7 @@ h5_write_attr(file, "/data/matrix", "title", "my matrix")
 
 # Display the structure of the entire file
 h5_str(file)
-#> Listing contents of: /tmp/RtmpJHvmRN/file18d37568faeb.h5
+#> Listing contents of: /tmp/RtmpXtTQui/file18c2be41c0c.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type         Name

@@ -22,6 +22,10 @@ lists.
 
 Functions for exploring the contents and properties of an HDF5 file.
 
+- [`h5_class()`](https://cmmr.github.io/h5lite/reference/h5_class.md) :
+  Get R Class of an HDF5 Object
+- [`h5_class_attr()`](https://cmmr.github.io/h5lite/reference/h5_class_attr.md)
+  : Get R Class of an HDF5 Attribute
 - [`h5_dim()`](https://cmmr.github.io/h5lite/reference/h5_dim.md) : Get
   HDF5 Object Dimensions
 - [`h5_dim_attr()`](https://cmmr.github.io/h5lite/reference/h5_dim_attr.md)
