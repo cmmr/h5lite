@@ -1,4 +1,4 @@
-# h5lite
+# h5lite <img src="man/figures/logo.png" align="right" width="172" height="200" alt="h5lite logo" />
 
 **h5lite** is an R package that provides a simple and lightweight interface for reading and writing HDF5 files.
 
