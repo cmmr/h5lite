@@ -469,7 +469,7 @@ h5_create_group <- function(file, name) {
 #' the file if it does not exist.
 #'
 #' It is provided as a convenience for users who prefer to explicitly create
-#' a file handle before writing data to it.
+#' a file before writing data to it.
 #'
 #' @param file Path to the HDF5 file to be created.
 #' @return Invisibly returns \code{NULL}. This function is called for its side
