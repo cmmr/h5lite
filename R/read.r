@@ -54,7 +54,7 @@ get_attributes_to_read <- function(available_attrs, attrs) {
 #'   Non-existent attributes are silently skipped.
 #' @return A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.
 #' 
-#' @seealso [h5_read_attr()]
+#' @seealso [h5_read_attr()], [h5_write()], [h5_ls()], [h5_is_dataset()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -126,7 +126,7 @@ h5_read <- function(file, name, attrs = FALSE) {
 #' @return A nested `list` representing the HDF5 group structure, or a single
 #'   R object if `name` points to a dataset.
 #' 
-#' @seealso [h5_read()]
+#' @seealso [h5_read()], [h5_write_all()], [h5_is_group()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -187,7 +187,7 @@ h5_read_all <- function(file, name, attrs = TRUE) {
 #' @details
 #' * Numeric attributes are read as \code{numeric} (double).
 #' * String attributes are read as \code{character}.
-#' * \code{ENUM} datasets are read as \code{factor}.
+#' * \code{ENUM} attributes are read as \code{factor}.
 #' * 1-byte \code{OPAQUE} attributes are read as \code{raw}.
 #'
 #' @param file Path to the HDF5 file.
@@ -195,7 +195,7 @@ h5_read_all <- function(file, name, attrs = TRUE) {
 #' @param attribute Name of the attribute to read.
 #' @return A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.
 #' 
-#' @seealso [h5_read()]
+#' @seealso [h5_read()], [h5_write_attr()], [h5_ls_attr()], [h5_exists_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

@@ -261,8 +261,8 @@ h5_write_all <- function(file, name, data, compress = TRUE, attrs = TRUE) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset (e.g., "/data/matrix").
 #' @param data The R object to write. Supported: \code{numeric}, \code{integer},
-#'   \code{logical}, \code{character}, \code{raw}.
-#' @param dtype The target HDF5 data type. Defaults to \code{typeof(data)}.
+#'   \code{logical}, \code{character}, \code{factor}, \code{raw}.
+#' @param dtype The target HDF5 data type. See details.
 #' @details
 #' The `dtype` argument controls the on-disk storage type **for numeric data only**.
 #'
@@ -302,7 +302,7 @@ h5_write_all <- function(file, name, data, compress = TRUE, attrs = TRUE) {
 #'   or a character vector of names to exclude, prefixed with `-` (e.g., `c("-class")`).
 #'   Mixing inclusive and exclusive names is not allowed.
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
-#' @seealso [h5_write_attr()]
+#' @seealso [h5_read()], [h5_write_all()], [h5_write_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -397,7 +397,7 @@ h5_write <- function(file, name, data,
 #' @param dims An integer vector specifying dimensions, or \code{NULL} for a scalar.
 #'   Defaults to \code{dim(data)} or \code{length(data)}.
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
-#' @seealso [h5_write()]
+#' @seealso [h5_write()], [h5_read_attr()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
