@@ -10,7 +10,6 @@ test_that("Functions throw errors for non-existent objects", {
 
   # h5_read errors
   expect_error(h5_read(file_path, "nonexistent"))
-  expect_error(h5_read(file_path, "my_group"))
 
   # h5_read_attr errors
   expect_error(h5_read_attr(file_path, "nonexistent", "attr"))
@@ -44,8 +43,8 @@ test_that("Write functions validate inputs", {
     file_path <- tempfile(fileext = ".h5")
   on.exit(unlink(file_path), add = TRUE)
 
-  # h5_write_all requires a list
-  expect_error(h5_write_all(file_path, "test", 1:5), "'data' must be a list.")
+  # h5_write requires a list to have named elements
+  expect_error(h5_write(file_path, "test", list(1, 2)), "All elements in a list must be named.")
 
   # h5_write with mixed-mode attributes
   d_with_attrs <- matrix(1:6)

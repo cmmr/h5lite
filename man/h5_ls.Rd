@@ -9,7 +9,7 @@ h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
-\item{name}{The group path to start listing from. Defaults to the root group "/".}
+\item{name}{The group path to start listing from. Defaults to the root group (\code{/}).}
 
 \item{recursive}{If \code{TRUE} (default), lists all objects found recursively
 under \code{name}. If \code{FALSE}, lists only the immediate children.}

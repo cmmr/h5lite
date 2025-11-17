@@ -1,5 +1,4 @@
 #include "h5lite.h"
-#include <hdf5.h>
 #include <stdlib.h> // for malloc
 
 /* --- HELPER: Map H5T to String --- */

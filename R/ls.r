@@ -4,11 +4,11 @@
 #' Lists the names of objects (datasets and groups) within an HDF5 file or group.
 #'
 #' @param file Path to the HDF5 file.
-#' @param name The group path to start listing from. Defaults to the root group "/".
-#' @param recursive If \code{TRUE} (default), lists all objects found recursively 
-#'   under \code{name}. If \code{FALSE}, lists only the immediate children.
-#' @param full.names If \code{TRUE}, the full paths from the file's root are
-#'   returned. If \code{FALSE} (the default), names are relative to \code{name}.
+#' @param name The group path to start listing from. Defaults to the root group (`/`).
+#' @param recursive If `TRUE` (default), lists all objects found recursively
+#'   under `name`. If `FALSE`, lists only the immediate children.
+#' @param full.names If `TRUE`, the full paths from the file's root are
+#'   returned. If `FALSE` (the default), names are relative to `name`.
 #' @return A character vector of object names. If `name` is `/` (the default),
 #'   the paths are relative to the root of the file. If `name` is another group,
 #'   the paths are relative to that group (unless `full.names = TRUE`).
@@ -42,7 +42,7 @@ h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE) {
 #'
 #' @param file Path to the HDF5 file.
 #' @param name The path to the object (dataset or group) to query. 
-#'   Use "/" for the file's root attributes.
+#'   Use `/` for the file's root attributes.
 #' @return A character vector of attribute names.
 #' 
 #' @seealso [h5_ls()]
@@ -72,7 +72,7 @@ h5_ls_attr <- function(file, name) {
 #' @param file Path to the HDF5 file.
 #' @param name The name of the group or dataset to display. Defaults to the root
 #'   group "/".
-#' @return This function is called for its side effect of printing to the
+#' @return This function is called for its side-effect of printing to the
 #'   console and returns \code{NULL} invisibly.
 #' @seealso [h5_ls()], [h5_ls_attr()]
 #' @export
@@ -80,7 +80,7 @@ h5_ls_attr <- function(file, name) {
 #' file <- tempfile(fileext = ".h5")
 #'
 #' # Create a nested structure
-#' h5_write(file, "/config/version", 1.2, dims = NULL)
+#' h5_write(file, "/config/version", I(1.2))
 #' h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
 #' h5_write_attr(file, "/data/matrix", "title", "my matrix")
 #'

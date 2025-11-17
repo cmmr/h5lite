@@ -2,60 +2,89 @@
 % Please edit documentation in R/read.r
 \name{h5_read}
 \alias{h5_read}
-\title{Read an HDF5 Dataset}
+\title{Read an HDF5 Object}
 \usage{
 h5_read(file, name, attrs = FALSE)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
-\item{name}{Name of the dataset (e.g., "/data/matrix").}
+\item{name}{Name of the dataset or group to read (e.g., \code{"/data/matrix"}).}
 
-\item{attrs}{Controls which HDF5 attributes are read and attached to the returned R object.
-Can be \code{FALSE} (the default, no attributes), \code{TRUE} (all attributes),
+\item{attrs}{Controls which HDF5 attributes are read and attached to the R object.
+Can be \code{FALSE} (the default), \code{TRUE} (all attributes),
 a character vector of attribute names to include (e.g., \code{c("info", "version")}),
 or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).
 Non-existent attributes are silently skipped.}
 }
 \value{
-A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.
+A \code{numeric}, \code{character}, \code{factor}, \code{raw}, or \code{data.frame} if
+\code{name} is a dataset. A nested \code{list} if \code{name} is a group.
 }
 \description{
-Reads a dataset from an HDF5 file and returns it as an R object.
+Reads a dataset or group from an HDF5 file into an R object.
 }
-\details{
+\section{Reading Datasets}{
+
+When \code{name} points to a dataset, \code{h5_read} converts it to the corresponding
+R object:
 \itemize{
-\item Numeric datasets are read as \code{numeric} (double) to prevent overflow.
-\item String datasets are read as \code{character}.
-\item \code{enum} datasets are read as \code{factor}.
-\item 1-byte \code{opaque} datasets are read as \code{raw}.
+\item \strong{Numeric} datasets are read as \code{numeric} (double) to prevent overflow.
+\item \strong{String} datasets are read as \code{character}.
+\item \strong{Enum} datasets are read as \code{factor}.
+\item \strong{1-byte Opaque} datasets are read as \code{raw}.
+\item \strong{Compound} datasets are read as \code{data.frame}.
 }
 
 Dimensions are preserved and transposed to match R's column-major order.
 }
+
+\section{Reading Groups}{
+
+If \code{name} points to a group, \code{h5_read} will read it recursively, creating a
+corresponding nested R \code{list}. This makes it easy to read complex, structured
+data in a single command.
+\itemize{
+\item HDF5 \strong{groups} are read as R \code{list}s.
+\item \strong{Datasets} within the group are read into R objects as described above.
+\item HDF5 \strong{attributes} on the group are attached as R attributes to the \code{list}.
+\item The elements in the returned list are \strong{sorted alphabetically} by name.
+}
+}
+
 \examples{
 file <- tempfile(fileext = ".h5")
 
-# Write a matrix
-mat <- matrix(1:12, nrow = 3, ncol = 4)
-h5_write(file, "example_matrix", mat)
-# Write a factor
-fac <- factor(c("a", "b", "a", "c"))
-h5_write(file, "example_factor", fac)
+# --- Reading Datasets ---
+h5_write(file, "my_matrix", matrix(1:4, 2))
+h5_write(file, "my_factor", factor(c("a", "b")))
 
-# Read it back
-mat2 <- h5_read(file, "example_matrix")
-fac2 <- h5_read(file, "example_factor")
+mat <- h5_read(file, "my_matrix")
+fac <- h5_read(file, "my_factor")
 
-# Print and verify
-print(mat2)
-all.equal(mat, mat2)
+# --- Reading Groups ---
+h5_write(file, "/config/version", 1.2)
+h5_write(file, "/config/user", "test")
+h5_write_attr(file, "/config", "info", "settings")
 
-print(fac2)
-all.equal(fac, fac2)
+# Read the 'config' group into a list
+config_list <- h5_read(file, "config")
+str(config_list)
+
+# Read the entire file from the root
+all_content <- h5_read(file, "/")
+str(all_content)
+
+# --- Round-tripping with Attributes ---
+named_vec <- c(a = 1, b = 2)
+h5_write(file, "named_vec", named_vec, attrs = TRUE)
+
+# Read back with attrs = TRUE to restore names
+vec_rt <- h5_read(file, "named_vec", attrs = TRUE)
+all.equal(named_vec, vec_rt)
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_is_dataset]{h5_is_dataset()}}
+\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}
 }

@@ -71,10 +71,11 @@ h5_write(file, "experiment_1/trial_ids", trial_ids, dtype = "int32")
 
 ### Writing Scalars
 
-To write a single value as a scalar instead of an array, you must specify `dims = NULL`.
+By default, `h5_write` saves single-element vectors as 1-dimensional arrays.
+To write a true HDF5 scalar, wrap the value in `I()` to treat it "as-is".
 
 ```{r write_scalar}
-h5_write(file, "experiment_1/run_id", "run-abc-123", dims = NULL)
+h5_write(file, "experiment_1/run_id", I("run-abc-123"))
 ```
 
 ## 2. Inspecting the File
@@ -133,7 +134,7 @@ Let's add some attributes to our `sensor_readings` dataset.
 
 ```{r write_attributes}
 # Add a scalar string attribute for units
-h5_write_attr(file, "experiment_1/sensor_readings", "units", "celsius", dims = NULL)
+h5_write_attr(file, "experiment_1/sensor_readings", "units", I("celsius"))
 
 # Add a numeric vector attribute for calibration coefficients
 h5_write_attr(file, "experiment_1/sensor_readings", "calibration", c(1.02, -0.5))
@@ -148,11 +149,11 @@ units <- h5_read_attr(file, "experiment_1/sensor_readings", "units")
 print(units)
 ```
 
-## 5. Recursive I/O with Lists (`h5_write_all` and `h5_read_all`)
+## 5. Recursive I/O with Lists
 
-For more complex data structures, `h5lite` provides `h5_write_all()` and `h5_read_all()` to seamlessly save and load nested R `list` objects.
+For more complex data structures, `h5_write()` and `h5_read()` seamlessly save and load nested R `list` objects.
 
-- R `list` objects are saved as HDF5 **groups**.
+- R `list` objects are written as HDF5 **groups**.
 - Attributes on a `list` are saved as attributes on the corresponding group.
 - All other objects inside the list (vectors, matrices, etc.) are saved as **datasets**.
 
@@ -170,14 +171,14 @@ my_list <- list(
 attr(my_list$data, "info") <- "This is the data group"
 attr(my_list$data$matrix, "my_attr") <- "matrix attribute"
 
-# Write the entire list to a group called "session_data"
-h5_write_all(file, "session_data", my_list)
+# Write the entire list. This creates a group called "session_data".
+h5_write(file, "session_data", my_list)
 
-# Read it all back in one command
-read_list <- h5_read_all(file, "session_data")
+# Read the group back into a list
+read_list <- h5_read(file, "session_data")
 
 # Verify the round-trip was successful
-identical(my_list, read_list)
+all.equal(my_list, read_list)
 ```
 
 ## 6. Handling Special R Types
@@ -224,7 +225,7 @@ identical(binary_blob, read_blob)
 h5_read(file, "experiment_1/run_id")
 
 # Overwrite with a new value
-h5_write(file, "experiment_1/run_id", "run-xyz-987", dims = NULL)
+h5_write(file, "experiment_1/run_id", I("run-xyz-987"))
 
 h5_read(file, "experiment_1/run_id")
 ```
@@ -250,3 +251,4 @@ h5_ls(file, recursive = TRUE)
 # Clean up the temporary file
 unlink(file)
 ```
+

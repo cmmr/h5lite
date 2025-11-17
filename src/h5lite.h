@@ -4,16 +4,35 @@
 #include <R.h>
 #include <Rinternals.h>
 #include <hdf5.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* --- read.c --- */
 SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name);
 SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name);
 
+/* --- read_dataframe.c --- */
+SEXP read_dataframe(hid_t dset_id, hid_t file_type_id, hid_t space_id);
+SEXP read_compound_attribute(hid_t attr_id, hid_t file_type_id, hid_t space_id);
+
 /* --- write.c --- */
+hid_t open_or_create_file(const char *fname);
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level);
 SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP data, SEXP dtype, SEXP dims);
 SEXP C_h5_create_group(SEXP filename, SEXP group_name);
 SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name);
+
+/* --- write_dataframe.c --- */
+SEXP C_h5_write_dataframe(SEXP filename, SEXP dset_name, SEXP data, SEXP dtypes, SEXP compress_level);
+herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer);
+
+/* --- write_helpers.c --- */
+hid_t open_or_create_file(const char *fname);
+hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims);
+void  calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims);
+hid_t get_mem_type(SEXP data);
+hid_t get_file_type(const char *dtype, SEXP data);
+void* get_R_data_ptr(SEXP data);
 
 /* --- ls.c --- */
 SEXP C_h5_str(SEXP filename, SEXP obj_name);

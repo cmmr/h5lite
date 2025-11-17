@@ -20,11 +20,11 @@ test_that("h5_class and h5_class_attr return correct R classes", {
   # A simple group
   h5_create_group(file_path, "group_simple")
   
-  # A group with a 'class' attribute, simulating h5_write_all(..., data.frame)
+  # A group with a 'class' attribute, simulating h5_write(..., data.frame)
   df_list <- list(a = 1:2, b = c("x", "y"))
   attr(df_list, "class") <- "data.frame"
   attr(df_list, "other_attr") <- "info"
-  h5_write_all(file_path, "group_with_class", df_list)
+  h5_write(file_path, "group_with_class", df_list)
   
   # Attributes of various types
   h5_write_attr(file_path, "dset_int", "attr_int", 1L)
@@ -46,7 +46,7 @@ test_that("h5_class and h5_class_attr return correct R classes", {
   
   # Test the 'attrs' argument behavior
   # 'attrs=FALSE' (default) should just report the object type ("list")
-  expect_equal(h5_class(file_path, "group_with_class", attrs = FALSE), "list")
+  expect_equal(h5_class(file_path, "group_with_class", attrs = FALSE), "data.frame")
   
   # 'attrs=TRUE' should find the "class" HDF5 attribute and return its value
   expect_equal(h5_class(file_path, "group_with_class", attrs = TRUE), "data.frame")
@@ -55,7 +55,7 @@ test_that("h5_class and h5_class_attr return correct R classes", {
   expect_equal(h5_class(file_path, "group_with_class", attrs = c("class")), "data.frame")
   
   # 'attrs' with a non-"class" value should ignore the attribute
-  expect_equal(h5_class(file_path, "group_with_class", attrs = c("other_attr")), "list")
+  expect_equal(h5_class(file_path, "group_with_class", attrs = c("other_attr")), "data.frame")
   
   # Test error case for non-existent object
   expect_error(
@@ -111,9 +111,9 @@ test_that("Internal helper map_hdf5_type_to_r_class works", {
   expect_equal(map_fun("string"), "character")
   expect_equal(map_fun("enum"), "factor")
   expect_equal(map_fun("opaque"), "raw")
+  expect_equal(map_fun("compound"), "data.frame")
   
   # Test unsupported/NA types
-  expect_equal(map_fun("compound"), NA_character_)
   expect_equal(map_fun("vlen"), NA_character_)
   expect_equal(map_fun("reference"), NA_character_)
   expect_equal(map_fun("bitfield"), NA_character_)

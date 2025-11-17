@@ -4,18 +4,32 @@
 \name{h5lite-package}
 \alias{h5lite}
 \alias{h5lite-package}
-\title{h5lite: Simplified HDF5 Interface}
+\title{h5lite: A Simple and Lightweight HDF5 Interface}
 \description{
-\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
-
-Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' \url{https://www.hdfgroup.org/}.
+The \code{h5lite} package provides a simple, lightweight, and user-friendly
+interface for reading and writing HDF5 files. It is designed for R users
+who want to save and load common R objects (vectors, matrices, arrays,
+factors, and data.frames) to an HDF5 file without needing to understand
+the low-level details of the HDF5 C API.
 }
+\section{Key Features}{
+
+\itemize{
+\item \strong{Simple API:} Use familiar functions like \code{\link[=h5_read]{h5_read()}} and \code{\link[=h5_write]{h5_write()}}.
+\item \strong{Automatic Handling:} Dimensions, data types, and group creation are handled automatically.
+\item \strong{Safe by Default:} Numeric data is read as \code{double} to prevent integer overflow.
+\item \strong{Easy Installation:} The required HDF5 library is bundled with the package.
+}
+}
+
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://cmmr.github.io/h5lite/}
+\item \url{https://cmmr.github.io/h5lite/}
+\item Report bugs at \url{https://github.com/cmmr/h5lite/issues}
 }
 
+Key functions: \code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_str]{h5_str()}}
 }
 \author{
 \strong{Maintainer}: Daniel P. Smith \email{dansmith01@gmail.com}

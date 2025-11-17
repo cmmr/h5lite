@@ -30,8 +30,8 @@ test_that("Read/write cycle works for various data types", {
   h5_write(file_path, "d_mat_double", d_mat_double)
   h5_write(file_path, "d_arr_int", d_arr_int)
   h5_write(file_path, "d_mat_raw", d_mat_raw)
-  h5_write(file_path, "d_scalar_char", d_scalar_char, dims = NULL)
-  h5_write(file_path, "d_scalar_int", d_scalar_int, dims = NULL)
+  h5_write(file_path, "d_scalar_char", I(d_scalar_char))
+  h5_write(file_path, "d_scalar_int", I(d_scalar_int))
 
   # --- 3. READ AND VERIFY DATA ---
   expect_equal(h5_read(file_path, "d_vec_double"), d_vec_double)

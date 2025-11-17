@@ -10,7 +10,7 @@ h5_ls_attr(file, name)
 \item{file}{Path to the HDF5 file.}
 
 \item{name}{The path to the object (dataset or group) to query.
-Use "/" for the file's root attributes.}
+Use \code{/} for the file's root attributes.}
 }
 \value{
 A character vector of attribute names.

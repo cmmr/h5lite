@@ -14,10 +14,8 @@ reference:
     desc: "Functions for reading and writing datasets, attributes, and nested lists."
     contents:
       - h5_read
-      - h5_read_all
       - h5_read_attr
       - h5_write
-      - h5_write_all
       - h5_write_attr
   - title: "Inspection & Discovery"
     desc: "Functions for exploring the contents and properties of an HDF5 file."

@@ -1,6 +1,4 @@
-
 #include "h5lite.h"
-#include <hdf5.h>
 #include <stdlib.h>
 #include <string.h>
 

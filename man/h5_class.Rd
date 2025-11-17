@@ -21,8 +21,7 @@ A character string representing the R class (e.g., \code{"numeric"},
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
 \description{
-Inspects an HDF5 object and returns the R class that \code{\link[=h5_read]{h5_read()}}
-or \code{\link[=h5_read_all]{h5_read_all()}} would produce.
+Inspects an HDF5 object and returns the R class that \code{h5_read()} would produce.
 }
 \details{
 This function determines the resulting R class by inspecting the object's
@@ -34,7 +33,7 @@ metadata.
 \item \strong{String} datasets are reported as \code{"character"}.
 \item \strong{Enum} datasets are reported as \code{"factor"}.
 \item \strong{1-byte Opaque} datasets are reported as \code{"raw"}.
-\item Other HDF5 types (e.g., compound) are reported as \code{NA_character_}.
+\item \strong{Compound} datasets are reported as \code{"data.frame"}.
 }
 
 If \code{attrs} is set to \code{TRUE} or is a character vector containing \code{"class"},
@@ -52,10 +51,8 @@ h5_write(file, "doubles", c(1.1, 2.2))
 h5_write(file, "text", "hello")
 h5_create_group(file, "my_group")
 
-# Create a 'data.frame' structure (a group with a 'class' attribute)
-df_list <- list(a = 1:2, b = c("x", "y"))
-attr(df_list, "class") <- "data.frame"
-h5_write_all(file, "my_df", df_list)
+# Write a data.frame, which becomes a compound dataset
+h5_write(file, "my_df", data.frame(a = 1:2, b = c("x", "y")))
 
 # Check R classes
 h5_class(file, "integers")      # "numeric"
@@ -63,12 +60,12 @@ h5_class(file, "doubles")       # "numeric"
 h5_class(file, "text")          # "character"
 h5_class(file, "my_group")      # "list"
 
-# Check 'class' attribute
-h5_class(file, "my_df", attrs = FALSE) # "list" (it's a group)
+# Check the data.frame
+h5_class(file, "my_df") # "data.frame"
 h5_class(file, "my_df", attrs = TRUE)  # "data.frame"
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_class_attr]{h5_class_attr()}}, \code{\link[=h5_typeof]{h5_typeof()}}, \code{\link[=h5_read_all]{h5_read_all()}}
+\code{\link[=h5_class_attr]{h5_class_attr()}}, \code{\link[=h5_typeof]{h5_typeof()}}, \code{\link[=h5_read]{h5_read()}}
 }

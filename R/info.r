@@ -1,82 +1,37 @@
 
-#' Helper function to map HDF5 storage types to R classes
-#' @keywords internal
-#' @noRd
-map_hdf5_type_to_r_class <- function(hdf5_type) {
-  switch(
-    hdf5_type,
-    
-    # All numeric types are read as "numeric" (double)
-    "int8" = ,
-    "int16" = ,
-    "int32" = ,
-    "int64" = ,
-    "uint8" = ,
-    "uint16" = ,
-    "uint32" = ,
-    "uint64" = ,
-    "int" = ,
-    "float16" = ,
-    "float32" = ,
-    "float64" = ,
-    "float" = "numeric",
-    
-    # String type
-    "string" = "character",
-    
-    # Enum type
-    "enum" = "factor",
-    
-    # Opaque type (h5lite reads 1-byte opaque as raw)
-    "opaque" = "raw",
-    
-    # HDF5 types that h5lite cannot read
-    "bitfield" = ,
-    "compound" = ,
-    "reference" = ,
-    "vlen" = ,
-    "array" = ,
-    "unknown" = NA_character_,
-    
-    # Default fallback
-    NA_character_
-  )
-}
-
 #' Get R Class of an HDF5 Object
 #'
-#' Inspects an HDF5 object and returns the R class that \code{\link[=h5_read]{h5_read()}}
-#' or \code{\link[=h5_read_all]{h5_read_all()}} would produce.
+#' Inspects an HDF5 object and returns the R class that `h5_read()` would produce.
 #'
 #' @details
 #' This function determines the resulting R class by inspecting the object's
 #' metadata.
 #' \itemize{
-#'   \item \strong{Groups} are reported as \code{"list"}.
-#'   \item \strong{Datasets} (integers, floats) are reported as \code{"numeric"}
-#'     (since \code{h5_read} always returns \code{double}).
-#'   \item \strong{String} datasets are reported as \code{"character"}.
-#'   \item \strong{Enum} datasets are reported as \code{"factor"}.
-#'   \item \strong{1-byte Opaque} datasets are reported as \code{"raw"}.
-#'   \item Other HDF5 types (e.g., compound) are reported as \code{NA_character_}.
+#'   \item **Groups** are reported as `"list"`.
+#'   \item **Datasets** (integers, floats) are reported as `"numeric"`
+#'     (since `h5_read` always returns `double`).
+#'   \item **String** datasets are reported as `"character"`.
+#'   \item **Enum** datasets are reported as `"factor"`.
+#'   \item **1-byte Opaque** datasets are reported as `"raw"`.
+#'   \item **Compound** datasets are reported as `"data.frame"`.
 #' }
 #'
-#' If \code{attrs} is set to \code{TRUE} or is a character vector containing \code{"class"},
+#' If `attrs` is set to `TRUE` or is a character vector containing `"class"`,
 #' this function will first check for an HDF5 attribute on the object named
-#' \code{"class"}. If a string attribute with this name exists, its value
-#' (e.g., \code{"data.frame"}) will be returned, taking precedence over
+#' `"class"`. If a string attribute with this name exists, its value
+#' (e.g., `"data.frame"`) will be returned, taking precedence over
 #' the object's type.
 #'
 #' @param file Path to the HDF5 file.
 #' @param name The full path of the object (group or dataset) to check.
-#' @param attrs Controls attribute checking. If \code{TRUE} or a character
-#'   vector containing \code{"class"}, the function will check for a \code{"class"}
+#' @param attrs Controls attribute checking. If `TRUE` or a character
+#'   vector containing `"class"`, the function will check for a `"class"`
 #'   HDF5 attribute on the object.
-#' @return A character string representing the R class (e.g., \code{"numeric"},
-#'   \code{"character"}, \code{"factor"}, \code{"raw"}, \code{"list"}).
-#'   Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
+#' @return A character string representing the R class (e.g., `"numeric"`,
+#'   `"character"`, `"factor"`, `"raw"`, `"list"`).
+#'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
-#' @seealso [h5_class_attr()], [h5_typeof()], [h5_read_all()]
+#' @seealso [h5_class_attr()], [h5_typeof()], [h5_read()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -87,10 +42,8 @@ map_hdf5_type_to_r_class <- function(hdf5_type) {
 #' h5_write(file, "text", "hello")
 #' h5_create_group(file, "my_group")
 #'
-#' # Create a 'data.frame' structure (a group with a 'class' attribute)
-#' df_list <- list(a = 1:2, b = c("x", "y"))
-#' attr(df_list, "class") <- "data.frame"
-#' h5_write_all(file, "my_df", df_list)
+#' # Write a data.frame, which becomes a compound dataset
+#' h5_write(file, "my_df", data.frame(a = 1:2, b = c("x", "y")))
 #'
 #' # Check R classes
 #' h5_class(file, "integers")      # "numeric"
@@ -98,8 +51,8 @@ map_hdf5_type_to_r_class <- function(hdf5_type) {
 #' h5_class(file, "text")          # "character"
 #' h5_class(file, "my_group")      # "list"
 #'
-#' # Check 'class' attribute
-#' h5_class(file, "my_df", attrs = FALSE) # "list" (it's a group)
+#' # Check the data.frame
+#' h5_class(file, "my_df") # "data.frame"
 #' h5_class(file, "my_df", attrs = TRUE)  # "data.frame"
 #'
 #' unlink(file)
@@ -138,26 +91,26 @@ h5_class <- function(file, name, attrs = FALSE) {
 
 #' Get R Class of an HDF5 Attribute
 #'
-#' Returns the R class that \code{\link[=h5_read_attr]{h5_read_attr()}} would
+#' Returns the R class that `h5_read_attr()` would
 #' produce for a given HDF5 attribute.
 #'
 #' @details
 #' This function maps the low-level HDF5 storage type of an attribute to the
 #' resulting R class.
 #' \itemize{
-#'   \item \strong{Integer/Float} attributes are reported as \code{"numeric"}.
-#'   \item \strong{String} attributes are reported as \code{"character"}.
-#'   \item \strong{Enum} attributes are reported as \code{"factor"}.
-#'   \item \strong{1-byte Opaque} attributes are reported as \code{"raw"}.
-#'   \item Other HDF5 types are reported as \code{NA_character_}.
+#'   \item **Integer/Float** attributes are reported as `"numeric"`.
+#'   \item **String** attributes are reported as `"character"`.
+#'   \item **Enum** attributes are reported as `"factor"`.
+#'   \item **1-byte Opaque** attributes are reported as `"raw"`.
+#'   \item Other HDF5 types are reported as `NA_character_`.
 #' }
 #'
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object the attribute is attached to.
 #' @param attribute Name of the attribute.
-#' @return A character string representing the R class (e.g., \code{"numeric"},
-#'   \code{"character"}, \code{"factor"}, \code{"raw"}).
-#'   Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
+#' @return A character string representing the R class (e.g., `"numeric"`,
+#'   `"character"`, `"factor"`, `"raw"`).
+#'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
 #' @seealso [h5_class()], [h5_typeof_attr()]
 #' @export
@@ -166,8 +119,8 @@ h5_class <- function(file, name, attrs = FALSE) {
 #' h5_write(file, "data", 1)
 #'
 #' # Write attributes of different types
-#' h5_write_attr(file, "data", "int_attr", 10L)
-#' h5_write_attr(file, "data", "char_attr", "info", dims = NULL)
+#' h5_write_attr(file, "data", "int_attr", 10L) # 1D array of length 1
+#' h5_write_attr(file, "data", "char_attr", I("info")) # scalar
 #'
 #' # Check R class
 #' h5_class_attr(file, "data", "int_attr")  # "numeric"
@@ -230,7 +183,7 @@ h5_typeof <- function(file, name) {
 #' file <- tempfile(fileext = ".h5")
 #' h5_write(file, "data", 1)
 #' 
-#' h5_write_attr(file, "data", "meta", "info", dims = NULL)
+#' h5_write_attr(file, "data", "meta", I("info"))
 #' h5_typeof_attr(file, "data", "meta") # "string"
 #' 
 #' unlink(file)
@@ -247,7 +200,7 @@ h5_typeof_attr <- function(file, name, attribute) {
 #' 
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset.
-#' @return An integer vector of dimensions, or \code{integer(0)} for scalars.
+#' @return An integer vector of dimensions, or `integer(0)` for scalars.
 #' 
 #' @seealso [h5_dim_attr()]
 #' @export
@@ -274,7 +227,7 @@ h5_dim <- function(file, name) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object attached to.
 #' @param attribute Name of the attribute.
-#' @return An integer vector of dimensions, or \code{integer(0)} for scalars.
+#' @return An integer vector of dimensions, or `integer(0)` for scalars.
 #' 
 #' @seealso [h5_dim()]
 #' @export
@@ -301,12 +254,12 @@ h5_dim_attr <- function(file, name, attribute) {
 #' This function provides a robust, error-free way to test for existence.
 #'
 #' \itemize{
-#'   \item **Testing for a File:** If `name` is `"/"` (the default),
+#'   \item **Testing for a File:** If `name` is `/` (the default),
 #'     the function checks if `file` is a valid, readable HDF5 file.
-#'     It will return `FALSE` for non-existent files, text files, or
+#'     It will return `FALSE` for non-existent files, non-HDF5 files, or
 #'     corrupted files without raising an error.
 #'
-#'   \item **Testing for an Object:** If `name` is a path (e.g., `"/data/matrix"`),
+#'   \item **Testing for an Object:** If `name` is a path (e.g., `/data/matrix`),
 #'     the function first confirms the file is valid HDF5, and then checks
 #'     if the specific object exists within it.
 #' }
@@ -314,7 +267,7 @@ h5_dim_attr <- function(file, name, attribute) {
 #' @param file Path to the HDF5 file.
 #' @param name The full path of the object to check (e.g., `"/data/matrix"`).
 #'   Defaults to `"/"`, which tests if the file itself is a valid HDF5 file.
-#' @return A logical value: `TRUE` if the file/object exists and is valid HDF5,
+#' @return A logical value: `TRUE` if the file/object exists and is valid,
 #'   `FALSE` otherwise.
 #' @seealso [h5_exists_attr()], [h5_is_group()], [h5_is_dataset()]
 #' @export
@@ -424,4 +377,51 @@ h5_is_dataset <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) return(FALSE)
   .Call("C_h5_is_dataset", file, name, PACKAGE = "h5lite")
+}
+
+
+#' Helper function to map HDF5 storage types to R classes
+#' @keywords internal
+#' @noRd
+map_hdf5_type_to_r_class <- function(hdf5_type) {
+  switch(
+    hdf5_type,
+    
+    # All numeric types are read as "numeric" (double)
+    "int8" = ,
+    "int16" = ,
+    "int32" = ,
+    "int64" = ,
+    "uint8" = ,
+    "uint16" = ,
+    "uint32" = ,
+    "uint64" = ,
+    "int" = ,
+    "float16" = ,
+    "float32" = ,
+    "float64" = ,
+    "float" = "numeric",
+    
+    # String type
+    "string" = "character",
+    
+    # Enum type
+    "enum" = "factor",
+    
+    # Compound type
+    "compound" = "data.frame",
+    
+    # Opaque type (h5lite reads 1-byte opaque as raw)
+    "opaque" = "raw",
+    
+    # HDF5 types that h5lite cannot read
+    "bitfield" = ,
+    "reference" = ,
+    "vlen" = ,
+    "array" = ,
+    "unknown" = NA_character_,
+    
+    # Default fallback
+    NA_character_
+  )
 }

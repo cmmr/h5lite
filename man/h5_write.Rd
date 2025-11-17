@@ -2,58 +2,78 @@
 % Please edit documentation in R/write.r
 \name{h5_write}
 \alias{h5_write}
-\title{Write a Dataset to HDF5}
+\title{Write an R Object to HDF5}
 \usage{
-h5_write(
-  file,
-  name,
-  data,
-  dtype = "auto",
-  dims = "auto",
-  compress = TRUE,
-  attrs = FALSE
-)
+h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
-\item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
-\code{logical}, \code{character}, \code{factor}, \code{raw}.}
+\item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{logical},
+\code{character}, \code{factor}, \code{raw}, \code{data.frame}, and nested \code{list}s.}
 
 \item{dtype}{The target HDF5 data type. See details.}
-
-\item{dims}{An integer vector specifying dimensions, or \code{NULL} for a scalar.
-Defaults to \code{dim(data)} if it exists, or \code{length(data)} otherwise.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
 An integer \code{1-9} specifies the zlib compression level directly.}
 
-\item{attrs}{Controls which R attributes of \code{data} are written to the HDF5 dataset.
-Can be \code{FALSE} (the default, no attributes), \code{TRUE} (all attributes except \code{dim}),
+\item{attrs}{Controls which R attributes of \code{data} are written to the HDF5 object.
+Can be \code{FALSE} (the default), \code{TRUE} (all attributes except \code{dim}),
 a character vector of attribute names to include (e.g., \code{c("info", "version")}),
-or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).
-Mixing inclusive and exclusive names is not allowed.}
+or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).}
 }
 \value{
-Invisibly returns \code{NULL}. This function is called for its side effects.
+Invisibly returns \code{file}. This function is called for its side effects.
 }
 \description{
-Writes an R object to an HDF5 file as a dataset. The file is created if
-it does not exist. Handles dimension transposition automatically.
+Writes an R object to an HDF5 file, creating the file if it does not exist.
+This function can write atomic vectors, matrices, arrays, factors, \code{data.frame}s,
+and nested \code{list}s.
 }
-\details{
+\section{Writing Scalars}{
+
+By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
+To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
+For example, \code{h5_write(file, "x", I(5))} will create a scalar dataset, while
+\code{h5_write(file, "x", 5)} will create a 1D array of length 1.
+}
+
+\section{Writing Lists}{
+
+If \code{data} is a \code{list} (but not a \code{data.frame}), \code{h5_write} will write it
+recursively, creating a corresponding group and dataset structure.
+\itemize{
+\item R \code{list} objects are created as HDF5 \strong{groups}.
+\item All other supported R objects (vectors, matrices, arrays, factors, \code{data.frame}s)
+are written as HDF5 \strong{datasets}.
+\item Attributes of a list are written as HDF5 attributes on the corresponding group.
+\item Before writing, a "dry run" is performed to validate that all objects and attributes
+within the list are of a writeable type. If any part of the
+structure is invalid, the function will throw an error and no data will be
+written.
+}
+}
+
+\section{Writing Data Frames}{
+
+\code{data.frame} objects are written as HDF5 \strong{compound datasets}. This is a
+native HDF5 table-like structure that is highly efficient and portable.
+}
+
+\section{Data Type Selection (\code{dtype})}{
+
 The \code{dtype} argument controls the on-disk storage type \strong{for numeric data only}.
 
 If \code{dtype} is set to \code{"auto"} (the default), \code{h5lite} will automatically
-select the most space-efficient type for numeric data that can safely
+select the most space-efficient HDF5 type for numeric data that can safely
 represent the full range of values. For example, writing \code{1:100} will
 result in an 8-bit unsigned integer (\code{uint8}) dataset, which helps minimize
 file size.
 
-To override this for numeric data, you can specify an exact type. The input
+To override this behavior, you can specify an exact type. The input
 is case-insensitive and allows for unambiguous partial matching. The full
 list of supported values is:
 \itemize{
@@ -67,13 +87,26 @@ list of supported values is:
 
 Note: Types without a bit-width suffix (e.g., \code{"int"}, \code{"long"}) are system-
 dependent and may have different sizes on different machines. For maximum file
-portability, it is recommended to use types with explicit widths (e.g., \code{"int32"}).
+portability, it is recommended to use types with explicit bit-widths (e.g., \code{"int32"}).
 
 For non-numeric data (\code{character}, \code{factor}, \code{raw}, \code{logical}), the storage
 type is determined automatically and \strong{cannot be changed} by the \code{dtype}
 argument. R \code{logical} vectors are stored as 8-bit unsigned integers (\code{uint8}),
 as HDF5 does not have a native boolean datatype.
 }
+
+\section{Attribute Round-tripping}{
+
+To properly round-trip an R object, it is helpful to set \code{attrs = TRUE}. This
+preserves important R metadata—such as the \code{names} of a named vector, \code{row.names}
+of a \code{data.frame}, or the \code{class} of an object—as HDF5 attributes.
+
+\strong{Limitation}: HDF5 has no direct analog for R's \code{dimnames}.
+Attempting to write an object that has \code{dimnames} (e.g., a named matrix)
+with \code{attrs = TRUE} will result in an error. You must either remove the
+\code{dimnames} or set \code{attrs = FALSE}.
+}
+
 \examples{
 file <- tempfile(fileext = ".h5")
 
@@ -91,10 +124,24 @@ h5_write(file, "vec1", 101:120, dtype = "int32")
 h5_typeof(file, "vec1") # "int32"
 
 # Write a scalar value
-h5_write(file, "scalar", 3.14, dims = NULL)
+h5_write(file, "scalar", I(3.14))
+
+# Write a named vector and preserve its names by setting attrs = TRUE
+named_vec <- c(a = 1, b = 2)
+h5_write(file, "named_vector", named_vec, attrs = TRUE)
+
+# Write a nested list, which creates groups and datasets
+my_list <- list(
+  config = list(version = 1.2, user = "test"),
+  data = matrix(1:4, 2)
+)
+attr(my_list, "info") <- "Session data"
+h5_write(file, "session_data", my_list)
+
+h5_ls(file, recursive = TRUE)
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_all]{h5_write_all()}}, \code{\link[=h5_write_attr]{h5_write_attr()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}}
 }

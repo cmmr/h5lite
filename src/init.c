@@ -13,6 +13,9 @@ static const R_CallMethodDef CallEntries[] = {
   {"C_h5_create_group",    (DL_FUNC) &C_h5_create_group, 2},
   {"C_h5_move",            (DL_FUNC) &C_h5_move, 3},
   
+  /* dataframe.c */
+  {"C_h5_write_dataframe", (DL_FUNC) &C_h5_write_dataframe, 5},
+  
   /* ls.c */
   {"C_h5_str",     (DL_FUNC) &C_h5_str, 2},
   {"C_h5_ls",      (DL_FUNC) &C_h5_ls, 4},

@@ -13,7 +13,7 @@ h5_str(file, name = "/")
 group "/".}
 }
 \value{
-This function is called for its side effect of printing to the
+This function is called for its side-effect of printing to the
 console and returns \code{NULL} invisibly.
 }
 \description{
@@ -34,7 +34,7 @@ fast and memory-safe for arbitrarily large files.
 file <- tempfile(fileext = ".h5")
 
 # Create a nested structure
-h5_write(file, "/config/version", 1.2, dims = NULL)
+h5_write(file, "/config/version", I(1.2))
 h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
 h5_write_attr(file, "/data/matrix", "title", "my matrix")
 

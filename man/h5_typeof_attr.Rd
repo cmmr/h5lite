@@ -23,7 +23,7 @@ Returns the low-level HDF5 storage type of an attribute.
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
-h5_write_attr(file, "data", "meta", "info", dims = NULL)
+h5_write_attr(file, "data", "meta", I("info"))
 h5_typeof_attr(file, "data", "meta") # "string"
 
 unlink(file)

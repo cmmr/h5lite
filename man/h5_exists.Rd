@@ -13,7 +13,7 @@ h5_exists(file, name = "/")
 Defaults to \code{"/"}, which tests if the file itself is a valid HDF5 file.}
 }
 \value{
-A logical value: \code{TRUE} if the file/object exists and is valid HDF5,
+A logical value: \code{TRUE} if the file/object exists and is valid,
 \code{FALSE} otherwise.
 }
 \description{
@@ -24,12 +24,12 @@ Safely checks if a file is a valid HDF5 file or if a specific object
 This function provides a robust, error-free way to test for existence.
 
 \itemize{
-\item \strong{Testing for a File:} If \code{name} is \code{"/"} (the default),
+\item \strong{Testing for a File:} If \code{name} is \code{/} (the default),
 the function checks if \code{file} is a valid, readable HDF5 file.
-It will return \code{FALSE} for non-existent files, text files, or
+It will return \code{FALSE} for non-existent files, non-HDF5 files, or
 corrupted files without raising an error.
 
-\item \strong{Testing for an Object:} If \code{name} is a path (e.g., \code{"/data/matrix"}),
+\item \strong{Testing for an Object:} If \code{name} is a path (e.g., \verb{/data/matrix}),
 the function first confirms the file is valid HDF5, and then checks
 if the specific object exists within it.
 }

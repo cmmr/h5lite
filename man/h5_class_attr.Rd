@@ -19,7 +19,7 @@ A character string representing the R class (e.g., \code{"numeric"},
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
 \description{
-Returns the R class that \code{\link[=h5_read_attr]{h5_read_attr()}} would
+Returns the R class that \code{h5_read_attr()} would
 produce for a given HDF5 attribute.
 }
 \details{
@@ -38,8 +38,8 @@ file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
 # Write attributes of different types
-h5_write_attr(file, "data", "int_attr", 10L)
-h5_write_attr(file, "data", "char_attr", "info", dims = NULL)
+h5_write_attr(file, "data", "int_attr", 10L) # 1D array of length 1
+h5_write_attr(file, "data", "char_attr", I("info")) # scalar
 
 # Check R class
 h5_class_attr(file, "data", "int_attr")  # "numeric"

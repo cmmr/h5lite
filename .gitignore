@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.lintr
 docs
 inst/doc
 src/*.o

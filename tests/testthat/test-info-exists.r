@@ -18,7 +18,7 @@ test_that("Info, existence, and type checking functions work correctly", {
   h5_write(file_path, "d1", 1:5)
   h5_write(file_path, "g1/d1.1", 1:10, dtype = "int16")
   h5_write(file_path, "g1/g1.1/d1.1.1", matrix(1:4, 2, 2), dtype = 'float64')
-  h5_write(file_path, "g2/d2.1", "a scalar", dims = NULL)
+  h5_write(file_path, "g2/d2.1", I("a scalar"))
   h5_write_attr(file_path, "g1/d1.1", "a1", "hello")
   h5_write_attr(file_path, "g1/d1.1", "a2", 1:3, dtype = 'float64')
 

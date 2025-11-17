@@ -1,7 +1,7 @@
 library(testthat)
 library(h5lite)
 
-test_that("h5_write_all and h5_read_all work correctly", {
+test_that("h5_read correctly reads groups into lists", {
   
   file_path <- tempfile(fileext = ".h5")
   on.exit(unlink(file_path), add = TRUE)
@@ -20,12 +20,12 @@ test_that("h5_write_all and h5_read_all work correctly", {
   attr(original_list$alpha$a_mat, "info") <- "a_mat dataset"
 
   # 2. Write the list to the file
-  h5_write_all(file_path, "session_data", original_list)
+  h5_write(file_path, "session_data", original_list, attrs = TRUE)
 
   # 3. Read the entire structure back
-  read_list <- h5_read_all(file_path, "session_data")
+  read_list <- h5_read(file_path, "session_data", attrs = TRUE)
 
-  # 4. VERIFY: h5_read_all returns items sorted by name.
+  # 4. VERIFY: h5_read on a group returns items sorted by name.
   # The structure should be identical, but the top-level order will be alphabetical.
   expect_equal(names(read_list), c("alpha", "beta", "empty_group", "zeta"))
 
@@ -37,18 +37,18 @@ test_that("h5_write_all and h5_read_all work correctly", {
 
   # 5. Test validation for unnamed list elements
   bad_list_unnamed <- list(a = 1, 2) # second element is unnamed
-  expect_error(h5_write_all(file_path, "bad_data", bad_list_unnamed),
+  expect_error(h5_write(file_path, "bad_data", bad_list_unnamed),
                "All elements in a list must be named.")
 
   bad_list_no_names <- list(1, 2)
-  expect_error(h5_write_all(file_path, "bad_data", bad_list_no_names),
+  expect_error(h5_write(file_path, "bad_data", bad_list_no_names),
                "All elements in a list must be named.")
 
   nested_bad_list <- list(a = 1, b = list(c = 3, 4)) # unnamed element in nested list
-  expect_error(h5_write_all(file_path, "bad_data", nested_bad_list),
+  expect_error(h5_write(file_path, "bad_data", nested_bad_list),
                "All elements in a list must be named.")
 
-  # 6. Test that h5_read_all on a dataset behaves like h5_read
-  dset_read <- h5_read_all(file_path, "/session_data/beta")
+  # 6. Test that h5_read on a dataset within a group works
+  dset_read <- h5_read(file_path, "/session_data/beta")
   expect_equal(dset_read, 2.5)
 })

@@ -1,7 +1,4 @@
 #include "h5lite.h"
-#include <hdf5.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* --- Helper to set R dimensions --- */
 static void set_r_dimensions(SEXP result, int ndims, hsize_t *dims) {
@@ -157,19 +154,20 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
       H5free_memory(level_name);
     }
     
-    // 3. Return a list for R to construct the factor
-    SEXP list_names;
-    PROTECT(list_names = allocVector(STRSXP, 3));
-    SET_STRING_ELT(list_names, 0, mkChar(".h5_factor"));
-    SET_STRING_ELT(list_names, 1, mkChar("data"));
-    SET_STRING_ELT(list_names, 2, mkChar("levels"));
-    SEXP final_result = PROTECT(Rf_allocVector(VECSXP, 3)); // This is a list in R
-    SET_VECTOR_ELT(final_result, 0, ScalarLogical(1)); // .h5_factor
-    SET_VECTOR_ELT(final_result, 1, result);           // data
-    SET_VECTOR_ELT(final_result, 2, levels);           // levels
-    setAttrib(final_result, R_NamesSymbol, list_names);
-    UNPROTECT(3); // result, levels, final_result
-    result = final_result;
+    // 3. Assemble the factor object directly
+    // An R factor is an integer vector with 'levels' and 'class' attributes.
+    setAttrib(result, R_LevelsSymbol, levels);
+    
+    SEXP class_attr;
+    PROTECT(class_attr = allocVector(STRSXP, 1));
+    SET_STRING_ELT(class_attr, 0, mkChar("factor"));
+    setAttrib(result, R_ClassSymbol, class_attr);
+    
+    UNPROTECT(2); // levels, class_attr
+  } else if (class_id == H5T_COMPOUND) {
+    result = read_dataframe(dset_id, file_type_id, space_id);
+    PROTECT(result); // Protect the result from read_dataframe
+    status = 0; // Mark as successful
   } else {
     if (dims) free(dims);
     H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
@@ -178,7 +176,9 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
   
   if (dims) free(dims);
   H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
+  
   if (status < 0) { UNPROTECT(1); error("Failed to read data"); }
+
   UNPROTECT(1);
   return result;
 }
@@ -311,19 +311,19 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
       H5free_memory(level_name);
     }
     
-    // 3. Return a list for R to construct the factor
-    SEXP list_names;
-    PROTECT(list_names = allocVector(STRSXP, 3));
-    SET_STRING_ELT(list_names, 0, mkChar(".h5_factor"));
-    SET_STRING_ELT(list_names, 1, mkChar("data"));
-    SET_STRING_ELT(list_names, 2, mkChar("levels"));
-    SEXP final_result = PROTECT(Rf_allocVector(VECSXP, 3)); // This is a list in R
-    SET_VECTOR_ELT(final_result, 0, ScalarLogical(1)); // .h5_factor
-    SET_VECTOR_ELT(final_result, 1, result);           // data
-    SET_VECTOR_ELT(final_result, 2, levels);           // levels
-    setAttrib(final_result, R_NamesSymbol, list_names);
-    UNPROTECT(3); // result, levels, final_result
-    result = final_result;
+    // 3. Assemble the factor object directly
+    setAttrib(result, R_LevelsSymbol, levels);
+    
+    SEXP class_attr;
+    PROTECT(class_attr = allocVector(STRSXP, 1));
+    SET_STRING_ELT(class_attr, 0, mkChar("factor"));
+    setAttrib(result, R_ClassSymbol, class_attr);
+    
+    UNPROTECT(2); // levels, class_attr
+  } else if (class_id == H5T_COMPOUND) {
+    result = read_compound_attribute(attr_id, file_type_id, space_id);
+    PROTECT(result);
+    status = 0; // Mark as successful
     
   } else {
     if(dims) free(dims);

@@ -22,7 +22,7 @@ Deletes an attribute from an object.
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-h5_write_attr(file, "data", "attr1", "some info")
+h5_write_attr(file, "data", "attr1", I("some info"))
 print(h5_ls_attr(file, "data")) # "attr1"
 
 h5_delete_attr(file, "data", "attr1")
