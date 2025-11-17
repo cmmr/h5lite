@@ -23,21 +23,21 @@ h5_exists(file, name = "/")
 
 ## Value
 
-A logical value: `TRUE` if the file/object exists and is valid HDF5,
-`FALSE` otherwise.
+A logical value: `TRUE` if the file/object exists and is valid, `FALSE`
+otherwise.
 
 ## Details
 
 This function provides a robust, error-free way to test for existence.
 
-- **Testing for a File:** If `name` is `"/"` (the default), the function
+- **Testing for a File:** If `name` is `/` (the default), the function
   checks if `file` is a valid, readable HDF5 file. It will return
-  `FALSE` for non-existent files, text files, or corrupted files without
-  raising an error.
+  `FALSE` for non-existent files, non-HDF5 files, or corrupted files
+  without raising an error.
 
-- **Testing for an Object:** If `name` is a path (e.g.,
-  `"/data/matrix"`), the function first confirms the file is valid HDF5,
-  and then checks if the specific object exists within it.
+- **Testing for an Object:** If `name` is a path (e.g., `/data/matrix`),
+  the function first confirms the file is valid HDF5, and then checks if
+  the specific object exists within it.
 
 ## See also
 

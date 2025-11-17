@@ -6,15 +6,11 @@ Functions for reading and writing datasets, attributes, and nested
 lists.
 
 - [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) :
-  Read an HDF5 Dataset
-- [`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md)
-  : Read an HDF5 Group or Dataset Recursively
+  Read an HDF5 Object
 - [`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md)
   : Read an HDF5 Attribute
 - [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) :
-  Write a Dataset to HDF5
-- [`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md)
-  : Write a List Recursively to HDF5
+  Write an R Object to HDF5
 - [`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
   : Write an Attribute to HDF5
 

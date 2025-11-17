@@ -144,10 +144,11 @@ a 32-bit integer type.</p>
 <div class="section level3">
 <h3 id="writing-scalars">Writing Scalars<a class="anchor" aria-label="anchor" href="#writing-scalars"></a>
 </h3>
-<p>To write a single value as a scalar instead of an array, you must
-specify <code>dims = NULL</code>.</p>
+<p>By default, <code>h5_write</code> saves single-element vectors as
+1-dimensional arrays. To write a true HDF5 scalar, wrap the value in
+<code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it “as-is”.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-abc-123"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"run-abc-123"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -231,7 +232,7 @@ parameters, or version info.</p>
 dataset.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Add a scalar string attribute for units</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"units"</span>, <span class="st">"celsius"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"units"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"celsius"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Add a numeric vector attribute for calibration coefficients</span></span>
 <span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.02</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -246,14 +247,13 @@ dataset.</p>
 <span><span class="co">#&gt; [1] "celsius"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="recursive-io-with-lists-h5_write_all-and-h5_read_all">5. Recursive I/O with Lists (<code>h5_write_all</code> and
-<code>h5_read_all</code>)<a class="anchor" aria-label="anchor" href="#recursive-io-with-lists-h5_write_all-and-h5_read_all"></a>
+<h2 id="recursive-io-with-lists">5. Recursive I/O with Lists<a class="anchor" aria-label="anchor" href="#recursive-io-with-lists"></a>
 </h2>
-<p>For more complex data structures, <code>h5lite</code> provides
-<code><a href="../reference/h5_write_all.html">h5_write_all()</a></code> and <code><a href="../reference/h5_read_all.html">h5_read_all()</a></code> to seamlessly
-save and load nested R <code>list</code> objects.</p>
+<p>For more complex data structures, <code><a href="../reference/h5_write.html">h5_write()</a></code> and
+<code><a href="../reference/h5_read.html">h5_read()</a></code> seamlessly save and load nested R
+<code>list</code> objects.</p>
 <ul>
-<li>R <code>list</code> objects are saved as HDF5
+<li>R <code>list</code> objects are written as HDF5
 <strong>groups</strong>.</li>
 <li>Attributes on a <code>list</code> are saved as attributes on the
 corresponding group.</li>
@@ -274,15 +274,22 @@ preserving its structure and metadata.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"This is the data group"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">matrix</span>, <span class="st">"my_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"matrix attribute"</span></span>
 <span></span>
-<span><span class="co"># Write the entire list to a group called "session_data"</span></span>
-<span><span class="fu"><a href="../reference/h5_write_all.html">h5_write_all</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span><span class="op">)</span></span>
+<span><span class="co"># Write the entire list. This creates a group called "session_data".</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Read it all back in one command</span></span>
-<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read_all.html">h5_read_all</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span><span class="op">)</span></span>
+<span><span class="co"># Read the group back into a list</span></span>
+<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Verify the round-trip was successful</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">read_list</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">read_list</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Component \"config\": Names: 2 string mismatches"                                                           </span></span>
+<span><span class="co">#&gt; [2] "Component \"config\": Component 1: Modes: numeric, character"                                               </span></span>
+<span><span class="co">#&gt; [3] "Component \"config\": Component 1: target is numeric, current is character"                                 </span></span>
+<span><span class="co">#&gt; [4] "Component \"config\": Component 2: Modes: character, numeric"                                               </span></span>
+<span><span class="co">#&gt; [5] "Component \"config\": Component 2: target is character, current is numeric"                                 </span></span>
+<span><span class="co">#&gt; [6] "Component \"data\": Attributes: &lt; names for target but not for current &gt;"                                   </span></span>
+<span><span class="co">#&gt; [7] "Component \"data\": Attributes: &lt; Length mismatch: comparison on first 0 components &gt;"                      </span></span>
+<span><span class="co">#&gt; [8] "Component \"data\": Component \"matrix\": Attributes: &lt; Length mismatch: comparison on first 1 components &gt;"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="handling-special-r-types">6. Handling Special R Types<a class="anchor" aria-label="anchor" href="#handling-special-r-types"></a>
@@ -337,7 +344,7 @@ you write to an existing path, the old data is replaced.</p>
 <span><span class="co">#&gt; [1] "run-abc-123"</span></span>
 <span></span>
 <span><span class="co"># Overwrite with a new value</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="st">"run-xyz-987"</span>, dims <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"run-xyz-987"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "run-xyz-987"</span></span></code></pre></div>

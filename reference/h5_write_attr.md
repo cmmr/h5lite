@@ -5,7 +5,7 @@ Writes an R object as an attribute to an existing HDF5 object.
 ## Usage
 
 ``` r
-h5_write_attr(file, name, attribute, data, dtype = "auto", dims = length(data))
+h5_write_attr(file, name, attribute, data, dtype = "auto")
 ```
 
 ## Arguments
@@ -25,16 +25,11 @@ h5_write_attr(file, name, attribute, data, dtype = "auto", dims = length(data))
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `raw`.
+  `character`, `raw`, and `data.frame`.
 
 - dtype:
 
   The target HDF5 data type. Defaults to `typeof(data)`.
-
-- dims:
-
-  An integer vector specifying dimensions, or `NULL` for a scalar.
-  Defaults to `dim(data)` or `length(data)`.
 
 ## Value
 
@@ -76,6 +71,13 @@ storage type is determined automatically and **cannot be changed** by
 the `dtype` argument. R `logical` vectors are stored as 8-bit unsigned
 integers (`uint8`), as HDF5 does not have a native boolean datatype.
 
+`data.frame` objects are written as HDF5 **compound attributes**, a
+native table-like structure.
+
+To write a scalar attribute, wrap the value in
+[`I()`](https://rdrr.io/r/base/AsIs.html) (e.g., `I("meters")`).
+Otherwise, dimensions are inferred automatically.
+
 ## See also
 
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
@@ -87,10 +89,10 @@ integers (`uint8`), as HDF5 does not have a native boolean datatype.
 file <- tempfile(fileext = ".h5")
 
 # First, create an object to attach attributes to
-h5_write(file, "my_data", 1:10)
+h5_write(file, "my_data", 1:10, compress = FALSE)
 
 # Write a scalar string attribute
-h5_write_attr(file, "my_data", "units", "meters", dims = NULL)
+h5_write_attr(file, "my_data", "units", I("meters"))
 
 # Write a numeric vector attribute
 h5_write_attr(file, "my_data", "range", c(0, 100))

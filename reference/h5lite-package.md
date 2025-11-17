@@ -1,14 +1,39 @@
-# h5lite: Simplified HDF5 Interface
+# h5lite: A Simple and Lightweight HDF5 Interface
 
-Provides a user-friendly interface for reading and writing 'HDF5'
-datasets and attributes. Uses the 'HDF5' library developed by 'The HDF
-Group' <https://www.hdfgroup.org/>.
+The `h5lite` package provides a simple, lightweight, and user-friendly
+interface for reading and writing HDF5 files. It is designed for R users
+who want to save and load common R objects (vectors, matrices, arrays,
+factors, and data.frames) to an HDF5 file without needing to understand
+the low-level details of the HDF5 C API.
+
+## Key Features
+
+- **Simple API:** Use familiar functions like
+  [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) and
+  [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
+
+- **Automatic Handling:** Dimensions, data types, and group creation are
+  handled automatically.
+
+- **Safe by Default:** Numeric data is read as `double` to prevent
+  integer overflow.
+
+- **Easy Installation:** The required HDF5 library is bundled with the
+  package.
 
 ## See also
 
 Useful links:
 
 - <https://cmmr.github.io/h5lite/>
+
+- Report bugs at <https://github.com/cmmr/h5lite/issues>
+
+Key functions:
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
+[`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md)
 
 ## Author
 

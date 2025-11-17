@@ -23,7 +23,7 @@ h5_str(file, name = "/")
 
 ## Value
 
-This function is called for its side effect of printing to the console
+This function is called for its side-effect of printing to the console
 and returns `NULL` invisibly.
 
 ## Details
@@ -47,13 +47,13 @@ it fast and memory-safe for arbitrarily large files.
 file <- tempfile(fileext = ".h5")
 
 # Create a nested structure
-h5_write(file, "/config/version", 1.2, dims = NULL)
+h5_write(file, "/config/version", I(1.2))
 h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
 h5_write_attr(file, "/data/matrix", "title", "my matrix")
 
 # Display the structure of the entire file
 h5_str(file)
-#> Listing contents of: /tmp/RtmpXtTQui/file18c2be41c0c.h5
+#> Listing contents of: /tmp/RtmpCnQhJl/file4e7324b001e7.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type         Name

@@ -82,11 +82,12 @@ h5_write(file, "experiment_1/trial_ids", trial_ids, dtype = "int32")
 
 ### Writing Scalars
 
-To write a single value as a scalar instead of an array, you must
-specify `dims = NULL`.
+By default, `h5_write` saves single-element vectors as 1-dimensional
+arrays. To write a true HDF5 scalar, wrap the value in
+[`I()`](https://rdrr.io/r/base/AsIs.html) to treat it “as-is”.
 
 ``` r
-h5_write(file, "experiment_1/run_id", "run-abc-123", dims = NULL)
+h5_write(file, "experiment_1/run_id", I("run-abc-123"))
 ```
 
 ## 2. Inspecting the File
@@ -170,7 +171,7 @@ Let’s add some attributes to our `sensor_readings` dataset.
 
 ``` r
 # Add a scalar string attribute for units
-h5_write_attr(file, "experiment_1/sensor_readings", "units", "celsius", dims = NULL)
+h5_write_attr(file, "experiment_1/sensor_readings", "units", I("celsius"))
 
 # Add a numeric vector attribute for calibration coefficients
 h5_write_attr(file, "experiment_1/sensor_readings", "calibration", c(1.02, -0.5))
@@ -190,15 +191,14 @@ print(units)
 #> [1] "celsius"
 ```
 
-## 5. Recursive I/O with Lists (`h5_write_all` and `h5_read_all`)
+## 5. Recursive I/O with Lists
 
-For more complex data structures, `h5lite` provides
-[`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md)
-and
-[`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md)
-to seamlessly save and load nested R `list` objects.
+For more complex data structures,
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+seamlessly save and load nested R `list` objects.
 
-- R `list` objects are saved as HDF5 **groups**.
+- R `list` objects are written as HDF5 **groups**.
 - Attributes on a `list` are saved as attributes on the corresponding
   group.
 - All other objects inside the list (vectors, matrices, etc.) are saved
@@ -219,15 +219,22 @@ my_list <- list(
 attr(my_list$data, "info") <- "This is the data group"
 attr(my_list$data$matrix, "my_attr") <- "matrix attribute"
 
-# Write the entire list to a group called "session_data"
-h5_write_all(file, "session_data", my_list)
+# Write the entire list. This creates a group called "session_data".
+h5_write(file, "session_data", my_list)
 
-# Read it all back in one command
-read_list <- h5_read_all(file, "session_data")
+# Read the group back into a list
+read_list <- h5_read(file, "session_data")
 
 # Verify the round-trip was successful
-identical(my_list, read_list)
-#> [1] FALSE
+all.equal(my_list, read_list)
+#> [1] "Component \"config\": Names: 2 string mismatches"                                                           
+#> [2] "Component \"config\": Component 1: Modes: numeric, character"                                               
+#> [3] "Component \"config\": Component 1: target is numeric, current is character"                                 
+#> [4] "Component \"config\": Component 2: Modes: character, numeric"                                               
+#> [5] "Component \"config\": Component 2: target is character, current is numeric"                                 
+#> [6] "Component \"data\": Attributes: < names for target but not for current >"                                   
+#> [7] "Component \"data\": Attributes: < Length mismatch: comparison on first 0 components >"                      
+#> [8] "Component \"data\": Component \"matrix\": Attributes: < Length mismatch: comparison on first 1 components >"
 ```
 
 ## 6. Handling Special R Types
@@ -282,7 +289,7 @@ h5_read(file, "experiment_1/run_id")
 #> [1] "run-abc-123"
 
 # Overwrite with a new value
-h5_write(file, "experiment_1/run_id", "run-xyz-987", dims = NULL)
+h5_write(file, "experiment_1/run_id", I("run-xyz-987"))
 
 h5_read(file, "experiment_1/run_id")
 #> [1] "run-xyz-987"

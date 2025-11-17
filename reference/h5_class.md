@@ -1,9 +1,8 @@
 # Get R Class of an HDF5 Object
 
 Inspects an HDF5 object and returns the R class that
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) or
-[`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md)
-would produce.
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) would
+produce.
 
 ## Usage
 
@@ -49,7 +48,7 @@ object's metadata.
 
 - **1-byte Opaque** datasets are reported as `"raw"`.
 
-- Other HDF5 types (e.g., compound) are reported as `NA_character_`.
+- **Compound** datasets are reported as `"data.frame"`.
 
 If `attrs` is set to `TRUE` or is a character vector containing
 `"class"`, this function will first check for an HDF5 attribute on the
@@ -61,7 +60,7 @@ the object's type.
 
 [`h5_class_attr()`](https://cmmr.github.io/h5lite/reference/h5_class_attr.md),
 [`h5_typeof()`](https://cmmr.github.io/h5lite/reference/h5_typeof.md),
-[`h5_read_all()`](https://cmmr.github.io/h5lite/reference/h5_read_all.md)
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
 
 ## Examples
 
@@ -74,10 +73,8 @@ h5_write(file, "doubles", c(1.1, 2.2))
 h5_write(file, "text", "hello")
 h5_create_group(file, "my_group")
 
-# Create a 'data.frame' structure (a group with a 'class' attribute)
-df_list <- list(a = 1:2, b = c("x", "y"))
-attr(df_list, "class") <- "data.frame"
-h5_write_all(file, "my_df", df_list)
+# Write a data.frame, which becomes a compound dataset
+h5_write(file, "my_df", data.frame(a = 1:2, b = c("x", "y")))
 
 # Check R classes
 h5_class(file, "integers")      # "numeric"
@@ -89,9 +86,9 @@ h5_class(file, "text")          # "character"
 h5_class(file, "my_group")      # "list"
 #> [1] "list"
 
-# Check 'class' attribute
-h5_class(file, "my_df", attrs = FALSE) # "list" (it's a group)
-#> [1] "list"
+# Check the data.frame
+h5_class(file, "my_df") # "data.frame"
+#> [1] "data.frame"
 h5_class(file, "my_df", attrs = TRUE)  # "data.frame"
 #> [1] "data.frame"
 

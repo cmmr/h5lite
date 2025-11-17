@@ -4,8 +4,8 @@
 interface for reading and writing HDF5 files.
 
 It is designed for R users who want to save and load common R objects
-(vectors, matrices, arrays, factors) to an HDF5 file without needing to
-understand the low-level details of the HDF5 library.
+(vectors, matrices, factors, data.frames) to an HDF5 file without
+needing to understand the low-level details of the HDF5 library.
 
 ## Why use h5lite?
 
@@ -45,6 +45,13 @@ You can install the released version of `h5lite` from CRAN:
 install.packages("h5lite")
 ```
 
+Alternatively, you can install the development version from GitHub:
+
+``` r
+# install.packages("devtools")  
+devtools::install_github("cmmr/h5lite")
+```
+
 ## Quick Start
 
 The API is designed to be simple and predictable.
@@ -73,15 +80,15 @@ h5_write(file, "data/matrix", mat)
 arr <- array(1L:24L, dim = c(2, 3, 4))
 h5_write(file, "data/array", arr)
 
-# Write a scalar (dims = NULL)
-h5_write(file, "scalar_string", "Hello!", dims = NULL)
+# Write a scalar
+h5_write(file, "scalar_string", I("Hello!"))
 
-# Write a factor (seamlessly stored and read back)
+# Write a factor
 fac <- as.factor(c("a", "b", "a", "c"))
 h5_write(file, "factor_data", fac)
 
-# Write a large vector with compression enabled
-h5_write(file, "compressed_data", 1:10000, compress = TRUE)
+# Write a data.frame
+h5_write(file, "mtcars", mtcars)
 ```
 
 ### 2. List Contents
@@ -92,12 +99,12 @@ the file structure.
 ``` r
 # List all objects recursively
 h5_ls(file, recursive = TRUE)
-#> "compressed_data" "data"            "data/array"      "data/matrix"    
-#> "data/vector"     "factor_data"     "scalar_string"  
+#> "mtcars"       "data"         "data/array"      "data/matrix"    
+#> "data/vector"  "factor_data"  "scalar_string"  
 
 # List only the top level
 h5_ls(file, recursive = FALSE)
-#> "compressed_data" "data"            "factor_data"     "scalar_string"
+#> "mtcars"  "data"  "factor_data"  "scalar_string"
 ```
 
 ### 3. Read Data
@@ -128,7 +135,7 @@ You can easily read and write metadata using attributes.
 
 ``` r
 # Write attributes to the "data/matrix" dataset
-h5_write_attr(file, "data/matrix", "units", "meters", dims = NULL)
+h5_write_attr(file, "data/matrix", "units", I("meters"))
 h5_write_attr(file, "data/matrix", "scale", c(1.0, 1.0))
 
 # List attributes
@@ -162,7 +169,7 @@ h5_delete_attr(file, "data/matrix", "units")
 h5_delete_group(file, "data")
 
 h5_ls(file)
-#> "compressed_data" "factor_data"     "scalar_string"
+#> "mtcars"  "factor_data"  "scalar_string"
 ```
 
 ## When to Use Another HDF5 Package
@@ -183,10 +190,10 @@ features, you should use a more comprehensive package like **`rhdf5`**
 | **Compression**      | Simple on/off (`compress = TRUE`).         | Full control over filters, chunking, etc.                   |
 
 **Use `rhdf5` or `hdf5r` if you need to:** - Work with complex or custom
-HDF5 data types (e.g., compound types for data frames, bitfields). -
-Have fine-grained control over file properties, chunking, or compression
-filters. - Perform partial I/O (i.e., read or write a small slice of a
-very large on-disk dataset).
+HDF5 data types not supported by `h5lite` (e.g., bitfields,
+references). - Have fine-grained control over file properties, chunking,
+or compression filters. - Perform partial I/O (i.e., read or write a
+small slice of a very large on-disk dataset).
 
 **Use `h5lite` if you want to:** - Quickly and safely save R matrices,
 arrays, and other objects to a file. - Avoid thinking about low-level

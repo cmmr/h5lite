@@ -36,7 +36,7 @@ Invisibly returns `NULL`. This function is called for its side effects.
 ``` r
 file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
-h5_write_attr(file, "data", "attr1", "some info")
+h5_write_attr(file, "data", "attr1", I("some info"))
 print(h5_ls_attr(file, "data")) # "attr1"
 #> [1] "attr1"
 

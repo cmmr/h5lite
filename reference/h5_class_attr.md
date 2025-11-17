@@ -57,8 +57,8 @@ file <- tempfile(fileext = ".h5")
 h5_write(file, "data", 1)
 
 # Write attributes of different types
-h5_write_attr(file, "data", "int_attr", 10L)
-h5_write_attr(file, "data", "char_attr", "info", dims = NULL)
+h5_write_attr(file, "data", "int_attr", 10L) # 1D array of length 1
+h5_write_attr(file, "data", "char_attr", I("info")) # scalar
 
 # Check R class
 h5_class_attr(file, "data", "int_attr")  # "numeric"

@@ -16,7 +16,7 @@ h5_ls_attr(file, name)
 
 - name:
 
-  The path to the object (dataset or group) to query. Use "/" for the
+  The path to the object (dataset or group) to query. Use `/` for the
   file's root attributes.
 
 ## Value

@@ -58,17 +58,17 @@ Defaults to <code>"/"</code>, which tests if the file itself is a valid HDF5 fil
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A logical value: <code>TRUE</code> if the file/object exists and is valid HDF5,
+    <p>A logical value: <code>TRUE</code> if the file/object exists and is valid,
 <code>FALSE</code> otherwise.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function provides a robust, error-free way to test for existence.</p>
-<ul><li><p><strong>Testing for a File:</strong> If <code>name</code> is <code>"/"</code> (the default),
+<ul><li><p><strong>Testing for a File:</strong> If <code>name</code> is <code>/</code> (the default),
 the function checks if <code>file</code> is a valid, readable HDF5 file.
-It will return <code>FALSE</code> for non-existent files, text files, or
+It will return <code>FALSE</code> for non-existent files, non-HDF5 files, or
 corrupted files without raising an error.</p></li>
-<li><p><strong>Testing for an Object:</strong> If <code>name</code> is a path (e.g., <code>"/data/matrix"</code>),
+<li><p><strong>Testing for an Object:</strong> If <code>name</code> is a path (e.g., <code>/data/matrix</code>),
 the function first confirms the file is valid HDF5, and then checks
 if the specific object exists within it.</p></li>
 </ul></div>

@@ -17,7 +17,8 @@ h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
 
 - name:
 
-  The group path to start listing from. Defaults to the root group "/".
+  The group path to start listing from. Defaults to the root group
+  (`/`).
 
 - recursive:
 

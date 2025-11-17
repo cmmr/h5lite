@@ -1,20 +1,13 @@
-# Write a Dataset to HDF5
+# Write an R Object to HDF5
 
-Writes an R object to an HDF5 file as a dataset. The file is created if
-it does not exist. Handles dimension transposition automatically.
+Writes an R object to an HDF5 file, creating the file if it does not
+exist. This function can write atomic vectors, matrices, arrays,
+factors, `data.frame`s, and nested `list`s.
 
 ## Usage
 
 ``` r
-h5_write(
-  file,
-  name,
-  data,
-  dtype = "auto",
-  dims = "auto",
-  compress = TRUE,
-  attrs = FALSE
-)
+h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 ```
 
 ## Arguments
@@ -30,16 +23,11 @@ h5_write(
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `factor`, `raw`.
+  `character`, `factor`, `raw`, `data.frame`, and nested `list`s.
 
 - dtype:
 
   The target HDF5 data type. See details.
-
-- dims:
-
-  An integer vector specifying dimensions, or `NULL` for a scalar.
-  Defaults to `dim(data)` if it exists, or `length(data)` otherwise.
 
 - compress:
 
@@ -49,31 +37,62 @@ h5_write(
 
 - attrs:
 
-  Controls which R attributes of `data` are written to the HDF5 dataset.
-  Can be `FALSE` (the default, no attributes), `TRUE` (all attributes
-  except `dim`), a character vector of attribute names to include (e.g.,
+  Controls which R attributes of `data` are written to the HDF5 object.
+  Can be `FALSE` (the default), `TRUE` (all attributes except `dim`), a
+  character vector of attribute names to include (e.g.,
   `c("info", "version")`), or a character vector of names to exclude,
-  prefixed with `-` (e.g., `c("-class")`). Mixing inclusive and
-  exclusive names is not allowed.
+  prefixed with `-` (e.g., `c("-class")`).
 
 ## Value
 
-Invisibly returns `NULL`. This function is called for its side effects.
+Invisibly returns `file`. This function is called for its side effects.
 
-## Details
+## Writing Scalars
+
+By default, `h5_write` saves single-element vectors as 1-dimensional
+arrays. To write a true HDF5 scalar, wrap the value in
+[`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
+example, `h5_write(file, "x", I(5))` will create a scalar dataset, while
+`h5_write(file, "x", 5)` will create a 1D array of length 1.
+
+## Writing Lists
+
+If `data` is a `list` (but not a `data.frame`), `h5_write` will write it
+recursively, creating a corresponding group and dataset structure.
+
+- R `list` objects are created as HDF5 **groups**.
+
+- All other supported R objects (vectors, matrices, arrays, factors,
+  `data.frame`s) are written as HDF5 **datasets**.
+
+- Attributes of a list are written as HDF5 attributes on the
+  corresponding group.
+
+- Before writing, a "dry run" is performed to validate that all objects
+  and attributes within the list are of a writeable type. If any part of
+  the structure is invalid, the function will throw an error and no data
+  will be written.
+
+## Writing Data Frames
+
+`data.frame` objects are written as HDF5 **compound datasets**. This is
+a native HDF5 table-like structure that is highly efficient and
+portable.
+
+## Data Type Selection (`dtype`)
 
 The `dtype` argument controls the on-disk storage type **for numeric
 data only**.
 
 If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
-select the most space-efficient type for numeric data that can safely
-represent the full range of values. For example, writing `1:100` will
-result in an 8-bit unsigned integer (`uint8`) dataset, which helps
+select the most space-efficient HDF5 type for numeric data that can
+safely represent the full range of values. For example, writing `1:100`
+will result in an 8-bit unsigned integer (`uint8`) dataset, which helps
 minimize file size.
 
-To override this for numeric data, you can specify an exact type. The
-input is case-insensitive and allows for unambiguous partial matching.
-The full list of supported values is:
+To override this behavior, you can specify an exact type. The input is
+case-insensitive and allows for unambiguous partial matching. The full
+list of supported values is:
 
 - `"auto"`, `"float"`, `"double"`
 
@@ -90,17 +109,28 @@ The full list of supported values is:
 Note: Types without a bit-width suffix (e.g., `"int"`, `"long"`) are
 system- dependent and may have different sizes on different machines.
 For maximum file portability, it is recommended to use types with
-explicit widths (e.g., `"int32"`).
+explicit bit-widths (e.g., `"int32"`).
 
 For non-numeric data (`character`, `factor`, `raw`, `logical`), the
 storage type is determined automatically and **cannot be changed** by
 the `dtype` argument. R `logical` vectors are stored as 8-bit unsigned
 integers (`uint8`), as HDF5 does not have a native boolean datatype.
 
+## Attribute Round-tripping
+
+To properly round-trip an R object, it is helpful to set `attrs = TRUE`.
+This preserves important R metadata—such as the `names` of a named
+vector, `row.names` of a `data.frame`, or the `class` of an object—as
+HDF5 attributes.
+
+**Limitation**: HDF5 has no direct analog for R's `dimnames`. Attempting
+to write an object that has `dimnames` (e.g., a named matrix) with
+`attrs = TRUE` will result in an error. You must either remove the
+`dimnames` or set `attrs = FALSE`.
+
 ## See also
 
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-[`h5_write_all()`](https://cmmr.github.io/h5lite/reference/h5_write_all.md),
 [`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
 
 ## Examples
@@ -125,7 +155,26 @@ h5_typeof(file, "vec1") # "int32"
 #> [1] "int32"
 
 # Write a scalar value
-h5_write(file, "scalar", 3.14, dims = NULL)
+h5_write(file, "scalar", I(3.14))
+
+# Write a named vector and preserve its names by setting attrs = TRUE
+named_vec <- c(a = 1, b = 2)
+h5_write(file, "named_vector", named_vec, attrs = TRUE)
+
+# Write a nested list, which creates groups and datasets
+my_list <- list(
+  config = list(version = 1.2, user = "test"),
+  data = matrix(1:4, 2)
+)
+attr(my_list, "info") <- "Session data"
+h5_write(file, "session_data", my_list)
+
+h5_ls(file, recursive = TRUE)
+#>  [1] "group"                       "group/mat"                  
+#>  [3] "named_vector"                "scalar"                     
+#>  [5] "session_data"                "session_data/config"        
+#>  [7] "session_data/config/user"    "session_data/config/version"
+#>  [9] "session_data/data"           "vec1"                       
 
 unlink(file)
 ```

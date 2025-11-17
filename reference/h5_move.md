@@ -24,7 +24,7 @@ h5_move(file, from, to)
 
 ## Value
 
-This function is called for its side effect and returns `NULL`
+This function is called for its side-effect and returns `NULL`
 invisibly.
 
 ## Details
