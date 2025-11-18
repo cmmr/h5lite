@@ -1,4 +1,4 @@
-# Working with Atomic Vectors in h5lite
+# Working with Atomic Vectors
 
 ``` r
 library(h5lite)
@@ -43,7 +43,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "qc_pass"      "sample_names" "trial_ids"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpzDKrOv/file1b0a4294e84c.h5
+#> Listing contents of: /tmp/RtmpLj4ATK/file1b0d5565acc2.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type         Name
