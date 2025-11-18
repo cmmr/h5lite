@@ -44,6 +44,7 @@
     <li><a class="dropdown-item" href="articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="articles/matrices.html">Working with Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -64,7 +65,7 @@
 </h1>
 </div>
 <p><strong>h5lite</strong> is an R package that provides a simple and lightweight interface for reading and writing HDF5 files.</p>
-<p>It is designed for R users who want to save and load common R objects (vectors, matrices, factors, data.frames) to an HDF5 file without needing to understand the low-level details of the HDF5 library.</p>
+<p>It is designed for R users who want to save and load common R objects (vectors, factors, matrices, data.frames, lists, and NULLs) to an HDF5 file without needing to understand the low-level details of the HDF5 library.</p>
 <div class="section level2">
 <h2 id="why-use-h5lite">Why use h5lite?<a class="anchor" aria-label="anchor" href="#why-use-h5lite"></a>
 </h2>
@@ -189,6 +190,28 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
 <span><span class="co">#&gt; "meters"</span></span></code></pre></div>
 </div>
+</div>
+<div class="section level2">
+<h2 id="see-also">See Also<a class="anchor" aria-label="anchor" href="#see-also"></a>
+</h2>
+<p>For more detailed guides on specific topics, see the package vignettes:</p>
+<ul>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/h5lite.html">Getting Started with h5lite</a></strong>: A general introduction.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/atomic-vectors.html">Working with Atomic Vectors</a></strong>: Details on vectors and scalars.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/matrices.html">Working with Matrices and Arrays</a></strong>: Handling multi-dimensional data.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-frames.html">Working with Data Frames</a></strong>: Using compound datasets.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-organization.html">Data Organization</a></strong>: Using groups and lists to structure files.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/attributes-in-depth.html">Attributes In-Depth</a></strong>: A deep dive into metadata handling.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/parallel-io.html">Using h5lite with Parallel Processing</a></strong>: Guide for multi-threaded and multi-process access.</li>
+</ul>
+<p>You can also access these vignettes from within R using <code>browseVignettes("h5lite")</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="when-to-use-another-hdf5-package">When to Use Another HDF5 Package<a class="anchor" aria-label="anchor" href="#when-to-use-another-hdf5-package"></a>

@@ -19,7 +19,12 @@ then dives into two important technical details: the `dimnames`
 limitation and the automatic handling of row-major vs. column-major data
 ordering.
 
-## Writing and Reading Matrices
+For details on other data structures, see
+[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
+and
+[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
+
+## 1. Writing and Reading Matrices
 
 Writing a matrix or array is as simple as calling
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).

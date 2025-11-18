@@ -22,7 +22,10 @@ recursively loads a file structure into a list. \* The important detail
 of alphabetical ordering. \* How to manually manage the file structure
 using `h5lite`’s organizational functions.
 
-## Recursive Writing with Lists
+For an introduction to writing data, see
+[`vignette("h5lite", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
+
+## 1. Recursive Writing with Lists
 
 When you pass a `list` to
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md), it
@@ -56,10 +59,10 @@ the hierarchy that was created.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp4pcsHh/file1bb56b467afd.h5
+#> Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5
 #> Root group: /
 #> ----------------------------------------------------------------
-#> Type         Name
+#> Type            Name
 #> ----------------------------------------------------------------
 #> Group        session_1
 #> string[1]    session_1 @info
@@ -151,10 +154,10 @@ a fast metadata operation that does not rewrite any data.
 h5_move(file, from = "session_1", to = "/archive/2024/run_01/data")
 
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp4pcsHh/file1bb56b467afd.h5
+#> Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5
 #> Root group: /
 #> ----------------------------------------------------------------
-#> Type         Name
+#> Type            Name
 #> ----------------------------------------------------------------
 #> Group        archive
 #> Group        archive/2024

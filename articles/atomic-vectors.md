@@ -18,7 +18,12 @@ This vignette explores how `h5lite` handles different atomic types, with
 a special focus on its automatic data type selection for numeric data
 and the distinction between vectors and scalars.
 
-## Writing and Reading Vectors
+For details on other data structures, see
+[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md)
+and
+[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
+
+## 1. Writing and Reading Vectors
 
 The [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
 function is your primary tool for saving data. Let’s write a few
@@ -43,10 +48,10 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "qc_pass"      "sample_names" "trial_ids"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpLj4ATK/file1b0d5565acc2.h5
+#> Listing contents of: /tmp/RtmpU08VQ2/file51ea5f2a2f.h5
 #> Root group: /
 #> ----------------------------------------------------------------
-#> Type         Name
+#> Type            Name
 #> ----------------------------------------------------------------
 #> uint8[4]     qc_pass
 #> string[4]    sample_names
@@ -77,7 +82,7 @@ print(qc)
 In HDF5, there is a distinction between a **scalar** (a single value
 with no dimensions) and a **1D array of length 1**. By default,
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
-saves all single-element vectors as 1D arrays.
+saves all single-element R vectors as 1D arrays.
 
 To write a true HDF5 scalar, you must wrap the value in
 [`I()`](https://rdrr.io/r/base/AsIs.html) to treat it “as-is”.
@@ -106,7 +111,8 @@ correctly represents the data’s structure in the file.
 A key feature of `h5lite` is its automatic and intelligent selection of
 on-disk data types for numeric data. This is controlled by the `dtype`
 argument in
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
+[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
 which defaults to `"auto"`.
 
 ### How `dtype = "auto"` Works
@@ -182,7 +188,8 @@ For non-numeric vectors, the mapping is fixed:
 
 R objects can have metadata attached to them as attributes (e.g., the
 `names` of a named vector). To preserve these during a write/read cycle,
-you must set `attrs = TRUE`.
+you must set `attrs = TRUE`. For a more detailed discussion, see
+[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md).
 
 ``` r
 named_vec <- c(a = 1, b = 2, c = 3)

@@ -41,6 +41,7 @@
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -85,9 +86,12 @@ as simple as possible.</p>
 <p>This vignette explores how <code>h5lite</code> handles different
 atomic types, with a special focus on its automatic data type selection
 for numeric data and the distinction between vectors and scalars.</p>
+<p>For details on other data structures, see
+<code><a href="../articles/matrices.html">vignette("matrices", package = "h5lite")</a></code> and
+<code><a href="../articles/data-frames.html">vignette("data-frames", package = "h5lite")</a></code>.</p>
 </div>
 <div class="section level2">
-<h2 id="writing-and-reading-vectors">Writing and Reading Vectors<a class="anchor" aria-label="anchor" href="#writing-and-reading-vectors"></a>
+<h2 id="writing-and-reading-vectors">1. Writing and Reading Vectors<a class="anchor" aria-label="anchor" href="#writing-and-reading-vectors"></a>
 </h2>
 <p>The <code><a href="../reference/h5_write.html">h5_write()</a></code> function is your primary tool for saving
 data. Let’s write a few different types of vectors.</p>
@@ -106,10 +110,10 @@ and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "qc_pass"      "sample_names" "trial_ids"</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpLj4ATK/file1b0d5565acc2.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpU08VQ2/file51ea5f2a2f.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
-<span><span class="co">#&gt; Type         Name</span></span>
+<span><span class="co">#&gt; Type            Name</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; uint8[4]     qc_pass</span></span>
 <span><span class="co">#&gt; string[4]    sample_names</span></span>
@@ -139,7 +143,7 @@ limit.</p>
 <p>In HDF5, there is a distinction between a <strong>scalar</strong> (a
 single value with no dimensions) and a <strong>1D array of length
 1</strong>. By default, <code><a href="../reference/h5_write.html">h5_write()</a></code> saves all single-element
-vectors as 1D arrays.</p>
+R vectors as 1D arrays.</p>
 <p>To write a true HDF5 scalar, you must wrap the value in
 <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it “as-is”.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -164,8 +168,8 @@ in the file.</p>
 </h2>
 <p>A key feature of <code>h5lite</code> is its automatic and intelligent
 selection of on-disk data types for numeric data. This is controlled by
-the <code>dtype</code> argument in <code><a href="../reference/h5_write.html">h5_write()</a></code>, which
-defaults to <code>"auto"</code>.</p>
+the <code>dtype</code> argument in <code><a href="../reference/h5_write.html">h5_write()</a></code> and
+<code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code>, which defaults to <code>"auto"</code>.</p>
 <div class="section level3">
 <h3 id="how-dtype-auto-works">How <code>dtype = "auto"</code> Works<a class="anchor" aria-label="anchor" href="#how-dtype-auto-works"></a>
 </h3>
@@ -255,7 +259,9 @@ data.</li>
 </h2>
 <p>R objects can have metadata attached to them as attributes (e.g., the
 <code>names</code> of a named vector). To preserve these during a
-write/read cycle, you must set <code>attrs = TRUE</code>.</p>
+write/read cycle, you must set <code>attrs = TRUE</code>. For a more
+detailed discussion, see
+<code><a href="../articles/attributes-in-depth.html">vignette("attributes-in-depth", package = "h5lite")</a></code>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">named_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span>, c <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"My special vector"</span></span>

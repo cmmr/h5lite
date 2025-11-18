@@ -29,8 +29,8 @@ h5_class(file, name, attrs = FALSE)
 ## Value
 
 A character string representing the R class (e.g., `"numeric"`,
-`"character"`, `"factor"`, `"raw"`, `"list"`). Returns `NA_character_`
-for HDF5 types that `h5lite` cannot read.
+`"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`). Returns
+`NA_character_` for HDF5 types that `h5lite` cannot read.
 
 ## Details
 
@@ -49,6 +49,8 @@ object's metadata.
 - **1-byte Opaque** datasets are reported as `"raw"`.
 
 - **Compound** datasets are reported as `"data.frame"`.
+
+- **Null** datasets (with a null dataspace) are reported as `"NULL"`.
 
 If `attrs` is set to `TRUE` or is a character vector containing
 `"class"`, this function will first check for an HDF5 attribute on the

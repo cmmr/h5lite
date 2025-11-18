@@ -23,7 +23,8 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `factor`, `raw`, `data.frame`, and nested `list`s.
+  `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested
+  `list`s.
 
 - dtype:
 
@@ -72,6 +73,11 @@ recursively, creating a corresponding group and dataset structure.
   and attributes within the list are of a writeable type. If any part of
   the structure is invalid, the function will throw an error and no data
   will be written.
+
+## Writing NULL
+
+If `data` is `NULL`, `h5_write` will create an HDF5 **null dataset**.
+This is a dataset with a null dataspace, which contains no data.
 
 ## Writing Data Frames
 
@@ -131,7 +137,12 @@ to write an object that has `dimnames` (e.g., a named matrix) with
 ## See also
 
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
+[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
+[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md),
+[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md),
+[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md),
+[`vignette("data-organization", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-organization.md),
+[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 
 ## Examples
 

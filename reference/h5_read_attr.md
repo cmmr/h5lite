@@ -24,7 +24,8 @@ h5_read_attr(file, name, attribute)
 
 ## Value
 
-A `numeric`, `character`, `factor`, or `raw` vector/array.
+A `numeric`, `character`, `factor`, or `raw` vector/array. Returns
+`NULL` if the attribute has a null dataspace.
 
 ## Details
 

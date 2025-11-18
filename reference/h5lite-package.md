@@ -21,6 +21,32 @@ the low-level details of the HDF5 C API.
 - **Easy Installation:** The required HDF5 library is bundled with the
   package.
 
+## Vignettes
+
+The following vignettes provide detailed examples and explanations for
+common tasks:
+
+- [`vignette("h5lite", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md):
+  A general introduction to the package.
+
+- [`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
+  Details on writing atomic vectors and scalars.
+
+- [`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md):
+  Details on writing matrices and arrays.
+
+- [`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md):
+  Details on writing `data.frame` objects.
+
+- [`vignette("data-organization", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-organization.md):
+  How to organize data using groups and lists.
+
+- [`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
+  A deep dive into using attributes.
+
+- [`vignette("parallel-io", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/parallel-io.md):
+  Guide for using h5lite in parallel environments.
+
 ## See also
 
 Useful links:

@@ -41,6 +41,7 @@
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -88,6 +89,8 @@ data.</p>
 <code>h5lite</code>, covering: * Basic attribute I/O. * The powerful
 <code>attrs</code> argument for round-tripping R object attributes. *
 Important limitations and special cases.</p>
+<p>For an introduction to writing datasets, see
+<code><a href="../articles/h5lite.html">vignette("h5lite", package = "h5lite")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="basic-attribute-io">Basic Attribute I/O<a class="anchor" aria-label="anchor" href="#basic-attribute-io"></a>
@@ -173,13 +176,35 @@ specific attributes.</li>
 <p>There are a few important rules and limitations to be aware of when
 working with attributes.</p>
 <div class="section level3">
+<h3 id="limitation-list-attributes">Limitation: List Attributes<a class="anchor" aria-label="anchor" href="#limitation-list-attributes"></a>
+</h3>
+<p>More generally, <code>h5lite</code> cannot write any R attribute that
+is a <code>list</code>. HDF5 attributes are designed to hold simple,
+atomic data, not nested structures.</p>
+<p>When using <code>attrs = TRUE</code> or <code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code>,
+you can write attributes that are: * Atomic vectors
+(<code>numeric</code>, <code>integer</code>, <code>character</code>,
+<code>logical</code>, <code>raw</code>) * <code>factor</code>s *
+<code>data.frame</code>s (which become compound attributes) *
+<code>NULL</code></p>
+<p>Attempting to write an object that has a <code>list</code> attribute
+will result in an error.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">my_vec</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_vec</span>, <span class="st">"bad_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_vec_list_attr"</span>, <span class="va">my_vec</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Error in validate_attrs(data, attrs): Attribute 'bad_attr' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.</span></span></code></pre></div>
+</div>
+<div class="section level3">
 <h3 id="limitation-dimnames">Limitation: <code>dimnames</code><a class="anchor" aria-label="anchor" href="#limitation-dimnames"></a>
 </h3>
 <p>R stores the <code>dimnames</code> of a matrix or array as a
-<code>list</code> attribute. <code>h5lite</code> <strong>cannot</strong>
-write list-like attributes. Attempting to write a named matrix with
-<code>attrs = TRUE</code> will fail.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code>list</code> attribute. As explained above, <code>h5lite</code>
+<strong>cannot</strong> write list-like attributes. Attempting to write
+a named matrix with <code>attrs = TRUE</code> will fail.</p>
+<p>See <code><a href="../articles/matrices.html">vignette("matrices", package = "h5lite")</a></code> for more
+details on this specific case.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">named_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span>, dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"r1"</span>, <span class="st">"r2"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"c1"</span>, <span class="st">"c2"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># This fails because the 'dimnames' attribute is a list</span></span>
@@ -188,61 +213,46 @@ write list-like attributes. Attempting to write a named matrix with
 <p><strong>Workaround:</strong> Either remove the <code>dimnames</code>
 before writing, or write with <code>attrs = FALSE</code> (the default),
 which will save the matrix data but discard the names.</p>
-</div>
-<div class="section level3">
-<h3 id="special-case-data-frame-row-names">Special Case: <code>data.frame</code> <code>row.names</code><a class="anchor" aria-label="anchor" href="#special-case-data-frame-row-names"></a>
-</h3>
-<p><code>h5lite</code> has a special rule to correctly handle
-<code>data.frame</code> <code>row.names</code>. When you write a
-<code>data.frame</code> with <code>attrs = TRUE</code>, the
-<code>row.names</code> are saved as a numeric HDF5 attribute.</p>
-<p>On reading, <code><a href="../reference/h5_read.html">h5_read()</a></code> detects the attribute named
-<code>"row.names"</code>, sees that it’s a <code>numeric</code> vector,
-and automatically coerces it back to an <code>integer</code> vector.
-This is necessary because R requires the <code>row.names</code> of a
-<code>data.frame</code> to be <code>integer</code> or
-<code>character</code>, not <code>numeric</code>. This special handling
-ensures a seamless round-trip.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, <span class="va">df</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># The row.names attribute is saved</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "class"     "row.names" "names"</span></span>
-<span></span>
-<span><span class="co"># It is read back correctly</span></span>
-<span><span class="va">read_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">read_df</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="feature-compound-attributes">Feature: Compound Attributes<a class="anchor" aria-label="anchor" href="#feature-compound-attributes"></a>
-</h3>
-<p>Just as a <code>data.frame</code> can be written as a compound
-<em>dataset</em>, it can also be written as a compound
-<em>attribute</em>. This is a powerful feature for attaching structured,
-tabular metadata to an object.</p>
+<div class="section level4">
+<h4 id="data-frames">Data Frames:<a class="anchor" aria-label="anchor" href="#data-frames"></a>
+</h4>
+<p>Unlike matrices, the attributes of a <code>data.frame</code> can be
+safely round-tripped with <code>h5lite</code>. This is because its key
+metadata is stored in a format that <code>h5lite</code> can handle. See
+<code><a href="../articles/data-frames.html">vignette("data-frames", package = "h5lite")</a></code> for more on
+working with data frames.</p>
+<ul>
+<li>The column names are stored in the <code>names</code> attribute,
+which is a character vector.</li>
+<li>The row names are stored in the <code>row.names</code> attribute,
+which is either a character or integer vector.</li>
+</ul>
+<p>Since neither of these are <code>list</code> attributes (like the
+<code>dimnames</code> of a matrix), they can be written to HDF5 without
+issue. As a result, you can reliably use <code>attrs = TRUE</code> to
+preserve the structure of a <code>data.frame</code> during a write/read
+cycle.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">meta_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  param <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span><span class="op">)</span>,</span>
-<span>  value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.9</span><span class="op">)</span>,</span>
-<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<code class="sourceCode R"><span><span class="co"># Create a data.frame with non-default row names</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, </span>
+<span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span>,</span>
+<span>  row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"row1"</span>, <span class="st">"row2"</span>, <span class="st">"row3"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Write the data.frame as an attribute</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="st">"parameters"</span>, <span class="va">meta_df</span><span class="op">)</span></span>
+<span><span class="co"># Write with attrs = TRUE to preserve names</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, <span class="va">df</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># It is read back as a data.frame</span></span>
-<span><span class="va">read_meta_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read_attr.html">h5_read_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="st">"parameters"</span><span class="op">)</span></span>
+<span><span class="co"># Read it back</span></span>
+<span><span class="va">read_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Note the standard type conversion for the numeric column</span></span>
-<span><span class="va">meta_df</span><span class="op">$</span><span class="va">value</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">meta_df</span><span class="op">$</span><span class="va">value</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">read_meta_df</span>, <span class="va">meta_df</span><span class="op">)</span></span>
+<span><span class="co"># The data.frame is perfectly restored</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">read_df</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

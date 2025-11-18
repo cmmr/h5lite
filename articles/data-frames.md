@@ -17,7 +17,12 @@ HDF5 structure called a **compound dataset**.
 This vignette explains how `data.frame` objects are written and read,
 and provides technical details on the underlying HDF5 implementation.
 
-## Writing and Reading Data Frames
+For details on other data structures, see
+[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
+and
+[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md).
+
+## 1. Writing and Reading Data Frames
 
 Writing a `data.frame` is a one-line command with
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
@@ -41,12 +46,13 @@ Notice that `h5lite` correctly identifies it as a `data.frame` backed by
 a `compound` HDF5 type.
 
 ``` r
-h5_str(file, "my_df")
-#> Listing contents of: /tmp/RtmpOx7B6s/file1b7d32c2429e.h5
-#> Root group: my_df
+h5_str(file)
+#> Listing contents of: /tmp/Rtmpz818Q9/file525b2f7beca5.h5
+#> Root group: /
 #> ----------------------------------------------------------------
-#> Type         Name
+#> Type            Name
 #> ----------------------------------------------------------------
+#> compound[4]  my_df
 h5_class(file, "my_df")
 #> [1] "data.frame"
 ```
@@ -126,37 +132,6 @@ interoperability:
     contiguous block of compound data can be more efficient than reading
     from multiple disparate datasets.
 
-### C-Level Implementation
-
-The magic happens in the C functions `C_h5_write_dataframe` and
-`read_dataframe`.
-
-- **On
-  [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)**:
-  1.  The C code iterates through the columns of the R `data.frame`.
-  2.  For each column, it determines the appropriate HDF5 file type
-      (`get_file_type`) and memory type (`get_mem_type`).
-  3.  It constructs an HDF5 compound type in memory (`H5Tcreate`,
-      `H5Tinsert`).
-  4.  It allocates a C buffer and serializes the R `data.frame`
-      row-by-row into an array of C structs.
-  5.  Finally, `H5Dwrite` writes the entire buffer to the compound
-      dataset.
-- **On
-  [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)**:
-  1.  The C code inspects the compound dataset to discover its members
-      (columns) and their types.
-  2.  It creates a corresponding in-memory compound type, telling HDF5
-      to convert all numeric types to `double`.
-  3.  `H5Dread` reads the entire on-disk table into a C buffer of
-      structs.
-  4.  The code then unpacks this buffer column-by-column, creating the
-      appropriate R vectors (`REALSXP`, `STRSXP`, etc.).
-  5.  For `enum` members, it reads the level names and constructs a
-      proper R `factor`.
-  6.  Finally, it assembles the columns into a `VECSXP` and sets the
-      `class` and `row.names` to form a valid R `data.frame`.
-
 ## Preserving `data.frame` Attributes
 
 Like other R objects, `data.frame`s can have metadata attached. The most
@@ -187,9 +162,9 @@ all.equal(read_df_with_attrs, df_with_attrs)
 > **Note:** The `row.names` attribute is read back correctly because of
 > a special rule in
 > [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md). It
-> detects the attribute named `"row.names"`, sees that it was read as a
-> `numeric` vector, and coerces it back to `integer` to satisfy R’s
-> requirements for a valid `data.frame`.
+> detects the attribute named `"row.names"`, and if it is a `numeric`
+> vector, it is coerced back to `integer` to satisfy R’s requirements
+> for a valid `data.frame`.
 
 ``` r
 # Clean up the temporary file

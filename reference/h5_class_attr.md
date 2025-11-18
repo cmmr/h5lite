@@ -27,8 +27,8 @@ h5_class_attr(file, name, attribute)
 ## Value
 
 A character string representing the R class (e.g., `"numeric"`,
-`"character"`, `"factor"`, `"raw"`). Returns `NA_character_` for HDF5
-types that `h5lite` cannot read.
+`"NULL"`, `"character"`, `"factor"`, `"raw"`). Returns `NA_character_`
+for HDF5 types that `h5lite` cannot read.
 
 ## Details
 
@@ -42,6 +42,8 @@ the resulting R class.
 - **Enum** attributes are reported as `"factor"`.
 
 - **1-byte Opaque** attributes are reported as `"raw"`.
+
+- **Null** attributes are reported as `"NULL"`.
 
 - Other HDF5 types are reported as `NA_character_`.
 

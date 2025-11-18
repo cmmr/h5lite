@@ -14,3 +14,5 @@
   h5lite](https://cmmr.github.io/h5lite/articles/h5lite.md):
 - [Working with Matrices and
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.md):
+- [Using h5lite with Parallel
+  Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):

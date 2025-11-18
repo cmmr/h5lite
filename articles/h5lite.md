@@ -113,6 +113,28 @@ h5_ls(file, recursive = FALSE)
 #> [1] "experiment_1"
 ```
 
+### Getting a Structural Summary
+
+For a more detailed, tree-like view of the file’s contents, similar to
+R’s [`str()`](https://rdrr.io/r/utils/str.html) function, use
+[`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md). It
+recursively prints the structure, showing groups, datasets, dimensions,
+and types. This is often the most convenient way to quickly inspect a
+file.
+
+``` r
+h5_str(file)
+#> Listing contents of: /tmp/RtmpoEShbL/file52cb1368b73b.h5
+#> Root group: /
+#> ----------------------------------------------------------------
+#> Type            Name
+#> ----------------------------------------------------------------
+#> Group        experiment_1
+#> string       experiment_1/run_id
+#> float64[3,4] experiment_1/sensor_readings
+#> int32[12]    experiment_1/trial_ids
+```
+
 ### Checking Dimensions and Types
 
 You can inspect a dataset’s properties without reading all of its data.

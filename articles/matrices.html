@@ -41,6 +41,7 @@
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -85,9 +86,12 @@ dimensions and data layout.</p>
 and then dives into two important technical details: the
 <code>dimnames</code> limitation and the automatic handling of row-major
 vs. column-major data ordering.</p>
+<p>For details on other data structures, see
+<code><a href="../articles/atomic-vectors.html">vignette("atomic-vectors", package = "h5lite")</a></code> and
+<code><a href="../articles/data-frames.html">vignette("data-frames", package = "h5lite")</a></code>.</p>
 </div>
 <div class="section level2">
-<h2 id="writing-and-reading-matrices">Writing and Reading Matrices<a class="anchor" aria-label="anchor" href="#writing-and-reading-matrices"></a>
+<h2 id="writing-and-reading-matrices">1. Writing and Reading Matrices<a class="anchor" aria-label="anchor" href="#writing-and-reading-matrices"></a>
 </h2>
 <p>Writing a matrix or array is as simple as calling
 <code><a href="../reference/h5_write.html">h5_write()</a></code>. <code>h5lite</code> will automatically detect

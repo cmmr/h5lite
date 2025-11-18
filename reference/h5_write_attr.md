@@ -25,7 +25,7 @@ h5_write_attr(file, name, attribute, data, dtype = "auto")
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `raw`, and `data.frame`.
+  `character`, `raw`, `data.frame`, and `NULL`.
 
 - dtype:
 
@@ -74,6 +74,9 @@ integers (`uint8`), as HDF5 does not have a native boolean datatype.
 `data.frame` objects are written as HDF5 **compound attributes**, a
 native table-like structure.
 
+`NULL` objects are written as HDF5 **null attributes**, which contain no
+data but can be used as placeholders.
+
 To write a scalar attribute, wrap the value in
 [`I()`](https://rdrr.io/r/base/AsIs.html) (e.g., `I("meters")`).
 Otherwise, dimensions are inferred automatically.
@@ -81,7 +84,8 @@ Otherwise, dimensions are inferred automatically.
 ## See also
 
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
-[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md)
+[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
+[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 
 ## Examples
 

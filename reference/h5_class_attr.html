@@ -26,6 +26,7 @@ produce for a given HDF5 attribute."><meta property="og:image" content="https://
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -69,7 +70,7 @@ produce for a given HDF5 attribute.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A character string representing the R class (e.g., <code>"numeric"</code>,
+    <p>A character string representing the R class (e.g., <code>"numeric"</code>, <code>"NULL"</code>,
 <code>"character"</code>, <code>"factor"</code>, <code>"raw"</code>).
 Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> cannot read.</p>
     </div>
@@ -80,6 +81,7 @@ resulting R class.</p><ul><li><p><strong>Integer/Float</strong> attributes are r
 <li><p><strong>String</strong> attributes are reported as <code>"character"</code>.</p></li>
 <li><p><strong>Enum</strong> attributes are reported as <code>"factor"</code>.</p></li>
 <li><p><strong>1-byte Opaque</strong> attributes are reported as <code>"raw"</code>.</p></li>
+<li><p><strong>Null</strong> attributes are reported as <code>"NULL"</code>.</p></li>
 <li><p>Other HDF5 types are reported as <code>NA_character_</code>.</p></li>
 </ul></div>
     <div class="section level2">
