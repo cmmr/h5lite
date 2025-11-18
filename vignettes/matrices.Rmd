@@ -1,5 +1,5 @@
 ---
-title: "Working with Matrices and Arrays in h5lite"
+title: "Working with Matrices and Arrays"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Working with Matrices and Arrays}

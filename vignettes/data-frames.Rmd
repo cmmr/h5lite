@@ -1,5 +1,5 @@
 ---
-title: "Working with Data Frames in h5lite"
+title: "Working with Data Frames"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Working with Data Frames}

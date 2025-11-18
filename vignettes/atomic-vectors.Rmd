@@ -1,5 +1,5 @@
 ---
-title: "Working with Atomic Vectors in h5lite"
+title: "Working with Atomic Vectors"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Working with Atomic Vectors}
