@@ -36,6 +36,16 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/h5lite.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/atomic-vectors.html">Working with Atomic Vectors in h5lite</a></li>
+    <li><a class="dropdown-item" href="articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><a class="dropdown-item" href="articles/data-frames.html">Working with Data Frames in h5lite</a></li>
+    <li><a class="dropdown-item" href="articles/lists-and-organization.html">Working with Lists and File Organization</a></li>
+    <li><a class="dropdown-item" href="articles/matrices.html">Working with Matrices and Arrays in h5lite</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -178,28 +188,6 @@
 <span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/h5_read_attr.html">h5_read_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/matrix"</span>, <span class="st">"units"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
 <span><span class="co">#&gt; "meters"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="id_5-overwriting--deleting">5. Overwriting &amp; Deleting<a class="anchor" aria-label="anchor" href="#id_5-overwriting--deleting"></a>
-</h3>
-<p>Writing to an existing path automatically overwrites the data. Use the <code>h5_delete_dataset*</code> functions to explicitly remove objects.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Overwrite the vector</span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">99</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 99 100</span></span>
-<span></span>
-<span><span class="co"># Delete the dataset</span></span>
-<span><span class="fu"><a href="reference/h5_delete_dataset.html">h5_delete_dataset</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/vector"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Delete the attribute</span></span>
-<span><span class="fu"><a href="reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/matrix"</span>, <span class="st">"units"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Delete an entire group and its contents</span></span>
-<span><span class="fu"><a href="reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; "mtcars"  "factor_data"  "scalar_string"</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">

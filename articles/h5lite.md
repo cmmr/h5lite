@@ -210,7 +210,7 @@ preserving its structure and metadata.
 ``` r
 # Create a nested list with attributes
 my_list <- list(
-  config = list(version = 1.2, user = "test"),
+  config = list(user = "test", version = 1.2),
   data = list(
     matrix = matrix(1:4, 2),
     vector = 1:10
@@ -220,22 +220,22 @@ attr(my_list$data, "info") <- "This is the data group"
 attr(my_list$data$matrix, "my_attr") <- "matrix attribute"
 
 # Write the entire list. This creates a group called "session_data".
-h5_write(file, "session_data", my_list)
+h5_write(file, "session_data", my_list, attrs = TRUE)
 
 # Read the group back into a list
-read_list <- h5_read(file, "session_data")
+read_list <- h5_read(file, "session_data", attrs = TRUE)
 
 # Verify the round-trip was successful
 all.equal(my_list, read_list)
-#> [1] "Component \"config\": Names: 2 string mismatches"                                                           
-#> [2] "Component \"config\": Component 1: Modes: numeric, character"                                               
-#> [3] "Component \"config\": Component 1: target is numeric, current is character"                                 
-#> [4] "Component \"config\": Component 2: Modes: character, numeric"                                               
-#> [5] "Component \"config\": Component 2: target is character, current is numeric"                                 
-#> [6] "Component \"data\": Attributes: < names for target but not for current >"                                   
-#> [7] "Component \"data\": Attributes: < Length mismatch: comparison on first 0 components >"                      
-#> [8] "Component \"data\": Component \"matrix\": Attributes: < Length mismatch: comparison on first 1 components >"
+#> [1] TRUE
 ```
+
+> **Helpful Tip:** HDF5 groups do not preserve the creation order of
+> their members. When you read a group back with
+> [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md), the
+> elements in the resulting R `list` will always be sorted
+> alphabetically by name. If you need to compare a read list with an
+> original list, make sure to sort the original list by name first.
 
 ## 6. Handling Special R Types
 

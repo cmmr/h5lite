@@ -33,6 +33,16 @@
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/h5lite.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Working with Atomic Vectors in h5lite</a></li>
+    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames in h5lite</a></li>
+    <li><a class="dropdown-item" href="../articles/lists-and-organization.html">Working with Lists and File Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays in h5lite</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -265,7 +275,7 @@ preserving its structure and metadata.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Create a nested list with attributes</span></span>
 <span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>version <span class="op">=</span> <span class="fl">1.2</span>, user <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span>,</span>
+<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>user <span class="op">=</span> <span class="st">"test"</span>, version <span class="op">=</span> <span class="fl">1.2</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    matrix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span><span class="op">)</span>,</span>
 <span>    vector <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span>
@@ -275,21 +285,22 @@ preserving its structure and metadata.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">matrix</span>, <span class="st">"my_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"matrix attribute"</span></span>
 <span></span>
 <span><span class="co"># Write the entire list. This creates a group called "session_data".</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Read the group back into a list</span></span>
-<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span><span class="op">)</span></span>
+<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Verify the round-trip was successful</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">read_list</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Component \"config\": Names: 2 string mismatches"                                                           </span></span>
-<span><span class="co">#&gt; [2] "Component \"config\": Component 1: Modes: numeric, character"                                               </span></span>
-<span><span class="co">#&gt; [3] "Component \"config\": Component 1: target is numeric, current is character"                                 </span></span>
-<span><span class="co">#&gt; [4] "Component \"config\": Component 2: Modes: character, numeric"                                               </span></span>
-<span><span class="co">#&gt; [5] "Component \"config\": Component 2: target is character, current is numeric"                                 </span></span>
-<span><span class="co">#&gt; [6] "Component \"data\": Attributes: &lt; names for target but not for current &gt;"                                   </span></span>
-<span><span class="co">#&gt; [7] "Component \"data\": Attributes: &lt; Length mismatch: comparison on first 0 components &gt;"                      </span></span>
-<span><span class="co">#&gt; [8] "Component \"data\": Component \"matrix\": Attributes: &lt; Length mismatch: comparison on first 1 components &gt;"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<blockquote>
+<p><strong>Helpful Tip:</strong> HDF5 groups do not preserve the
+creation order of their members. When you read a group back with
+<code><a href="../reference/h5_read.html">h5_read()</a></code>, the elements in the resulting R
+<code>list</code> will always be sorted alphabetically by name. If you
+need to compare a read list with an original list, make sure to sort the
+original list by name first.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="handling-special-r-types">6. Handling Special R Types<a class="anchor" aria-label="anchor" href="#handling-special-r-types"></a>

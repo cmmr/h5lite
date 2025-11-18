@@ -148,30 +148,6 @@ print(units)
 #> "meters"
 ```
 
-### 5. Overwriting & Deleting
-
-Writing to an existing path automatically overwrites the data. Use the
-`h5_delete_dataset*` functions to explicitly remove objects.
-
-``` r
-# Overwrite the vector
-h5_write(file, "data/vector", c(99, 100))
-h5_read(file, "data/vector")
-#> 99 100
-
-# Delete the dataset
-h5_delete_dataset(file, "data/vector")
-
-# Delete the attribute
-h5_delete_attr(file, "data/matrix", "units")
-
-# Delete an entire group and its contents
-h5_delete_group(file, "data")
-
-h5_ls(file)
-#> "mtcars"  "factor_data"  "scalar_string"
-```
-
 ## When to Use Another HDF5 Package
 
 `h5lite` is intentionally simple. If you need advanced control over HDF5
@@ -267,5 +243,15 @@ Functions for creating and deleting groups, datasets, and attributes.
 
 ### All vignettes
 
+- [Working with Atomic Vectors in
+  h5lite](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
+- [Attributes
+  In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
+- [Working with Data Frames in
+  h5lite](https://cmmr.github.io/h5lite/articles/data-frames.md):
 - [Getting Started with
   h5lite](https://cmmr.github.io/h5lite/articles/h5lite.md):
+- [Working with Lists and File
+  Organization](https://cmmr.github.io/h5lite/articles/lists-and-organization.md):
+- [Working with Matrices and Arrays in
+  h5lite](https://cmmr.github.io/h5lite/articles/matrices.md):
