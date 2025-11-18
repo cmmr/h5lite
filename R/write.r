@@ -257,6 +257,9 @@ validate_dtype <- function(data, dtype = "auto") {
   if (dtype != "auto") return(dtype)
   
   # NA, NaN, Inf, or fractional components require double data type.
+  # If data is empty, it has no non-finite values.
+  if (length(data) == 0) return("double")
+  
   if (any(!is.finite(data)) || (is.double(data) && any(data %% 1 != 0))) {
     return("double")
   }

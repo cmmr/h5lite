@@ -31,7 +31,6 @@ SEXP C_h5_write_dataframe(SEXP filename, SEXP dset_name, SEXP data, SEXP dtypes,
   
   R_xlen_t n_rows    = XLENGTH(VECTOR_ELT(data, 0));
   SEXP     col_names = getAttrib(data, R_NamesSymbol);
-  if (n_rows == 0) return R_NilValue; // Do nothing for a 0-row data.frame
   
   /* --- 2. Create File and Memory Compound Types --- */
   /* R_alloc: auto-freed by R */
