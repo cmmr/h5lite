@@ -8,7 +8,7 @@
 #' @param name Name of the object to attach the attribute to (e.g., "/data").
 #' @param attribute The name of the attribute to create.
 #' @param data The R object to write. Supported: `numeric`, `integer`,
-#'   `logical`, `character`, `raw`, and `data.frame`.
+#'   `logical`, `character`, `raw`, `data.frame`, and `NULL`.
 #' @param dtype The target HDF5 data type. Defaults to \code{typeof(data)}.
 #' @details The `dtype` argument controls the on-disk storage type **for numeric
 #'   data only**.
@@ -39,12 +39,16 @@
 #' 
 #' `data.frame` objects are written as HDF5 **compound attributes**, a native
 #' table-like structure.
+#' 
+#' `NULL` objects are written as HDF5 **null attributes**, which contain no data
+#' but can be used as placeholders.
 #'
 #' To write a scalar attribute, wrap the value in `I()` (e.g., `I("meters")`).
 #' Otherwise, dimensions are inferred automatically.
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
-#' @seealso [h5_write()], [h5_read_attr()]
+#' @seealso [h5_write()], [h5_read_attr()],
+#'   `vignette("attributes-in-depth", package = "h5lite")`
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -74,6 +78,10 @@ h5_write_attr <- function(file, name, attribute, data, dtype = "auto") {
   assert_valid_dataset(data)
   
   if (is.data.frame(data)) {
+    # HDF5 compound types must have at least one member.
+    if (ncol(data) == 0) {
+      stop("Cannot write a data.frame with zero columns as an HDF5 attribute.", call. = FALSE)
+    }
     dtypes <- sapply(data, validate_dtype)
     .Call("C_h5_write_attribute", file, name, attribute, data, dtypes, dims, PACKAGE = "h5lite")
   } else {

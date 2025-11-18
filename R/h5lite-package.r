@@ -14,6 +14,18 @@
 #'   \item **Safe by Default:** Numeric data is read as `double` to prevent integer overflow.
 #'   \item **Easy Installation:** The required HDF5 library is bundled with the package.
 #' }
+#' 
+#' @section Vignettes:
+#' The following vignettes provide detailed examples and explanations for common tasks:
+#' \itemize{
+#'   \item `vignette("h5lite", package = "h5lite")`: A general introduction to the package.
+#'   \item `vignette("atomic-vectors", package = "h5lite")`: Details on writing atomic vectors and scalars.
+#'   \item `vignette("matrices", package = "h5lite")`: Details on writing matrices and arrays.
+#'   \item `vignette("data-frames", package = "h5lite")`: Details on writing `data.frame` objects.
+#'   \item `vignette("data-organization", package = "h5lite")`: How to organize data using groups and lists.
+#'   \item `vignette("attributes-in-depth", package = "h5lite")`: A deep dive into using attributes.
+#'   \item `vignette("parallel-io", package = "h5lite")`: Guide for using h5lite in parallel environments.
+#' }
 #'
 #' @seealso
 #' Useful links:

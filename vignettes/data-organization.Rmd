@@ -31,7 +31,9 @@ This vignette explores:
 *   The important detail of alphabetical ordering.
 *   How to manually manage the file structure using `h5lite`'s organizational functions.
 
-## Recursive Writing with Lists
+For an introduction to writing data, see `vignette("h5lite", package = "h5lite")`.
+
+## 1. Recursive Writing with Lists
 
 When you pass a `list` to `h5_write()`, it treats it as a blueprint for creating a file structure:
 

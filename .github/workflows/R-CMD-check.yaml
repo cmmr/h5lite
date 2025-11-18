@@ -62,3 +62,8 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           args: 'c("--no-manual", "--as-cran")'
+
+      - name: Show install log
+        if: always()
+        run: find . -name '00install.out' -exec cat {} +
+        shell: bash

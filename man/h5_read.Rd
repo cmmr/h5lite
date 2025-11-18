@@ -18,8 +18,9 @@ or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c
 Non-existent attributes are silently skipped.}
 }
 \value{
-A \code{numeric}, \code{character}, \code{factor}, \code{raw}, or \code{data.frame} if
-\code{name} is a dataset. A nested \code{list} if \code{name} is a group.
+An R object corresponding to the HDF5 object. This can be a
+\code{numeric}, \code{character}, \code{factor}, \code{raw}, \code{data.frame}, a nested \code{list},
+or \code{NULL} if the object has a null dataspace.
 }
 \description{
 Reads a dataset or group from an HDF5 file into an R object.
@@ -86,5 +87,7 @@ all.equal(named_vec, vec_rt)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}
+\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}},
+\code{vignette("data-organization", package = "h5lite")} for reading lists,
+\code{vignette("attributes-in-depth", package = "h5lite")} for the \code{attrs} argument.
 }

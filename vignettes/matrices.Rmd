@@ -27,7 +27,9 @@ Matrices and multi-dimensional arrays are workhorses of data analysis in R. `h5l
 
 This vignette covers the basics of working with matrices and arrays, and then dives into two important technical details: the `dimnames` limitation and the automatic handling of row-major vs. column-major data ordering.
 
-## Writing and Reading Matrices
+For details on other data structures, see `vignette("atomic-vectors", package = "h5lite")` and `vignette("data-frames", package = "h5lite")`.
+
+## 1. Writing and Reading Matrices
 
 Writing a matrix or array is as simple as calling `h5_write()`. `h5lite` will automatically detect the dimensions of your R object and create an HDF5 dataset with a corresponding dataspace.
 

@@ -105,3 +105,44 @@ test_that("Compression works correctly", {
 
   expect_lt(file.size(file_compressed), file.size(file_uncompressed))
 })
+
+test_that("NULL values are written and read correctly", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # --- 1. Test NULL Dataset ---
+  h5_write(file_path, "null_dset", NULL)
+
+  # Verify existence and type
+  expect_true(h5_exists(file_path, "null_dset"))
+  expect_equal(h5_typeof(file_path, "null_dset"), "null")
+  expect_equal(h5_class(file_path, "null_dset"), "NULL")
+
+  # Verify reading back gives NULL
+  expect_null(h5_read(file_path, "null_dset"))
+
+  # --- 2. Test NULL Attribute ---
+  # First, create an object to attach the attribute to
+  h5_write(file_path, "dset_for_attr", 1)
+  h5_write_attr(file_path, "dset_for_attr", "null_attr", NULL)
+
+  # Verify existence and type
+  expect_true(h5_exists_attr(file_path, "dset_for_attr", "null_attr"))
+  expect_equal(h5_typeof_attr(file_path, "dset_for_attr", "null_attr"), "null")
+  expect_equal(h5_class_attr(file_path, "dset_for_attr", "null_attr"), "NULL")
+
+  # Verify reading back gives NULL
+  expect_null(h5_read_attr(file_path, "dset_for_attr", "null_attr"))
+
+  # --- 3. Test Overwriting with NULL ---
+  h5_write(file_path, "overwrite_me", 1:10)
+  h5_write(file_path, "overwrite_me", NULL) # Overwrite with NULL
+  expect_null(h5_read(file_path, "overwrite_me"))
+
+  # --- 4. Test List with NULL element ---
+  my_list <- list(a = 1, b = NULL, c = "hello")
+  h5_write(file_path, "list_with_null", my_list)
+  read_list <- h5_read(file_path, "list_with_null")
+  expect_equal(read_list, my_list)
+  expect_null(read_list$b)
+})

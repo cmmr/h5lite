@@ -96,6 +96,14 @@ To see only the top-level objects, use `recursive = FALSE`.
 h5_ls(file, recursive = FALSE)
 ```
 
+### Getting a Structural Summary
+
+For a more detailed, tree-like view of the file's contents, similar to R's `str()` function, use `h5_str()`. It recursively prints the structure, showing groups, datasets, dimensions, and types. This is often the most convenient way to quickly inspect a file.
+
+```{r str_file}
+h5_str(file)
+```
+
 ### Checking Dimensions and Types
 
 You can inspect a dataset's properties without reading all of its data. This is useful for very large datasets.
@@ -254,4 +262,3 @@ h5_ls(file, recursive = TRUE)
 # Clean up the temporary file
 unlink(file)
 ```
-

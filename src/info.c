@@ -61,6 +61,15 @@ SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
   if (dset_id < 0) { H5Fclose(file_id); error("Failed to open dataset: %s", dname); }
   
+  /* First, check for a NULL dataspace, which overrides the data type */
+  hid_t space_id = H5Dget_space(dset_id);
+  H5S_class_t space_class = H5Sget_simple_extent_type(space_id);
+  H5Sclose(space_id);
+  if (space_class == H5S_NULL) {
+    H5Dclose(dset_id); H5Fclose(file_id);
+    return mkString("null");
+  }
+  
   hid_t type_id = H5Dget_type(dset_id);
   SEXP res = h5_type_to_rstr(type_id);
   
@@ -79,6 +88,15 @@ SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   hid_t attr_id = H5Aopen_by_name(file_id, oname, aname, H5P_DEFAULT, H5P_DEFAULT);
   if (attr_id < 0) { H5Fclose(file_id); error("Failed to open attribute: %s", aname); }
+  
+  /* First, check for a NULL dataspace */
+  hid_t space_id = H5Aget_space(attr_id);
+  H5S_class_t space_class = H5Sget_simple_extent_type(space_id);
+  H5Sclose(space_id);
+  if (space_class == H5S_NULL) {
+    H5Aclose(attr_id); H5Fclose(file_id);
+    return mkString("null");
+  }
   
   hid_t type_id = H5Aget_type(attr_id);
   SEXP res = h5_type_to_rstr(type_id);

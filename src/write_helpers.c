@@ -65,6 +65,42 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
   return space_id;
 }
 
+/* --- Handle Overwriting an Existing Dataset/Group --- */
+void handle_overwrite(hid_t file_id, const char *name) {
+  /* Suppress HDF5's auto error printing for H5Lexists */
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  
+  htri_t link_exists = H5Lexists(file_id, name, H5P_DEFAULT);
+  
+  /* Restore error handler */
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (link_exists > 0) {
+    H5Ldelete(file_id, name, H5P_DEFAULT);
+  }
+}
+
+/* --- Write compound data to a dataset OR attribute --- */
+herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer) {
+  herr_t status = -1;
+  
+  // Check if obj_id is a dataset or an attribute
+  H5I_type_t obj_type = H5Iget_type(obj_id);
+  
+  if (obj_type == H5I_DATASET) {
+    // For datasets, we need to specify memory and file space, which are the same here.
+    status = H5Dwrite(obj_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
+  } else if (obj_type == H5I_ATTR) {
+    // For attributes, the dataspace is defined on creation, so we only need the memory type.
+    status = H5Awrite(obj_id, mem_type_id, buffer);
+  }
+  
+  return status;
+}
+
 /* --- Calculate Chunk Dimensions (Target ~1MB) --- */
 void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
   hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */

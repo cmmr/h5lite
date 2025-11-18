@@ -14,7 +14,8 @@ h5_read_attr(file, name, attribute)
 \item{attribute}{Name of the attribute to read.}
 }
 \value{
-A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array.
+A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array. Returns
+\code{NULL} if the attribute has a null dataspace.
 }
 \description{
 Reads an attribute associated with an HDF5 object (dataset or group).

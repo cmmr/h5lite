@@ -27,7 +27,9 @@ The `data.frame` is R's primary data structure for tabular data, containing colu
 
 This vignette explains how `data.frame` objects are written and read, and provides technical details on the underlying HDF5 implementation.
 
-## Writing and Reading Data Frames
+For details on other data structures, see `vignette("atomic-vectors", package = "h5lite")` and `vignette("matrices", package = "h5lite")`.
+
+## 1. Writing and Reading Data Frames
 
 Writing a `data.frame` is a one-line command with `h5_write()`.
 
@@ -46,7 +48,7 @@ h5_write(file, "my_df", my_df)
 You can inspect the object with `h5_str()` and `h5_class()`. Notice that `h5lite` correctly identifies it as a `data.frame` backed by a `compound` HDF5 type.
 
 ```{r inspect_df}
-h5_str(file, "my_df")
+h5_str(file)
 h5_class(file, "my_df")
 ```
 
@@ -95,24 +97,6 @@ This approach has several advantages for HDF5 experts and interoperability:
 2.  **Atomicity:** The entire table is a single object in the HDF5 file, which can be easier to manage than a group containing many separate column-datasets.
 3.  **Efficiency:** For many access patterns, reading a single contiguous block of compound data can be more efficient than reading from multiple disparate datasets.
 
-### C-Level Implementation
-
-The magic happens in the C functions `C_h5_write_dataframe` and `read_dataframe`.
-
-*   **On `h5_write()`**:
-    1.  The C code iterates through the columns of the R `data.frame`.
-    2.  For each column, it determines the appropriate HDF5 file type (`get_file_type`) and memory type (`get_mem_type`).
-    3.  It constructs an HDF5 compound type in memory (`H5Tcreate`, `H5Tinsert`).
-    4.  It allocates a C buffer and serializes the R `data.frame` row-by-row into an array of C structs.
-    5.  Finally, `H5Dwrite` writes the entire buffer to the compound dataset.
-
-*   **On `h5_read()`**:
-    1.  The C code inspects the compound dataset to discover its members (columns) and their types.
-    2.  It creates a corresponding in-memory compound type, telling HDF5 to convert all numeric types to `double`.
-    3.  `H5Dread` reads the entire on-disk table into a C buffer of structs.
-    4.  The code then unpacks this buffer column-by-column, creating the appropriate R vectors (`REALSXP`, `STRSXP`, etc.).
-    5.  For `enum` members, it reads the level names and constructs a proper R `factor`.
-    6.  Finally, it assembles the columns into a `VECSXP` and sets the `class` and `row.names` to form a valid R `data.frame`.
 
 ## Preserving `data.frame` Attributes
 
@@ -138,7 +122,7 @@ df_with_attrs$pass_qc <- as.numeric(df_with_attrs$pass_qc)
 all.equal(read_df_with_attrs, df_with_attrs)
 ```
 
-> **Note:** The `row.names` attribute is read back correctly because of a special rule in `h5_read()`. It detects the attribute named `"row.names"`, sees that it was read as a `numeric` vector, and coerces it back to `integer` to satisfy R's requirements for a valid `data.frame`.
+> **Note:** The `row.names` attribute is read back correctly because of a special rule in `h5_read()`. It detects the attribute named `"row.names"`, and if it is a `numeric` vector, it is coerced back to `integer` to satisfy R's requirements for a valid `data.frame`.
 
 ```{r cleanup}
 # Clean up the temporary file

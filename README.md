@@ -2,7 +2,7 @@
 
 **h5lite** is an R package that provides a simple and lightweight interface for reading and writing HDF5 files.
 
-It is designed for R users who want to save and load common R objects (vectors, matrices, factors, data.frames) to an HDF5 file without needing to understand the low-level details of the HDF5 library.
+It is designed for R users who want to save and load common R objects (vectors, factors, matrices, data.frames, lists, and NULLs) to an HDF5 file without needing to understand the low-level details of the HDF5 library.
 
 ## Why use h5lite?
 
@@ -126,6 +126,21 @@ units <- h5_read_attr(file, "data/matrix", "units")
 print(units)
 #> "meters"
 ```
+
+## See Also
+
+For more detailed guides on specific topics, see the package vignettes:
+
+-   **[Getting Started with h5lite](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
+-   **[Working with Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
+-   **[Working with Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
+-   **[Working with Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.
+-   **[Data Organization](https://cmmr.github.io/h5lite/articles/data-organization.html)**: Using groups and lists to structure files.
+-   **[Attributes In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.html)**: A deep dive into metadata handling.
+-   **[Using h5lite with Parallel Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**: Guide for multi-threaded and multi-process access.
+
+You can also access these vignettes from within R using `browseVignettes("h5lite")`.
+
 
 ## When to Use Another HDF5 Package
 

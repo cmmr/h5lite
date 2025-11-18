@@ -1,6 +1,24 @@
 #include "h5lite.h"
 
 
+/* --- HELPER: Write Null Dataset --- */
+static void write_null_dataset(hid_t file_id, const char *dname, hid_t space_id) {
+  
+  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(lcpl_id, 1);
+  
+  handle_overwrite(file_id, dname);
+  
+  /* Create a dataset with a null dataspace and a simple integer type (type is ignored for null datasets) */
+  hid_t dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, space_id, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
+  
+  H5Pclose(lcpl_id);
+  H5Sclose(space_id);
+  if (dset_id < 0) error("Failed to create null dataset: %s", dname);
+  H5Dclose(dset_id);
+  H5Fclose(file_id);
+}
+
 /* --- WRITER: DATASET --- */
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
@@ -12,6 +30,12 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   int rank = 0;
   hsize_t *h5_dims = NULL;
   
+  if (strcmp(dtype_str, "null") == 0) {
+    hid_t space_id = H5Screate(H5S_NULL);
+    write_null_dataset(file_id, dname, space_id);
+    return R_NilValue;
+  }
+
   hid_t space_id = create_dataspace(dims, data, &rank, &h5_dims);
   hid_t file_type_id = get_file_type(dtype_str, data);
   herr_t status = -1;
@@ -40,17 +64,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
     H5Pset_deflate(dcpl_id, (unsigned int)compress);
   }
   
-  /* --- Overwrite Logic --- */
-  herr_t (*old_func)(hid_t, void*);
-  void *old_client_data;
-  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-  htri_t link_exists = H5Lexists(file_id, dname, H5P_DEFAULT);
-  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
-  if (link_exists > 0) {
-    H5Ldelete(file_id, dname, H5P_DEFAULT);
-  }
-  /* --- End Overwrite --- */
+  handle_overwrite(file_id, dname);
   
   hid_t dset_id = H5Dcreate2(file_id, dname, file_type_id, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
   H5Pclose(lcpl_id);
@@ -95,11 +109,13 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       if (TYPEOF(data) != RAWSXP) error("dtype 'opaque' requires raw data input");
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id); /* Should be 1 */
+
     } else if (strcmp(dtype_str, "factor") == 0) {
       /* FACTOR: Memory type must also be the enum type */
       if (TYPEOF(data) != INTSXP) error("dtype 'factor' requires integer-backed factor data");
       mem_type_id = H5Tcopy(file_type_id);
       el_size = H5Tget_size(mem_type_id); /* Should be 1 */
+      
     } else {
       /* NUMERIC/LOGICAL: Get mem type from R, el_size from R type */
       mem_type_id = get_mem_type(data);
@@ -238,6 +254,15 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
     H5Aclose(attr_id);
     
   } else { // Logic for non-data.frame attributes
+    const char *dtype_str_check = CHAR(STRING_ELT(dtype, 0));
+    if (strcmp(dtype_str_check, "null") == 0) {
+      hid_t space_id = H5Screate(H5S_NULL);
+      hid_t attr_id = H5Acreate2(obj_id, aname, H5T_STD_I32LE, space_id, H5P_DEFAULT, H5P_DEFAULT);
+      if (attr_id < 0) error("Failed to create null attribute '%s'", aname);
+      H5Aclose(attr_id); H5Sclose(space_id); H5Oclose(obj_id); H5Fclose(file_id);
+      return R_NilValue;
+    }
+
     const char *dtype_str = CHAR(STRING_ELT(dtype, 0));
     int rank = 0;
     hsize_t *h5_dims = NULL;

@@ -33,6 +33,8 @@ This vignette provides a deep dive into working with attributes in `h5lite`, cov
 *   The powerful `attrs` argument for round-tripping R object attributes.
 *   Important limitations and special cases.
 
+For an introduction to writing datasets, see `vignette("h5lite", package = "h5lite")`.
+
 ## Basic Attribute I/O
 
 The core functions for direct attribute manipulation are `h5_write_attr()`, `h5_read_attr()`, and `h5_ls_attr()`.
@@ -100,9 +102,29 @@ h5_ls_attr(file, "selective_vec")
 
 There are a few important rules and limitations to be aware of when working with attributes.
 
+### Limitation: List Attributes
+
+More generally, `h5lite` cannot write any R attribute that is a `list`. HDF5 attributes are designed to hold simple, atomic data, not nested structures.
+
+When using `attrs = TRUE` or `h5_write_attr()`, you can write attributes that are:
+*   Atomic vectors (`numeric`, `integer`, `character`, `logical`, `raw`)
+*   `factor`s
+*   `data.frame`s (which become compound attributes)
+*   `NULL`
+
+Attempting to write an object that has a `list` attribute will result in an error.
+
+```{r list_attr_error, error=TRUE}
+my_vec <- 1:3
+attr(my_vec, "bad_attr") <- list(a = 1, b = 2)
+h5_write(file, "my_vec_list_attr", my_vec, attrs = TRUE)
+```
+
 ### Limitation: `dimnames`
 
-R stores the `dimnames` of a matrix or array as a `list` attribute. `h5lite` **cannot** write list-like attributes. Attempting to write a named matrix with `attrs = TRUE` will fail.
+R stores the `dimnames` of a matrix or array as a `list` attribute. As explained above, `h5lite` **cannot** write list-like attributes. Attempting to write a named matrix with `attrs = TRUE` will fail.
+
+See `vignette("matrices", package = "h5lite")` for more details on this specific case.
 
 ```{r dimnames_error, error=TRUE}
 named_matrix <- matrix(1:4, 2, dimnames = list(c("r1", "r2"), c("c1", "c2")))
@@ -113,44 +135,31 @@ h5_write(file, "named_matrix", named_matrix, attrs = TRUE)
 
 **Workaround:** Either remove the `dimnames` before writing, or write with `attrs = FALSE` (the default), which will save the matrix data but discard the names.
 
-### Special Case: `data.frame` `row.names`
+#### Data Frames:
 
-`h5lite` has a special rule to correctly handle `data.frame` `row.names`. When you write a `data.frame` with `attrs = TRUE`, the `row.names` are saved as a numeric HDF5 attribute.
+Unlike matrices, the attributes of a `data.frame` can be safely round-tripped with `h5lite`. This is because its key metadata is stored in a format that `h5lite` can handle. See `vignette("data-frames", package = "h5lite")` for more on working with data frames.
 
-On reading, `h5_read()` detects the attribute named `"row.names"`, sees that it's a `numeric` vector, and automatically coerces it back to an `integer` vector. This is necessary because R requires the `row.names` of a `data.frame` to be `integer` or `character`, not `numeric`. This special handling ensures a seamless round-trip.
+- The column names are stored in the `names` attribute, which is a character vector.
+- The row names are stored in the `row.names` attribute, which is either a character or integer vector.
 
-```{r rownames_special_case}
-df <- data.frame(x = 1:2, row.names = c("A", "B"))
-h5_write(file, "my_df", df, attrs = TRUE)
+Since neither of these are `list` attributes (like the `dimnames` of a matrix), they can be written to HDF5 without issue. As a result, you can reliably use `attrs = TRUE` to preserve the structure of a `data.frame` during a write/read cycle.
 
-# The row.names attribute is saved
-h5_ls_attr(file, "my_df")
-
-# It is read back correctly
-read_df <- h5_read(file, "my_df", attrs = TRUE)
-all.equal(df, read_df)
-```
-
-### Feature: Compound Attributes
-
-Just as a `data.frame` can be written as a compound *dataset*, it can also be written as a compound *attribute*. This is a powerful feature for attaching structured, tabular metadata to an object.
-
-```{r compound_attribute}
-meta_df <- data.frame(
-  param = c("alpha", "beta"),
-  value = c(0.05, 0.9),
-  stringsAsFactors = FALSE
+```{r dataframe_attrs}
+# Create a data.frame with non-default row names
+df <- data.frame(
+  x = 1:3, 
+  y = c("a", "b", "c"),
+  row.names = c("row1", "row2", "row3")
 )
 
-# Write the data.frame as an attribute
-h5_write_attr(file, "my_data", "parameters", meta_df)
+# Write with attrs = TRUE to preserve names
+h5_write(file, "my_df", df, attrs = TRUE)
 
-# It is read back as a data.frame
-read_meta_df <- h5_read_attr(file, "my_data", "parameters")
+# Read it back
+read_df <- h5_read(file, "my_df", attrs = TRUE)
 
-# Note the standard type conversion for the numeric column
-meta_df$value <- as.numeric(meta_df$value)
-all.equal(read_meta_df, meta_df)
+# The data.frame is perfectly restored
+all.equal(df, read_df)
 ```
 
 ```{r cleanup}

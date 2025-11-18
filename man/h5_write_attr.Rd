@@ -14,7 +14,7 @@ h5_write_attr(file, name, attribute, data, dtype = "auto")
 \item{attribute}{The name of the attribute to create.}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
-\code{logical}, \code{character}, \code{raw}, and \code{data.frame}.}
+\code{logical}, \code{character}, \code{raw}, \code{data.frame}, and \code{NULL}.}
 
 \item{dtype}{The target HDF5 data type. Defaults to \code{typeof(data)}.}
 }
@@ -57,6 +57,9 @@ as HDF5 does not have a native boolean datatype.
 \code{data.frame} objects are written as HDF5 \strong{compound attributes}, a native
 table-like structure.
 
+\code{NULL} objects are written as HDF5 \strong{null attributes}, which contain no data
+but can be used as placeholders.
+
 To write a scalar attribute, wrap the value in \code{I()} (e.g., \code{I("meters")}).
 Otherwise, dimensions are inferred automatically.
 }
@@ -78,5 +81,6 @@ h5_ls_attr(file, "my_data")
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_read_attr]{h5_read_attr()}}
+\code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_read_attr]{h5_read_attr()}},
+\code{vignette("attributes-in-depth", package = "h5lite")}
 }

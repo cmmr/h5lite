@@ -22,6 +22,20 @@ the low-level details of the HDF5 C API.
 }
 }
 
+\section{Vignettes}{
+
+The following vignettes provide detailed examples and explanations for common tasks:
+\itemize{
+\item \code{vignette("h5lite", package = "h5lite")}: A general introduction to the package.
+\item \code{vignette("atomic-vectors", package = "h5lite")}: Details on writing atomic vectors and scalars.
+\item \code{vignette("matrices", package = "h5lite")}: Details on writing matrices and arrays.
+\item \code{vignette("data-frames", package = "h5lite")}: Details on writing \code{data.frame} objects.
+\item \code{vignette("data-organization", package = "h5lite")}: How to organize data using groups and lists.
+\item \code{vignette("attributes-in-depth", package = "h5lite")}: A deep dive into using attributes.
+\item \code{vignette("parallel-io", package = "h5lite")}: Guide for using h5lite in parallel environments.
+}
+}
+
 \seealso{
 Useful links:
 \itemize{

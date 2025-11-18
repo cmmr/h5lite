@@ -12,7 +12,7 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{logical},
-\code{character}, \code{factor}, \code{raw}, \code{data.frame}, and nested \code{list}s.}
+\code{character}, \code{factor}, \code{raw}, \code{data.frame}, \code{NULL}, and nested \code{list}s.}
 
 \item{dtype}{The target HDF5 data type. See details.}
 
@@ -55,6 +55,12 @@ within the list are of a writeable type. If any part of the
 structure is invalid, the function will throw an error and no data will be
 written.
 }
+}
+
+\section{Writing NULL}{
+
+If \code{data} is \code{NULL}, \code{h5_write} will create an HDF5 \strong{null dataset}. This is
+a dataset with a null dataspace, which contains no data.
 }
 
 \section{Writing Data Frames}{
@@ -143,5 +149,10 @@ h5_ls(file, recursive = TRUE)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}},
+\code{vignette("atomic-vectors", package = "h5lite")},
+\code{vignette("matrices", package = "h5lite")},
+\code{vignette("data-frames", package = "h5lite")},
+\code{vignette("data-organization", package = "h5lite")},
+\code{vignette("attributes-in-depth", package = "h5lite")}
 }

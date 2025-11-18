@@ -8,7 +8,7 @@
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset (e.g., "/data/matrix").
 #' @param data The R object to write. Supported: `numeric`, `integer`, `logical`, 
-#'   `character`, `factor`, `raw`, `data.frame`, and nested `list`s.
+#'   `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested `list`s.
 #' @param dtype The target HDF5 data type. See details.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
@@ -36,6 +36,10 @@
 #'   within the list are of a writeable type. If any part of the
 #'   structure is invalid, the function will throw an error and no data will be
 #'   written.
+#' 
+#' @section Writing NULL:
+#' If `data` is `NULL`, `h5_write` will create an HDF5 **null dataset**. This is
+#' a dataset with a null dataspace, which contains no data.
 #' 
 #' @section Writing Data Frames:
 #' `data.frame` objects are written as HDF5 **compound datasets**. This is a
@@ -80,7 +84,12 @@
 #' `dimnames` or set `attrs = FALSE`.
 #' 
 #' @return Invisibly returns `file`. This function is called for its side effects.
-#' @seealso [h5_read()], [h5_write_attr()]
+#' @seealso [h5_read()], [h5_write_attr()],
+#'   `vignette("atomic-vectors", package = "h5lite")`,
+#'   `vignette("matrices", package = "h5lite")`,
+#'   `vignette("data-frames", package = "h5lite")`,
+#'   `vignette("data-organization", package = "h5lite")`,
+#'   `vignette("attributes-in-depth", package = "h5lite")`
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -129,6 +138,13 @@ h5_write <- function(file, name, data,
     # 2. Write: If validation passed, perform the recursive write.
     write_recursive(file, name, data, compress, attrs)
     
+  } else if (is.null(data)) {
+    
+    file <- path.expand(file)
+    # For NULL, dims is irrelevant, level is 0, and dtype is "null"
+    # This signals to C to create an H5S_NULL dataset.
+    .Call("C_h5_write_dataset", file, name, data, "null", NULL, 0L, PACKAGE = "h5lite")
+    
   }
   
   else {
@@ -138,6 +154,11 @@ h5_write <- function(file, name, data,
     attrs <- validate_attrs(data, attrs)
 
     if (is.data.frame(data)) {
+
+      # HDF5 compound types must have at least one member.
+      if (ncol(data) == 0) {
+        stop("Cannot write a data.frame with zero columns to HDF5.", call. = FALSE)
+      }
 
       dtypes <- sapply(data, validate_dtype)
       .Call("C_h5_write_dataframe", file, name, data, dtypes, level, PACKAGE = "h5lite")
@@ -238,6 +259,7 @@ validate_dtype <- function(data, dtype = "auto") {
   
   assert_valid_object(data)
   
+  if (is.null(data))       return ("null")
   if (is.factor(data))     return ("factor")
   if (is.logical(data))    return ("uchar")
   if (is.raw(data))        return ("raw")
@@ -315,6 +337,9 @@ is_list_group <- function (data) {
 
 # Includes lists
 assert_valid_object <- function (data) {
+  
+  # NULL
+  if (is.null(data)) return (NULL)
   
   # logical, integer, numeric, character, raw, factor
   if (is.atomic(data) && !is.complex(data)) return (NULL)

@@ -33,10 +33,13 @@
 #' - HDF5 **attributes** on the group are attached as R attributes to the `list`.
 #' - The elements in the returned list are **sorted alphabetically** by name.
 #' 
-#' @return A `numeric`, `character`, `factor`, `raw`, or `data.frame` if
-#'   `name` is a dataset. A nested `list` if `name` is a group.
+#' @return An R object corresponding to the HDF5 object. This can be a
+#'   `numeric`, `character`, `factor`, `raw`, `data.frame`, a nested `list`,
+#'   or `NULL` if the object has a null dataspace.
 #' 
-#' @seealso [h5_read_attr()], [h5_write()], [h5_ls()]
+#' @seealso [h5_read_attr()], [h5_write()], [h5_ls()],
+#'   `vignette("data-organization", package = "h5lite")` for reading lists,
+#'   `vignette("attributes-in-depth", package = "h5lite")` for the `attrs` argument.
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -121,7 +124,8 @@ h5_read <- function(file, name, attrs = FALSE) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object (dataset or group) the attribute is attached to.
 #' @param attribute Name of the attribute to read.
-#' @return A `numeric`, `character`, `factor`, or `raw` vector/array.
+#' @return A `numeric`, `character`, `factor`, or `raw` vector/array. Returns
+#'   `NULL` if the attribute has a null dataspace.
 #' 
 #' @seealso [h5_read()], [h5_write_attr()], [h5_ls_attr()], [h5_exists_attr()]
 #' @export

@@ -145,7 +145,7 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
   Rprintf("Listing contents of: %s\n", fname);
   Rprintf("Root group: %s\n", gname);
   Rprintf("----------------------------------------------------------------\n");
-  Rprintf("%-12s %s\n", "Type", "Name");
+  Rprintf("%-15s %s\n", "Type", "Name");
   Rprintf("----------------------------------------------------------------\n");
   
   /* Recursively visit all objects */

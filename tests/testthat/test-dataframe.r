@@ -61,15 +61,20 @@ test_that("data.frame as dataset: edge cases (zero rows/cols) work", {
   expect_equal(sort(names(df_read_zero_row)), sort(names(df_zero_row)))
 
   # --- Zero Columns ---
-  # Writing a 0-col data.frame should do nothing, so the dataset won't exist
-  h5_write(file_path, "df_zero_col", df_zero_col)
-  expect_false(h5_exists(file_path, "df_zero_col"))
-  expect_error(h5_read(file_path, "df_zero_col"), "Object 'df_zero_col' does not exist")
+  # Writing a 0-col data.frame should throw an error
+  expect_error(
+    h5_write(file_path, "df_zero_col", df_zero_col),
+    "Cannot write a data.frame with zero columns to HDF5.",
+    fixed = TRUE
+  )
 
   # --- Zero Rows and Columns ---
-  h5_write(file_path, "df_zero_all", df_zero_all)
-  expect_false(h5_exists(file_path, "df_zero_all"))
-  expect_error(h5_read(file_path, "df_zero_all"), "Object 'df_zero_all' does not exist")
+  # This should also throw an error because it has zero columns
+  expect_error(
+    h5_write(file_path, "df_zero_all", df_zero_all),
+    "Cannot write a data.frame with zero columns to HDF5.",
+    fixed = TRUE
+  )
 })
 
 test_that("data.frame as attribute: round-trip works", {
@@ -95,7 +100,10 @@ test_that("data.frame as attribute: round-trip works", {
   expect_equal(sort(names(df_zero_row_attr_read)), sort(names(df_zero_row)))
 
   # --- Zero-column data.frame attribute ---
-  # Writing a 0-col df as an attribute should do nothing, so it won't exist
-  h5_write_attr(file_path, "my_data", "df_zero_col_attr", df_zero_col)
-  expect_false(h5_exists_attr(file_path, "my_data", "df_zero_col_attr"))
+  # Writing a 0-col df as an attribute should throw an error
+  expect_error(
+    h5_write_attr(file_path, "my_data", "df_zero_col_attr", df_zero_col),
+    "Cannot write a data.frame with zero columns as an HDF5 attribute.",
+    fixed = TRUE
+  )
 })

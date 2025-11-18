@@ -27,7 +27,9 @@ Atomic vectors are the fundamental data structure in R. They are 1-dimensional a
 
 This vignette explores how `h5lite` handles different atomic types, with a special focus on its automatic data type selection for numeric data and the distinction between vectors and scalars.
 
-## Writing and Reading Vectors
+For details on other data structures, see `vignette("matrices", package = "h5lite")` and `vignette("data-frames", package = "h5lite")`.
+
+## 1. Writing and Reading Vectors
 
 The `h5_write()` function is your primary tool for saving data. Let's write a few different types of vectors.
 
@@ -63,7 +65,7 @@ print(qc)
 
 ## Handling Scalars
 
-In HDF5, there is a distinction between a **scalar** (a single value with no dimensions) and a **1D array of length 1**. By default, `h5_write()` saves all single-element vectors as 1D arrays.
+In HDF5, there is a distinction between a **scalar** (a single value with no dimensions) and a **1D array of length 1**. By default, `h5_write()` saves all single-element R vectors as 1D arrays.
 
 To write a true HDF5 scalar, you must wrap the value in `I()` to treat it "as-is".
 
@@ -83,7 +85,7 @@ While `h5_read()` will read both of these back into an R vector of length 1, cre
 
 ## Advanced Details: Automatic Data Type Selection
 
-A key feature of `h5lite` is its automatic and intelligent selection of on-disk data types for numeric data. This is controlled by the `dtype` argument in `h5_write()`, which defaults to `"auto"`.
+A key feature of `h5lite` is its automatic and intelligent selection of on-disk data types for numeric data. This is controlled by the `dtype` argument in `h5_write()` and `h5_write_attr()`, which defaults to `"auto"`.
 
 ### How `dtype = "auto"` Works
 
@@ -136,7 +138,7 @@ For non-numeric vectors, the mapping is fixed:
 
 ## Round-tripping Attributes
 
-R objects can have metadata attached to them as attributes (e.g., the `names` of a named vector). To preserve these during a write/read cycle, you must set `attrs = TRUE`.
+R objects can have metadata attached to them as attributes (e.g., the `names` of a named vector). To preserve these during a write/read cycle, you must set `attrs = TRUE`. For a more detailed discussion, see `vignette("attributes-in-depth", package = "h5lite")`.
 
 ```{r attrs_roundtrip}
 named_vec <- c(a = 1, b = 2, c = 3)

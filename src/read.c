@@ -31,6 +31,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
   hid_t file_type_id = H5Dget_type(dset_id);
   H5T_class_t class_id = H5Tget_class(file_type_id);
   hid_t space_id = H5Dget_space(dset_id);
+  H5S_class_t space_class = H5Sget_simple_extent_type(space_id);
+  if (space_class == H5S_NULL) {
+    H5Sclose(space_id); H5Tclose(file_type_id); H5Dclose(dset_id); H5Fclose(file_id);
+    return R_NilValue;
+  }
+
   int ndims = H5Sget_simple_extent_ndims(space_id);
   hsize_t total_elements = 1;
   hsize_t *dims = NULL;
@@ -196,6 +202,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
   hid_t file_type_id = H5Aget_type(attr_id);
   H5T_class_t class_id = H5Tget_class(file_type_id);
   hid_t space_id = H5Aget_space(attr_id);
+  H5S_class_t space_class = H5Sget_simple_extent_type(space_id);
+  if (space_class == H5S_NULL) {
+    H5Sclose(space_id); H5Tclose(file_type_id); H5Aclose(attr_id); H5Fclose(file_id);
+    return R_NilValue;
+  }
+
   int ndims = H5Sget_simple_extent_ndims(space_id);
   hsize_t total_elements = 1;
   hsize_t *dims = NULL;

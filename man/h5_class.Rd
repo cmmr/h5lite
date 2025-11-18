@@ -17,7 +17,7 @@ HDF5 attribute on the object.}
 }
 \value{
 A character string representing the R class (e.g., \code{"numeric"},
-\code{"character"}, \code{"factor"}, \code{"raw"}, \code{"list"}).
+\code{"character"}, \code{"factor"}, \code{"raw"}, \code{"list"}, \code{"NULL"}).
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
 \description{
@@ -34,6 +34,7 @@ metadata.
 \item \strong{Enum} datasets are reported as \code{"factor"}.
 \item \strong{1-byte Opaque} datasets are reported as \code{"raw"}.
 \item \strong{Compound} datasets are reported as \code{"data.frame"}.
+\item \strong{Null} datasets (with a null dataspace) are reported as \code{"NULL"}.
 }
 
 If \code{attrs} is set to \code{TRUE} or is a character vector containing \code{"class"},

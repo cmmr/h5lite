@@ -14,6 +14,7 @@
 #'   \item **Enum** datasets are reported as `"factor"`.
 #'   \item **1-byte Opaque** datasets are reported as `"raw"`.
 #'   \item **Compound** datasets are reported as `"data.frame"`.
+#'   \item **Null** datasets (with a null dataspace) are reported as `"NULL"`.
 #' }
 #'
 #' If `attrs` is set to `TRUE` or is a character vector containing `"class"`,
@@ -28,7 +29,7 @@
 #'   vector containing `"class"`, the function will check for a `"class"`
 #'   HDF5 attribute on the object.
 #' @return A character string representing the R class (e.g., `"numeric"`,
-#'   `"character"`, `"factor"`, `"raw"`, `"list"`).
+#'   `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
 #'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
 #' @seealso [h5_class_attr()], [h5_typeof()], [h5_read()]
@@ -102,13 +103,14 @@ h5_class <- function(file, name, attrs = FALSE) {
 #'   \item **String** attributes are reported as `"character"`.
 #'   \item **Enum** attributes are reported as `"factor"`.
 #'   \item **1-byte Opaque** attributes are reported as `"raw"`.
+#'   \item **Null** attributes are reported as `"NULL"`.
 #'   \item Other HDF5 types are reported as `NA_character_`.
 #' }
 #'
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object the attribute is attached to.
 #' @param attribute Name of the attribute.
-#' @return A character string representing the R class (e.g., `"numeric"`,
+#' @return A character string representing the R class (e.g., `"numeric"`, `"NULL"`,
 #'   `"character"`, `"factor"`, `"raw"`).
 #'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
@@ -401,6 +403,9 @@ map_hdf5_type_to_r_class <- function(hdf5_type) {
     "float32" = ,
     "float64" = ,
     "float" = "numeric",
+    
+    # Null type
+    "null" = "NULL",
     
     # String type
     "string" = "character",

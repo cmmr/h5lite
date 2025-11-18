@@ -24,11 +24,12 @@ SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name);
 
 /* --- write_dataframe.c --- */
 SEXP C_h5_write_dataframe(SEXP filename, SEXP dset_name, SEXP data, SEXP dtypes, SEXP compress_level);
-herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer);
 
 /* --- write_helpers.c --- */
 hid_t open_or_create_file(const char *fname);
 hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims);
+void  handle_overwrite(hid_t file_id, const char *name);
+herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer);
 void  calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims);
 hid_t get_mem_type(SEXP data);
 hid_t get_file_type(const char *dtype, SEXP data);
