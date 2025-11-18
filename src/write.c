@@ -171,7 +171,9 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
       if (TYPEOF(r_column) == STRSXP) {
         mt_members[c] = H5Tcopy(vl_string_mem_type);
       } else {
-        mt_members[c] = get_mem_type(r_column);
+        // For factors, the memory type must also be the enum type.
+        if (strcmp(dtype_str, "factor") == 0) mt_members[c] = H5Tcopy(ft_members[c]);
+        else mt_members[c] = get_mem_type(r_column);
       }
       total_file_size += H5Tget_size(ft_members[c]);
       total_mem_size += H5Tget_size(mt_members[c]);
@@ -224,7 +226,8 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
     free(buffer);
     for(int i=0; i<n_cols; i++) { 
       H5Tclose(ft_members[i]);
-      if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP) {
+      // Close copied string and factor enum types
+      if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP || isFactor(VECTOR_ELT(data, i))) {
         H5Tclose(mt_members[i]);
       }
     }

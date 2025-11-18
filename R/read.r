@@ -94,8 +94,14 @@ h5_read <- function(file, name, attrs = FALSE) {
     available_attrs <- h5_ls_attr(file, name)
     attrs_to_read <- get_attributes_to_read(available_attrs, attrs)
     
-    for (attr_name in attrs_to_read)
-      attr(res, attr_name) <- h5_read_attr(file, name, attr_name)
+    for (attr_name in attrs_to_read) {
+      attr_val <- h5_read_attr(file, name, attr_name)
+      # Special case: R requires row.names to be integer or character, not double.
+      # Since we read all numeric attributes as double, we must coerce row.names back to integer.
+      if (attr_name == "row.names" && is.numeric(attr_val))
+        attr_val <- as.integer(attr_val)
+      attr(res, attr_name) <- attr_val
+    }
   }
   
   return(res)

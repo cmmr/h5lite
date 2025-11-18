@@ -33,8 +33,10 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
       // Coerce all numeric types to double
       mem_member_types[i] = H5T_NATIVE_DOUBLE;
     } else if (file_class == H5T_ENUM) {
-      // Coerce enums to their base integer type (for factor creation)
-      mem_member_types[i] = H5T_NATIVE_INT;
+      // Create a corresponding enum type in memory.
+      // This is necessary for H5Dread to correctly interpret the data.
+      // The unpacking logic will then handle creating the R factor.
+      mem_member_types[i] = H5Tcopy(file_member_type);
     } else if (file_class == H5T_STRING) {
       // Use our variable-length string type
       mem_member_types[i] = vl_string_mem_type;
@@ -51,12 +53,20 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   
   // Now create the memory type with the correct total size
   hid_t mem_type_id = H5Tcreate(H5T_COMPOUND, total_mem_size);
+  // We must also clean up the enum types we copied
+  hid_t *copied_enum_types = (hid_t *)R_alloc(n_cols, sizeof(hid_t));
+  int n_copied_enums = 0;
+
   size_t mem_offset = 0;
   for (int i = 0; i < n_cols; i++) {
     char *member_name = H5Tget_member_name(file_type_id, i);
     H5Tinsert(mem_type_id, member_name, mem_offset, mem_member_types[i]);
     mem_offset += H5Tget_size(mem_member_types[i]);
     H5free_memory(member_name);
+  }
+  for (int i = 0; i < n_cols; i++) {
+    if (member_classes[i] == H5T_ENUM)
+      copied_enum_types[n_copied_enums++] = mem_member_types[i];
   }
   
   // --- 4. Read Data ---
@@ -104,39 +114,31 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
         REAL(r_column)[r] = *((double*)src);
       }
     } else if (mclass == H5T_ENUM) {
+      // This logic mirrors C_h5_read_dataset for factors
+      PROTECT(r_column = allocVector(INTSXP, n_rows));
+      for (hsize_t r = 0; r < n_rows; r++) {
+        char *src = buffer + (r * total_mem_size) + member_offset;
+        INTEGER(r_column)[r] = *((int*)src);
+      }
+      
       // Get levels from the *file* type
       hid_t file_member_type = H5Tget_member_type(file_type_id, c);
       int n_levels = H5Tget_nmembers(file_member_type);
       SEXP levels;
       PROTECT(levels = allocVector(STRSXP, n_levels));
       for (int i = 0; i < n_levels; i++) {
-        char *level_name = H5Tget_member_name(file_member_type, i);
-        SET_STRING_ELT(levels, i, mkChar(level_name));
-        H5free_memory(level_name);
+        char *lname = H5Tget_member_name(file_member_type, i);
+        SET_STRING_ELT(levels, i, mkChar(lname));
+        H5free_memory(lname);
       }
+      setAttrib(r_column, R_LevelsSymbol, levels);
+      UNPROTECT(1); // levels
       
-      // Get integer data from the buffer
-      SEXP int_data;
-      PROTECT(int_data = allocVector(INTSXP, n_rows));
-      for (hsize_t r = 0; r < n_rows; r++) {
-        char *src = buffer + (r * total_mem_size) + member_offset;
-        INTEGER(int_data)[r] = *((int*)src);
-      }
-      
-      // Create the special factor list (like in C_h5_read_dataset)
-      PROTECT(r_column = allocVector(VECSXP, 3));
-      SEXP factor_list_names;
-      PROTECT(factor_list_names = allocVector(STRSXP, 3));
-      SET_STRING_ELT(factor_list_names, 0, mkChar(".h5_factor"));
-      SET_STRING_ELT(factor_list_names, 1, mkChar("data"));
-      SET_STRING_ELT(factor_list_names, 2, mkChar("levels"));
-      
-      SET_VECTOR_ELT(r_column, 0, ScalarLogical(1));
-      SET_VECTOR_ELT(r_column, 1, int_data);
-      SET_VECTOR_ELT(r_column, 2, levels);
-      setAttrib(r_column, R_NamesSymbol, factor_list_names);
-      
-      UNPROTECT(4); // levels, int_data, r_column, factor_list_names
+      SEXP class_attr;
+      PROTECT(class_attr = allocVector(STRSXP, 1));
+      SET_STRING_ELT(class_attr, 0, mkChar("factor"));
+      setAttrib(r_column, R_ClassSymbol, class_attr);
+      UNPROTECT(1); // class_attr
       H5Tclose(file_member_type);
       
     } else if (mclass == H5T_STRING) {
@@ -187,6 +189,9 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   free(buffer);
   
   H5Tclose(vl_string_mem_type);
+  for (int i = 0; i < n_copied_enums; i++) {
+    H5Tclose(copied_enum_types[i]);
+  }
   H5Tclose(mem_type_id);
   
   UNPROTECT(1); // result
