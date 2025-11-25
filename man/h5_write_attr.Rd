@@ -14,7 +14,7 @@ h5_write_attr(file, name, attribute, data, dtype = "auto")
 \item{attribute}{The name of the attribute to create.}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer},
-\code{logical}, \code{character}, \code{raw}, \code{data.frame}, and \code{NULL}.}
+\code{complex}, \code{logical}, \code{character}, \code{raw}, \code{data.frame}, and \code{NULL}.}
 
 \item{dtype}{The target HDF5 data type. Defaults to \code{typeof(data)}.}
 }
@@ -49,8 +49,8 @@ Note: Types without a bit-width suffix (e.g., \code{"int"}, \code{"long"}) are s
 dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit widths (e.g., \code{"int32"}).
 
-For non-numeric data (\code{character}, \code{factor}, \code{raw}, \code{logical}), the storage
-type is determined automatically and \strong{cannot be changed} by the \code{dtype}
+For non-numeric data (\code{character}, \code{complex}, \code{factor}, \code{raw}, \code{logical}), the
+storage type is determined automatically and \strong{cannot be changed} by the \code{dtype}
 argument. R \code{logical} vectors are stored as 8-bit unsigned integers (\code{uint8}),
 as HDF5 does not have a native boolean datatype.
 
@@ -59,6 +59,10 @@ table-like structure.
 
 \code{NULL} objects are written as HDF5 \strong{null attributes}, which contain no data
 but can be used as placeholders.
+
+\code{complex} objects are written using the native HDF5 \code{H5T_COMPLEX} datatype
+class. HDF5 files containing complex attributes written by \code{h5lite} can only
+be read by other HDF5 tools that support HDF5 version 2.0.0 or later.
 
 To write a scalar attribute, wrap the value in \code{I()} (e.g., \code{I("meters")}).
 Otherwise, dimensions are inferred automatically.

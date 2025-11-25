@@ -14,7 +14,7 @@ h5_class_attr(file, name, attribute)
 \item{attribute}{Name of the attribute.}
 }
 \value{
-A character string representing the R class (e.g., \code{"numeric"}, \code{"NULL"},
+A character string representing the R class (e.g., \code{"numeric"}, \code{"complex"}, \code{"NULL"},
 \code{"character"}, \code{"factor"}, \code{"raw"}).
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
@@ -28,6 +28,7 @@ resulting R class.
 \itemize{
 \item \strong{Integer/Float} attributes are reported as \code{"numeric"}.
 \item \strong{String} attributes are reported as \code{"character"}.
+\item \strong{Complex} attributes are reported as \code{"complex"}.
 \item \strong{Enum} attributes are reported as \code{"factor"}.
 \item \strong{1-byte Opaque} attributes are reported as \code{"raw"}.
 \item \strong{Null} attributes are reported as \code{"NULL"}.

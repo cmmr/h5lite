@@ -14,8 +14,8 @@ h5_read_attr(file, name, attribute)
 \item{attribute}{Name of the attribute to read.}
 }
 \value{
-A \code{numeric}, \code{character}, \code{factor}, or \code{raw} vector/array. Returns
-\code{NULL} if the attribute has a null dataspace.
+A \code{numeric}, \code{character}, \code{complex}, \code{factor}, or \code{raw} vector/array.
+Returns \code{NULL} if the attribute has a null dataspace.
 }
 \description{
 Reads an attribute associated with an HDF5 object (dataset or group).
@@ -24,6 +24,7 @@ Reads an attribute associated with an HDF5 object (dataset or group).
 \itemize{
 \item Numeric attributes are read as \code{numeric} (double).
 \item String attributes are read as \code{character}.
+\item Complex attributes are read as \code{complex}.
 \item \code{enum} attributes are read as \code{factor}.
 \item 1-byte \code{opaque} attributes are read as \code{raw}.
 }

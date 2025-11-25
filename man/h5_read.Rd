@@ -19,7 +19,7 @@ Non-existent attributes are silently skipped.}
 }
 \value{
 An R object corresponding to the HDF5 object. This can be a
-\code{numeric}, \code{character}, \code{factor}, \code{raw}, \code{data.frame}, a nested \code{list},
+\code{numeric}, \code{character}, \code{complex}, \code{factor}, \code{raw}, \code{data.frame}, a nested \code{list},
 or \code{NULL} if the object has a null dataspace.
 }
 \description{
@@ -32,6 +32,7 @@ R object:
 \itemize{
 \item \strong{Numeric} datasets are read as \code{numeric} (double) to prevent overflow.
 \item \strong{String} datasets are read as \code{character}.
+\item \strong{Complex} datasets are read as \code{complex}.
 \item \strong{Enum} datasets are read as \code{factor}.
 \item \strong{1-byte Opaque} datasets are read as \code{raw}.
 \item \strong{Compound} datasets are read as \code{data.frame}.
