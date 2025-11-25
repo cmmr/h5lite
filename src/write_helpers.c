@@ -380,21 +380,31 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     if (!r_data_ptr) error("Failed to get data pointer for the given R type.");
     size_t el_size;
     hid_t mem_type_id;
+    int must_close_mem_type = 0;
 
     if (strcmp(dtype_str, "raw") == 0) {
-      mem_type_id = H5Tcopy(H5T_NATIVE_UCHAR);
+      // FIX: Use OPAQUE memory type for raw data to match file type
+      mem_type_id = H5Tcreate(H5T_OPAQUE, 1);
       el_size = sizeof(unsigned char);
+      must_close_mem_type = 1;
     } else if (strcmp(dtype_str, "factor") == 0) {
-      mem_type_id = H5Tcopy(H5T_NATIVE_INT);
+      // FIX: Use ENUM memory type for factor data to match file type
+      // We recreate the enum type definition from the R factor
+      mem_type_id = get_file_type("factor", data);
       el_size = sizeof(int);
+      must_close_mem_type = 1;
     } else { // Numeric/Logical
       mem_type_id = get_mem_type(data);
       if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
       else el_size = sizeof(int);
+      must_close_mem_type = 0; 
     }
 
     void *c_buffer = malloc(total_elements * el_size);
-    if (!c_buffer) error("Memory allocation failed");
+    if (!c_buffer) {
+       if (must_close_mem_type) H5Tclose(mem_type_id);
+       error("Memory allocation failed");
+    }
 
     h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0);
 
@@ -405,6 +415,7 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     }
 
     free(c_buffer);
+    if (must_close_mem_type) H5Tclose(mem_type_id);
   }
   return status;
 }
