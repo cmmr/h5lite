@@ -46,16 +46,16 @@ You can inspect the contents of the file with
 
 ``` r
 h5_ls(file)
-#> [1] "qc_pass"      "sample_names" "trial_ids"
+#> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpU08VQ2/file51ea5f2a2f.h5
+#> Listing contents of: /tmp/RtmpbyJnEU/file23e4407bdef5.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
 #> ----------------------------------------------------------------
-#> uint8[4]     qc_pass
-#> string[4]    sample_names
 #> uint8[10]    trial_ids
+#> string[4]    sample_names
+#> uint8[4]     qc_pass
 ```
 
 Reading the data back is just as easy with

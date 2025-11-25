@@ -83,7 +83,7 @@ parent group will be automatically created if it does not exist.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="h5_create_group.html">h5_create_group()</a></code>, <code><a href="h5_delete_group.html">h5_delete_group()</a></code>, <code><a href="h5_delete_dataset.html">h5_delete_dataset()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="h5_create_group.html">h5_create_group()</a></code>, <code><a href="h5_delete.html">h5_delete()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -104,7 +104,7 @@ parent group will be automatically created if it does not exist.</p>
 <span class="r-in"><span><span class="fu">h5_move</span><span class="op">(</span><span class="va">file</span>, <span class="st">"group1/dataset_a"</span>, <span class="st">"group1/data_renamed"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group1"              "group1/data_renamed" "group1/dataset_b"   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "group1"              "group1/dataset_b"    "group1/data_renamed"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [4] "group2"             </span>
 <span class="r-in"><span><span class="co">#&gt; [1] "group1"              "group1/dataset_b"  "group1/data_renamed" "group2"</span></span></span>
 <span class="r-in"><span></span></span>

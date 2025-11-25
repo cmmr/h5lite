@@ -181,9 +181,9 @@ h5_write(file, "large_matrix_uncompressed", large_matrix, compress = FALSE)
 
 # Compare file sizes (in a real scenario, the compressed version would be smaller)
 h5_ls(file, full.names = TRUE)
-#> [1] "large_matrix_compressed"   "large_matrix_uncompressed"
-#> [3] "my_array"                  "my_matrix"                
-#> [5] "named_matrix"
+#> [1] "my_matrix"                 "my_array"                 
+#> [3] "named_matrix"              "large_matrix_compressed"  
+#> [5] "large_matrix_uncompressed"
 ```
 
 > **Note:** For random data like in this example, compression is not

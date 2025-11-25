@@ -42,8 +42,7 @@ parent group will be automatically created if it does not exist.
 ## See also
 
 [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md),
-[`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md),
-[`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md)
+[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md)
 
 ## Examples
 
@@ -64,7 +63,7 @@ print(h5_ls(file, recursive = TRUE))
 h5_move(file, "group1/dataset_a", "group1/data_renamed")
 
 print(h5_ls(file, recursive = TRUE))
-#> [1] "group1"              "group1/data_renamed" "group1/dataset_b"   
+#> [1] "group1"              "group1/dataset_b"    "group1/data_renamed"
 #> [4] "group2"             
 #> [1] "group1"              "group1/dataset_b"  "group1/data_renamed" "group2"
 

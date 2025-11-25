@@ -121,7 +121,7 @@ sub-groups.</li>
 hierarchy that was created.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpXLS50e/file249030038f7c.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -129,9 +129,9 @@ hierarchy that was created.</p>
 <span><span class="co">#&gt; Group        session_1</span></span>
 <span><span class="co">#&gt; string[1]    session_1 @info</span></span>
 <span><span class="co">#&gt; Group        session_1/metadata</span></span>
-<span><span class="co">#&gt; string[1]    session_1/metadata/timestamp</span></span>
 <span><span class="co">#&gt; string[1]    session_1/metadata/user</span></span>
 <span><span class="co">#&gt; float64[1]   session_1/metadata/version</span></span>
+<span><span class="co">#&gt; string[1]    session_1/metadata/timestamp</span></span>
 <span><span class="co">#&gt; float64[10,10] session_1/raw_data</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -190,11 +190,11 @@ creating any necessary parent groups.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/archive/2024/run_01"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "archive"                      "archive/2024"                </span></span>
-<span><span class="co">#&gt; [3] "archive/2024/run_01"          "session_1"                   </span></span>
-<span><span class="co">#&gt; [5] "session_1/metadata"           "session_1/metadata/timestamp"</span></span>
-<span><span class="co">#&gt; [7] "session_1/metadata/user"      "session_1/metadata/version"  </span></span>
-<span><span class="co">#&gt; [9] "session_1/raw_data"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "session_1"                    "session_1/metadata"          </span></span>
+<span><span class="co">#&gt; [3] "session_1/metadata/user"      "session_1/metadata/version"  </span></span>
+<span><span class="co">#&gt; [5] "session_1/metadata/timestamp" "session_1/raw_data"          </span></span>
+<span><span class="co">#&gt; [7] "archive"                      "archive/2024"                </span></span>
+<span><span class="co">#&gt; [9] "archive/2024/run_01"</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="moving-and-renaming-objects">Moving and Renaming Objects<a class="anchor" aria-label="anchor" href="#moving-and-renaming-objects"></a>
@@ -207,7 +207,7 @@ not rewrite any data.</p>
 <span><span class="fu"><a href="../reference/h5_move.html">h5_move</a></span><span class="op">(</span><span class="va">file</span>, from <span class="op">=</span> <span class="st">"session_1"</span>, to <span class="op">=</span> <span class="st">"/archive/2024/run_01/data"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpXLS50e/file249030038f7c.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -218,30 +218,30 @@ not rewrite any data.</p>
 <span><span class="co">#&gt; Group        archive/2024/run_01/data</span></span>
 <span><span class="co">#&gt; string[1]    archive/2024/run_01/data @info</span></span>
 <span><span class="co">#&gt; Group        archive/2024/run_01/data/metadata</span></span>
-<span><span class="co">#&gt; string[1]    archive/2024/run_01/data/metadata/timestamp</span></span>
 <span><span class="co">#&gt; string[1]    archive/2024/run_01/data/metadata/user</span></span>
 <span><span class="co">#&gt; float64[1]   archive/2024/run_01/data/metadata/version</span></span>
+<span><span class="co">#&gt; string[1]    archive/2024/run_01/data/metadata/timestamp</span></span>
 <span><span class="co">#&gt; float64[10,10] archive/2024/run_01/data/raw_data</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
 </h3>
-<p>Finally, you can remove objects using
-<code><a href="../reference/h5_delete_dataset.html">h5_delete_dataset()</a></code> and <code><a href="../reference/h5_delete_group.html">h5_delete_group()</a></code>. The
-group deletion is recursive, removing everything inside it.</p>
+<p>Finally, you can remove any object using <code><a href="../reference/h5_delete.html">h5_delete()</a></code>.
+The deletion is recursive, so if you target a group, everything inside
+it will also be removed.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Let's create a temporary group to delete</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "deleteme"</span></span>
 <span></span>
-<span><span class="co"># Delete the dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_dataset.html">h5_delete_dataset</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span><span class="op">)</span></span>
+<span><span class="co"># Delete just the dataset</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_exists.html">h5_exists</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span><span class="op">)</span> <span class="co"># FALSE</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span></span>
-<span><span class="co"># Delete the group</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span></span>
+<span><span class="co"># Delete the now-empty group</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_exists.html">h5_exists</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span> <span class="co"># FALSE</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
 <p>These organizational functions give you full control over the

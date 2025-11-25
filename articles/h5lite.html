@@ -174,8 +174,8 @@ file?</p>
 file. By default, it lists everything recursively.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "experiment_1"                 "experiment_1/run_id"         </span></span>
-<span><span class="co">#&gt; [3] "experiment_1/sensor_readings" "experiment_1/trial_ids"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "experiment_1"                 "experiment_1/sensor_readings"</span></span>
+<span><span class="co">#&gt; [3] "experiment_1/trial_ids"       "experiment_1/run_id"</span></span></code></pre></div>
 <p>To see only the top-level objects, use
 <code>recursive = FALSE</code>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -192,15 +192,15 @@ and types. This is often the most convenient way to quickly inspect a
 file.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpoEShbL/file52cb1368b73b.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpesYGRX/file24c943cafbca.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Group        experiment_1</span></span>
-<span><span class="co">#&gt; string       experiment_1/run_id</span></span>
 <span><span class="co">#&gt; float64[3,4] experiment_1/sensor_readings</span></span>
-<span><span class="co">#&gt; int32[12]    experiment_1/trial_ids</span></span></code></pre></div>
+<span><span class="co">#&gt; int32[12]    experiment_1/trial_ids</span></span>
+<span><span class="co">#&gt; string       experiment_1/run_id</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="checking-dimensions-and-types">Checking Dimensions and Types<a class="anchor" aria-label="anchor" href="#checking-dimensions-and-types"></a>
@@ -384,23 +384,23 @@ you write to an existing path, the old data is replaced.</p>
 <div class="section level3">
 <h3 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
 </h3>
-<p>You can explicitly delete datasets, groups, or attributes.</p>
+<p>You can explicitly delete objects (datasets or groups) and
+attributes.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Delete a single dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_dataset.html">h5_delete_dataset</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Delete an attribute</span></span>
 <span><span class="fu"><a href="../reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Delete an entire group and all its contents</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_group.html">h5_delete_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in h5_delete_group(file, "old_data"): Object 'old_data' not found.</span></span>
-<span><span class="co">#&gt; Nothing to delete.</span></span>
+<span><span class="co"># Delete an entire group (and all its contents)</span></span>
+<span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span> <span class="co"># create a dummy group to delete</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "experiment_1"                 "experiment_1/binary_config"  </span></span>
-<span><span class="co">#&gt;  [3] "experiment_1/conditions"      "experiment_1/run_id"         </span></span>
-<span><span class="co">#&gt;  [5] "experiment_1/sensor_readings" "session_data"                </span></span>
+<span><span class="co">#&gt;  [1] "experiment_1"                 "experiment_1/sensor_readings"</span></span>
+<span><span class="co">#&gt;  [3] "experiment_1/run_id"          "experiment_1/conditions"     </span></span>
+<span><span class="co">#&gt;  [5] "experiment_1/binary_config"   "session_data"                </span></span>
 <span><span class="co">#&gt;  [7] "session_data/config"          "session_data/config/user"    </span></span>
 <span><span class="co">#&gt;  [9] "session_data/config/version"  "session_data/data"           </span></span>
 <span><span class="co">#&gt; [11] "session_data/data/matrix"     "session_data/data/vector"</span></span></code></pre></div>

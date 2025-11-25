@@ -181,11 +181,11 @@ attr(my_list, "info") <- "Session data"
 h5_write(file, "session_data", my_list)
 
 h5_ls(file, recursive = TRUE)
-#>  [1] "group"                       "group/mat"                  
-#>  [3] "named_vector"                "scalar"                     
-#>  [5] "session_data"                "session_data/config"        
-#>  [7] "session_data/config/user"    "session_data/config/version"
-#>  [9] "session_data/data"           "vec1"                       
+#>  [1] "vec1"                        "scalar"                     
+#>  [3] "named_vector"                "group"                      
+#>  [5] "group/mat"                   "session_data"               
+#>  [7] "session_data/config"         "session_data/config/version"
+#>  [9] "session_data/config/user"    "session_data/data"          
 
 unlink(file)
 ```

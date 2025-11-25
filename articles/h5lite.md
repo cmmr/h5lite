@@ -102,8 +102,8 @@ everything recursively.
 
 ``` r
 h5_ls(file)
-#> [1] "experiment_1"                 "experiment_1/run_id"         
-#> [3] "experiment_1/sensor_readings" "experiment_1/trial_ids"
+#> [1] "experiment_1"                 "experiment_1/sensor_readings"
+#> [3] "experiment_1/trial_ids"       "experiment_1/run_id"
 ```
 
 To see only the top-level objects, use `recursive = FALSE`.
@@ -124,15 +124,15 @@ file.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpoEShbL/file52cb1368b73b.h5
+#> Listing contents of: /tmp/RtmpesYGRX/file24c943cafbca.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
 #> ----------------------------------------------------------------
 #> Group        experiment_1
-#> string       experiment_1/run_id
 #> float64[3,4] experiment_1/sensor_readings
 #> int32[12]    experiment_1/trial_ids
+#> string       experiment_1/run_id
 ```
 
 ### Checking Dimensions and Types
@@ -319,24 +319,23 @@ h5_read(file, "experiment_1/run_id")
 
 ### Deleting Objects
 
-You can explicitly delete datasets, groups, or attributes.
+You can explicitly delete objects (datasets or groups) and attributes.
 
 ``` r
 # Delete a single dataset
-h5_delete_dataset(file, "experiment_1/trial_ids")
+h5_delete(file, "experiment_1/trial_ids")
 
 # Delete an attribute
 h5_delete_attr(file, "experiment_1/sensor_readings", "calibration")
 
-# Delete an entire group and all its contents
-h5_delete_group(file, "old_data")
-#> Warning in h5_delete_group(file, "old_data"): Object 'old_data' not found.
-#> Nothing to delete.
+# Delete an entire group (and all its contents)
+h5_create_group(file, "old_data") # create a dummy group to delete
+h5_delete(file, "old_data")
 
 h5_ls(file, recursive = TRUE)
-#>  [1] "experiment_1"                 "experiment_1/binary_config"  
-#>  [3] "experiment_1/conditions"      "experiment_1/run_id"         
-#>  [5] "experiment_1/sensor_readings" "session_data"                
+#>  [1] "experiment_1"                 "experiment_1/sensor_readings"
+#>  [3] "experiment_1/run_id"          "experiment_1/conditions"     
+#>  [5] "experiment_1/binary_config"   "session_data"                
 #>  [7] "session_data/config"          "session_data/config/user"    
 #>  [9] "session_data/config/version"  "session_data/data"           
 #> [11] "session_data/data/matrix"     "session_data/data/vector"

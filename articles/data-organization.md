@@ -59,7 +59,7 @@ the hierarchy that was created.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5
+#> Listing contents of: /tmp/RtmpXLS50e/file249030038f7c.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -67,9 +67,9 @@ h5_str(file)
 #> Group        session_1
 #> string[1]    session_1 @info
 #> Group        session_1/metadata
-#> string[1]    session_1/metadata/timestamp
 #> string[1]    session_1/metadata/user
 #> float64[1]   session_1/metadata/version
+#> string[1]    session_1/metadata/timestamp
 #> float64[10,10] session_1/raw_data
 ```
 
@@ -136,11 +136,11 @@ It works like `mkdir -p`, creating any necessary parent groups.
 ``` r
 h5_create_group(file, "/archive/2024/run_01")
 h5_ls(file, recursive = TRUE)
-#> [1] "archive"                      "archive/2024"                
-#> [3] "archive/2024/run_01"          "session_1"                   
-#> [5] "session_1/metadata"           "session_1/metadata/timestamp"
-#> [7] "session_1/metadata/user"      "session_1/metadata/version"  
-#> [9] "session_1/raw_data"
+#> [1] "session_1"                    "session_1/metadata"          
+#> [3] "session_1/metadata/user"      "session_1/metadata/version"  
+#> [5] "session_1/metadata/timestamp" "session_1/raw_data"          
+#> [7] "archive"                      "archive/2024"                
+#> [9] "archive/2024/run_01"
 ```
 
 ### Moving and Renaming Objects
@@ -154,7 +154,7 @@ a fast metadata operation that does not rewrite any data.
 h5_move(file, from = "session_1", to = "/archive/2024/run_01/data")
 
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp2TwHzj/file52937e4eaaaa.h5
+#> Listing contents of: /tmp/RtmpXLS50e/file249030038f7c.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -165,19 +165,18 @@ h5_str(file)
 #> Group        archive/2024/run_01/data
 #> string[1]    archive/2024/run_01/data @info
 #> Group        archive/2024/run_01/data/metadata
-#> string[1]    archive/2024/run_01/data/metadata/timestamp
 #> string[1]    archive/2024/run_01/data/metadata/user
 #> float64[1]   archive/2024/run_01/data/metadata/version
+#> string[1]    archive/2024/run_01/data/metadata/timestamp
 #> float64[10,10] archive/2024/run_01/data/raw_data
 ```
 
 ### Deleting Objects
 
-Finally, you can remove objects using
-[`h5_delete_dataset()`](https://cmmr.github.io/h5lite/reference/h5_delete_dataset.md)
-and
-[`h5_delete_group()`](https://cmmr.github.io/h5lite/reference/h5_delete_group.md).
-The group deletion is recursive, removing everything inside it.
+Finally, you can remove any object using
+[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md).
+The deletion is recursive, so if you target a group, everything inside
+it will also be removed.
 
 ``` r
 # Let's create a temporary group to delete
@@ -185,13 +184,13 @@ h5_write(file, "/tmp/deleteme", 1:10)
 h5_ls(file, "/tmp")
 #> [1] "deleteme"
 
-# Delete the dataset
-h5_delete_dataset(file, "/tmp/deleteme")
+# Delete just the dataset
+h5_delete(file, "/tmp/deleteme")
 h5_exists(file, "/tmp/deleteme") # FALSE
 #> [1] FALSE
 
-# Delete the group
-h5_delete_group(file, "/tmp")
+# Delete the now-empty group
+h5_delete(file, "/tmp")
 h5_exists(file, "/tmp") # FALSE
 #> [1] FALSE
 ```

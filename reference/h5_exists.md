@@ -13,7 +13,7 @@ h5_exists(file, name = "/")
 
 - file:
 
-  Path to the HDF5 file.
+  Path to the file.
 
 - name:
 
