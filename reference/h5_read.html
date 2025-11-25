@@ -72,7 +72,7 @@ Non-existent attributes are silently skipped.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An R object corresponding to the HDF5 object. This can be a
-<code>numeric</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>data.frame</code>, a nested <code>list</code>,
+<code>numeric</code>, <code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, <code>data.frame</code>, a nested <code>list</code>,
 or <code>NULL</code> if the object has a null dataspace.</p>
     </div>
     <div class="section level2">
@@ -82,6 +82,7 @@ or <code>NULL</code> if the object has a null dataspace.</p>
 <p>When <code>name</code> points to a dataset, <code>h5_read</code> converts it to the corresponding
 R object:</p><ul><li><p><strong>Numeric</strong> datasets are read as <code>numeric</code> (double) to prevent overflow.</p></li>
 <li><p><strong>String</strong> datasets are read as <code>character</code>.</p></li>
+<li><p><strong>Complex</strong> datasets are read as <code>complex</code>.</p></li>
 <li><p><strong>Enum</strong> datasets are read as <code>factor</code>.</p></li>
 <li><p><strong>1-byte Opaque</strong> datasets are read as <code>raw</code>.</p></li>
 <li><p><strong>Compound</strong> datasets are read as <code>data.frame</code>.</p></li>

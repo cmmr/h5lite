@@ -27,8 +27,8 @@ h5_class_attr(file, name, attribute)
 ## Value
 
 A character string representing the R class (e.g., `"numeric"`,
-`"NULL"`, `"character"`, `"factor"`, `"raw"`). Returns `NA_character_`
-for HDF5 types that `h5lite` cannot read.
+`"complex"`, `"NULL"`, `"character"`, `"factor"`, `"raw"`). Returns
+`NA_character_` for HDF5 types that `h5lite` cannot read.
 
 ## Details
 
@@ -38,6 +38,8 @@ the resulting R class.
 - **Integer/Float** attributes are reported as `"numeric"`.
 
 - **String** attributes are reported as `"character"`.
+
+- **Complex** attributes are reported as `"complex"`.
 
 - **Enum** attributes are reported as `"factor"`.
 

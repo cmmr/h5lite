@@ -24,14 +24,16 @@ h5_read_attr(file, name, attribute)
 
 ## Value
 
-A `numeric`, `character`, `factor`, or `raw` vector/array. Returns
-`NULL` if the attribute has a null dataspace.
+A `numeric`, `character`, `complex`, `factor`, or `raw` vector/array.
+Returns `NULL` if the attribute has a null dataspace.
 
 ## Details
 
 - Numeric attributes are read as `numeric` (double).
 
 - String attributes are read as `character`.
+
+- Complex attributes are read as `complex`.
 
 - `enum` attributes are read as `factor`.
 

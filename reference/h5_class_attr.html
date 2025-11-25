@@ -70,7 +70,7 @@ produce for a given HDF5 attribute.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A character string representing the R class (e.g., <code>"numeric"</code>, <code>"NULL"</code>,
+    <p>A character string representing the R class (e.g., <code>"numeric"</code>, <code>"complex"</code>, <code>"NULL"</code>,
 <code>"character"</code>, <code>"factor"</code>, <code>"raw"</code>).
 Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> cannot read.</p>
     </div>
@@ -79,6 +79,7 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <p>This function maps the low-level HDF5 storage type of an attribute to the
 resulting R class.</p><ul><li><p><strong>Integer/Float</strong> attributes are reported as <code>"numeric"</code>.</p></li>
 <li><p><strong>String</strong> attributes are reported as <code>"character"</code>.</p></li>
+<li><p><strong>Complex</strong> attributes are reported as <code>"complex"</code>.</p></li>
 <li><p><strong>Enum</strong> attributes are reported as <code>"factor"</code>.</p></li>
 <li><p><strong>1-byte Opaque</strong> attributes are reported as <code>"raw"</code>.</p></li>
 <li><p><strong>Null</strong> attributes are reported as <code>"NULL"</code>.</p></li>

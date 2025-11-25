@@ -67,7 +67,7 @@
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>The R object to write. Supported: <code>numeric</code>, <code>integer</code>,
-<code>logical</code>, <code>character</code>, <code>raw</code>, <code>data.frame</code>, and <code>NULL</code>.</p></dd>
+<code>complex</code>, <code>logical</code>, <code>character</code>, <code>raw</code>, <code>data.frame</code>, and <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-dtype">dtype<a class="anchor" aria-label="anchor" href="#arg-dtype"></a></dt>
@@ -97,14 +97,17 @@ list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</c
 </ul><p>Note: Types without a bit-width suffix (e.g., <code>"int"</code>, <code>"long"</code>) are system-
 dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit widths (e.g., <code>"int32"</code>).</p>
-<p>For non-numeric data (<code>character</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the storage
-type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
+<p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the
+storage type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
 argument. R <code>logical</code> vectors are stored as 8-bit unsigned integers (<code>uint8</code>),
 as HDF5 does not have a native boolean datatype.</p>
 <p><code>data.frame</code> objects are written as HDF5 <strong>compound attributes</strong>, a native
 table-like structure.</p>
 <p><code>NULL</code> objects are written as HDF5 <strong>null attributes</strong>, which contain no data
 but can be used as placeholders.</p>
+<p><code>complex</code> objects are written using the native HDF5 <code>H5T_COMPLEX</code> datatype
+class. HDF5 files containing complex attributes written by <code>h5lite</code> can only
+be read by other HDF5 tools that support HDF5 version 2.0.0 or later.</p>
 <p>To write a scalar attribute, wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> (e.g., <code>I("meters")</code>).
 Otherwise, dimensions are inferred automatically.</p>
     </div>

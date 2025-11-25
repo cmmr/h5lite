@@ -29,8 +29,8 @@ h5_class(file, name, attrs = FALSE)
 ## Value
 
 A character string representing the R class (e.g., `"numeric"`,
-`"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`). Returns
-`NA_character_` for HDF5 types that `h5lite` cannot read.
+`"complex"`, `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
+Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 
 ## Details
 
@@ -43,6 +43,8 @@ object's metadata.
   `h5_read` always returns `double`).
 
 - **String** datasets are reported as `"character"`.
+
+- **Complex** datasets are reported as `"complex"`.
 
 - **Enum** datasets are reported as `"factor"`.
 

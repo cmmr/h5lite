@@ -22,9 +22,9 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 
 - data:
 
-  The R object to write. Supported: `numeric`, `integer`, `logical`,
-  `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested
-  `list`s.
+  The R object to write. Supported: `numeric`, `integer`, `complex`,
+  `logical`, `character`, `factor`, `raw`, `data.frame`, `NULL`, and
+  nested `list`s.
 
 - dtype:
 
@@ -85,6 +85,13 @@ This is a dataset with a null dataspace, which contains no data.
 a native HDF5 table-like structure that is highly efficient and
 portable.
 
+## Writing Complex Numbers
+
+`h5lite` writes R `complex` objects using the native HDF5 `H5T_COMPLEX`
+datatype class, which was introduced in HDF5 version 2.0.0. As a result,
+HDF5 files containing complex numbers written by `h5lite` can only be
+read by other HDF5 tools that support HDF5 version 2.0.0 or later.
+
 ## Data Type Selection (`dtype`)
 
 The `dtype` argument controls the on-disk storage type **for numeric
@@ -117,10 +124,11 @@ system- dependent and may have different sizes on different machines.
 For maximum file portability, it is recommended to use types with
 explicit bit-widths (e.g., `"int32"`).
 
-For non-numeric data (`character`, `factor`, `raw`, `logical`), the
-storage type is determined automatically and **cannot be changed** by
-the `dtype` argument. R `logical` vectors are stored as 8-bit unsigned
-integers (`uint8`), as HDF5 does not have a native boolean datatype.
+For non-numeric data (`character`, `complex`, `factor`, `raw`, and
+`logical`), the storage type is determined automatically and **cannot be
+changed** by the `dtype` argument. R `logical` vectors are stored as
+8-bit unsigned integers (`uint8`), as HDF5 does not have a native
+boolean datatype.
 
 ## Attribute Round-tripping
 

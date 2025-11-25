@@ -68,8 +68,8 @@ and nested <code>list</code>s.</p>
 
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>The R object to write. Supported: <code>numeric</code>, <code>integer</code>, <code>logical</code>,
-<code>character</code>, <code>factor</code>, <code>raw</code>, <code>data.frame</code>, <code>NULL</code>, and nested <code>list</code>s.</p></dd>
+<dd><p>The R object to write. Supported: <code>numeric</code>, <code>integer</code>, <code>complex</code>,
+<code>logical</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>data.frame</code>, <code>NULL</code>, and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-dtype">dtype<a class="anchor" aria-label="anchor" href="#arg-dtype"></a></dt>
@@ -131,6 +131,15 @@ a dataset with a null dataspace, which contains no data.</p>
 native HDF5 table-like structure that is highly efficient and portable.</p>
     </div>
     <div class="section level2">
+    <h2 id="writing-complex-numbers">Writing Complex Numbers<a class="anchor" aria-label="anchor" href="#writing-complex-numbers"></a></h2>
+
+
+<p><code>h5lite</code> writes R <code>complex</code> objects using the native HDF5 <code>H5T_COMPLEX</code>
+datatype class, which was introduced in HDF5 version 2.0.0. As a result,
+HDF5 files containing complex numbers written by <code>h5lite</code> can only be read
+by other HDF5 tools that support HDF5 version 2.0.0 or later.</p>
+    </div>
+    <div class="section level2">
     <h2 id="data-type-selection-dtype-">Data Type Selection (<code>dtype</code>)<a class="anchor" aria-label="anchor" href="#data-type-selection-dtype-"></a></h2>
 
 
@@ -151,8 +160,8 @@ list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</c
 </ul><p>Note: Types without a bit-width suffix (e.g., <code>"int"</code>, <code>"long"</code>) are system-
 dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit bit-widths (e.g., <code>"int32"</code>).</p>
-<p>For non-numeric data (<code>character</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the storage
-type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
+<p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, and <code>logical</code>), the
+storage type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
 argument. R <code>logical</code> vectors are stored as 8-bit unsigned integers (<code>uint8</code>),
 as HDF5 does not have a native boolean datatype.</p>
     </div>

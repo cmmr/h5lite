@@ -29,8 +29,8 @@ h5_read(file, name, attrs = FALSE)
 ## Value
 
 An R object corresponding to the HDF5 object. This can be a `numeric`,
-`character`, `factor`, `raw`, `data.frame`, a nested `list`, or `NULL`
-if the object has a null dataspace.
+`character`, `complex`, `factor`, `raw`, `data.frame`, a nested `list`,
+or `NULL` if the object has a null dataspace.
 
 ## Reading Datasets
 
@@ -41,6 +41,8 @@ corresponding R object:
   overflow.
 
 - **String** datasets are read as `character`.
+
+- **Complex** datasets are read as `complex`.
 
 - **Enum** datasets are read as `factor`.
 
