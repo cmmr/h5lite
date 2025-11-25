@@ -118,19 +118,19 @@ h5_str(file)
 
 ### Deleting Objects
 
-Finally, you can remove objects using `h5_delete_dataset()` and `h5_delete_group()`. The group deletion is recursive, removing everything inside it.
+Finally, you can remove any object using `h5_delete()`. The deletion is recursive, so if you target a group, everything inside it will also be removed.
 
 ```{r delete_objects}
 # Let's create a temporary group to delete
 h5_write(file, "/tmp/deleteme", 1:10)
 h5_ls(file, "/tmp")
 
-# Delete the dataset
-h5_delete_dataset(file, "/tmp/deleteme")
+# Delete just the dataset
+h5_delete(file, "/tmp/deleteme")
 h5_exists(file, "/tmp/deleteme") # FALSE
 
-# Delete the group
-h5_delete_group(file, "/tmp")
+# Delete the now-empty group
+h5_delete(file, "/tmp")
 h5_exists(file, "/tmp") # FALSE
 ```
 

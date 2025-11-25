@@ -1,8 +1,7 @@
 #include "h5lite.h"
-#include <hdf5.h>
 
 /* Deletes a Dataset or Group by removing its link */
-SEXP C_h5_delete_link(SEXP filename, SEXP name) {
+SEXP C_h5_delete(SEXP filename, SEXP name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *oname = CHAR(STRING_ELT(name, 0));
   
@@ -12,7 +11,7 @@ SEXP C_h5_delete_link(SEXP filename, SEXP name) {
   herr_t status = H5Ldelete(file_id, oname, H5P_DEFAULT);
   
   H5Fclose(file_id);
-  if (status < 0) error("Failed to delete link: %s", oname);
+  if (status < 0) error("Failed to delete object: %s", oname);
   
   return R_NilValue;
 }

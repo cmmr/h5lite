@@ -38,6 +38,7 @@ test_that("Read/write cycle works for various data types", {
   expect_equal(h5_read(file_path, "d_mat_double"), d_mat_double)
   expect_equal(h5_read(file_path, "d_arr_int"), d_arr_int)
   expect_equal(h5_read(file_path, "d_vec_char"), d_vec_char)
+  expect_equal(h5_read(file_path, "d_scalar_char"), d_scalar_char)
   expect_equal(h5_read(file_path, "d_scalar_int"), d_scalar_int)
   expect_equal(h5_read(file_path, "d_vec_raw"), d_vec_raw)
   expect_equal(h5_read(file_path, "d_mat_raw"), d_mat_raw)

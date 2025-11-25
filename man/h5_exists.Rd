@@ -7,7 +7,7 @@
 h5_exists(file, name = "/")
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{Path to the file.}
 
 \item{name}{The full path of the object to check (e.g., \code{"/data/matrix"}).
 Defaults to \code{"/"}, which tests if the file itself is a valid HDF5 file.}

@@ -32,7 +32,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"C_h5_is_dataset",  (DL_FUNC) &C_h5_is_dataset, 2},
   
   /* delete.c */
-  {"C_h5_delete_link", (DL_FUNC) &C_h5_delete_link, 2},
+  {"C_h5_delete", (DL_FUNC) &C_h5_delete, 2},
   {"C_h5_delete_attr", (DL_FUNC) &C_h5_delete_attr, 3},
   
   {NULL, NULL, 0}

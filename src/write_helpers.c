@@ -1,6 +1,10 @@
 #include "h5lite.h"
 
-/* --- Open/Create HDF5 file --- */
+/*
+ * Opens an HDF5 file with read-write access.
+ * If the file does not exist or is not a valid HDF5 file, it creates a new one,
+ * truncating any existing content.
+ */
 hid_t open_or_create_file(const char *fname) {
   hid_t file_id = -1;
   
@@ -30,7 +34,11 @@ hid_t open_or_create_file(const char *fname) {
   return file_id;
 }
 
-/* --- Create Dataspace from R dims --- */
+/*
+ * Creates an HDF5 dataspace from R dimension information.
+ * Handles both scalar (dims = R_NilValue) and array objects.
+ * Validates that the product of dimensions matches the length of the data.
+ */
 hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims) {
   hid_t space_id = -1;
   *out_h5_dims = NULL;
@@ -65,7 +73,10 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
   return space_id;
 }
 
-/* --- Handle Overwriting an Existing Dataset/Group --- */
+/*
+ * Checks if a link (dataset or group) exists and deletes it if it does.
+ * This is used to implement "overwrite-by-default" behavior.
+ */
 void handle_overwrite(hid_t file_id, const char *name) {
   /* Suppress HDF5's auto error printing for H5Lexists */
   herr_t (*old_func)(hid_t, void*);
@@ -79,12 +90,78 @@ void handle_overwrite(hid_t file_id, const char *name) {
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
   if (link_exists > 0) {
-    H5Ldelete(file_id, name, H5P_DEFAULT);
+    if (H5Ldelete(file_id, name, H5P_DEFAULT) < 0) {
+      H5Fclose(file_id);
+      error("Failed to overwrite existing object '%s'", name);
+    }
   }
 }
 
-/* --- Write compound data to a dataset OR attribute --- */
-herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer) {
+/*
+ * Checks if an attribute exists on an object and deletes it if it does.
+ * This is used to implement "overwrite-by-default" behavior for attributes.
+ */
+void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_name) {
+  /* Suppress HDF5's auto error printing for H5Aexists */
+  herr_t (*old_func)(hid_t, void*);
+  void *old_client_data;
+  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  
+  htri_t attr_exists = H5Aexists(obj_id, attr_name);
+  
+  /* Restore error handler */
+  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (attr_exists > 0) {
+    if (H5Adelete(obj_id, attr_name) < 0) {
+      H5Oclose(obj_id);
+      H5Fclose(file_id);
+      error("Failed to overwrite existing attribute '%s'", attr_name);
+    }
+  }
+}
+
+/*
+ * Creates an attribute with a null dataspace.
+ */
+void write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_name) {
+  hid_t space_id = H5Screate(H5S_NULL);
+  hid_t attr_id = H5Acreate2(obj_id, attr_name, H5T_STD_I32LE, space_id, H5P_DEFAULT, H5P_DEFAULT);
+  
+  H5Sclose(space_id);
+  if (attr_id < 0) {
+    H5Oclose(obj_id);
+    H5Fclose(file_id);
+    error("Failed to create null attribute '%s'", attr_name);
+  }
+  
+  H5Aclose(attr_id);
+}
+
+/*
+ * Creates a dataset with a null dataspace.
+ */
+void write_null_dataset(hid_t file_id, const char *dname) {
+  hid_t space_id = H5Screate(H5S_NULL);
+  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_create_intermediate_group(lcpl_id, 1);
+  
+  handle_overwrite(file_id, dname);
+  
+  hid_t dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, space_id, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
+
+  H5Pclose(lcpl_id); H5Sclose(space_id);
+  if (dset_id < 0) { H5Fclose(file_id); error("Failed to create null dataset: %s", dname); }
+  H5Dclose(dset_id);
+}
+
+/*
+ * Low-level utility to write a pre-serialized C buffer to an HDF5 object.
+ * It dispatches to H5Dwrite or H5Awrite based on the type of obj_id.
+ * This function has no knowledge of R objects.
+ */
+herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer) {
   herr_t status = -1;
   
   // Check if obj_id is a dataset or an attribute
@@ -101,7 +178,279 @@ herr_t write_compound_data(hid_t obj_id, hid_t mem_type_id, void *buffer) {
   return status;
 }
 
-/* --- Calculate Chunk Dimensions (Target ~1MB) --- */
+/*
+ * High-level function to write an R data.frame as a compound HDF5 object.
+ * This function orchestrates the entire process, from creating compound types
+ * and serializing R data to creating and writing the final HDF5 object.
+ */
+void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, SEXP dtypes, int compress_level, int is_attribute) {
+  
+  /* --- 1. Get data.frame properties --- */
+  R_xlen_t n_cols = XLENGTH(data);
+  if (n_cols == 0) return; // Success, but do nothing
+  
+  R_xlen_t n_rows    = XLENGTH(VECTOR_ELT(data, 0));
+  SEXP     col_names = getAttrib(data, R_NamesSymbol);
+  
+  /* --- 2. Create File and Memory Compound Types --- */
+  hid_t *ft_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
+  hid_t *mt_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
+  
+  hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
+  H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
+  
+  size_t total_file_size = 0;
+  size_t total_mem_size = 0;
+  for (R_xlen_t c = 0; c < n_cols; c++) {
+    SEXP r_column = VECTOR_ELT(data, c);
+    const char *dtype_str = CHAR(STRING_ELT(dtypes, c));
+    ft_members[c] = get_file_type(dtype_str, r_column);
+    if (TYPEOF(r_column) == STRSXP) {
+      mt_members[c] = H5Tcopy(vl_string_mem_type);
+    } else {
+      if (strcmp(dtype_str, "factor") == 0) mt_members[c] = H5Tcopy(ft_members[c]);
+      else mt_members[c] = get_mem_type(r_column);
+    }
+    total_file_size += H5Tget_size(ft_members[c]);
+    total_mem_size += H5Tget_size(mt_members[c]);
+  }
+  
+  hid_t file_type_id = H5Tcreate(H5T_COMPOUND, total_file_size);
+  hid_t mem_type_id  = H5Tcreate(H5T_COMPOUND, total_mem_size);
+  size_t file_offset = 0;
+  size_t mem_offset  = 0;
+  
+  for (R_xlen_t c = 0; c < n_cols; c++) {
+    const char *name = CHAR(STRING_ELT(col_names, c));
+    H5Tinsert(file_type_id, name, file_offset, ft_members[c]);
+    H5Tinsert(mem_type_id,  name, mem_offset,  mt_members[c]);
+    file_offset += H5Tget_size(ft_members[c]);
+    mem_offset  += H5Tget_size(mt_members[c]);
+  }
+  
+  /* --- 3. Create C Buffer and Serialize Data --- */
+  char *buffer = (char *) malloc(n_rows * total_mem_size);
+  if (!buffer) {
+    // Clean up before erroring
+    for(int c=0; c<n_cols; c++) { H5Tclose(ft_members[c]); H5Tclose(mt_members[c]); }
+    H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
+    error("Memory allocation failed for data.frame buffer");
+  }
+  
+  for (hsize_t r = 0; r < n_rows; r++) {
+    char *row_ptr = buffer + (r * total_mem_size);
+    for (R_xlen_t c = 0; c < n_cols; c++) {
+      size_t col_offset = H5Tget_member_offset(mem_type_id, c);
+      char *dest = row_ptr + col_offset;
+      SEXP r_col = VECTOR_ELT(data, c);
+      switch (TYPEOF(r_col)) {
+        case REALSXP: *((double*)dest) = REAL(r_col)[r]; break;
+        case INTSXP:  *((int*)dest) = INTEGER(r_col)[r]; break;
+        case LGLSXP:  *((int*)dest) = LOGICAL(r_col)[r]; break;
+        case RAWSXP:  *((unsigned char*)dest) = RAW(r_col)[r]; break;
+        case STRSXP:
+          {
+            SEXP s = STRING_ELT(r_col, r);
+            *((const char**)dest) = (s == NA_STRING) ? NULL : CHAR(s);
+          }
+          break;
+        default:
+          free(buffer);
+          for(int i=0; i<n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
+          H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
+          error("Unsupported R column type in data.frame");
+      }
+    }
+  }
+  
+  /* --- 4. Create Dataspace and Object (Dataset or Attribute) --- */
+  hsize_t h5_dims = (hsize_t) n_rows;
+  hid_t space_id = H5Screate_simple(1, &h5_dims, NULL);
+  hid_t obj_id = -1;
+  
+  if (is_attribute) {
+    obj_id = H5Acreate2(loc_id, obj_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
+  } else {
+    hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+    H5Pset_create_intermediate_group(lcpl_id, 1);
+    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+    if (compress_level > 0 && n_rows > 0) {
+      hsize_t chunk_dims = 0;
+      calculate_chunk_dims(1, &h5_dims, total_mem_size, &chunk_dims);
+      H5Pset_chunk(dcpl_id, 1, &chunk_dims);
+      H5Pset_shuffle(dcpl_id);
+      H5Pset_deflate(dcpl_id, (unsigned int) compress_level);
+    }
+    obj_id = H5Dcreate2(loc_id, obj_name, file_type_id, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
+    H5Pclose(lcpl_id); H5Pclose(dcpl_id);
+  }
+  
+  /* --- 5. Write Data and Clean Up --- */
+  herr_t write_status = -1;
+  if (obj_id < 0) { // Object creation failed
+    free(buffer);
+    for(int i=0; i<n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
+    H5Tclose(vl_string_mem_type);
+    H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Sclose(space_id);
+    if (is_attribute) {
+      H5Oclose(loc_id); // This is obj_id from the caller
+      H5Fclose(file_id);
+      error("Failed to create compound attribute '%s'", obj_name);
+    } else {
+      H5Fclose(file_id); // This is loc_id from the caller
+      error("Failed to create compound dataset '%s'", obj_name);
+    }
+  }
+  
+  if (obj_id >= 0) {
+    write_status = write_buffer_to_object(obj_id, mem_type_id, buffer);
+    if (is_attribute) H5Aclose(obj_id); else H5Dclose(obj_id);
+  }
+  
+  free(buffer);
+  for(int i=0; i<n_cols; i++) { 
+    H5Tclose(ft_members[i]);
+    if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP || isFactor(VECTOR_ELT(data, i))) {
+      H5Tclose(mt_members[i]);
+    }
+  }
+  H5Tclose(vl_string_mem_type);
+  H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Sclose(space_id);
+  
+  if (write_status < 0) {
+    if (is_attribute) {
+      H5Oclose(loc_id);
+      H5Fclose(file_id);
+      error("Failed to write compound attribute '%s'", obj_name);
+    } else {
+      H5Fclose(file_id);
+      error("Failed to write compound dataset '%s'", obj_name);
+    }
+  }
+  
+  return;
+}
+
+/*
+ * Writes an atomic R vector (numeric, character, etc.) to an already created HDF5
+ * dataset. This function handles data transposition and NA values for strings.
+ * It is a lower-level helper called by C_h5_write_dataset.
+ */
+herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int rank, hsize_t *h5_dims) {
+  herr_t status = -1;
+  H5I_type_t obj_type = H5Iget_type(obj_id);
+
+  if (obj_type != H5I_DATASET && obj_type != H5I_ATTR) {
+    error("Invalid object type provided to write_atomic_dataset");
+  }
+
+  if (strcmp(dtype_str, "character") == 0) {
+    if (TYPEOF(data) != STRSXP) error("dtype 'character' requires character data");
+
+    hsize_t n = (hsize_t)XLENGTH(data);
+    const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
+    for (hsize_t i = 0; i < n; i++) {
+      SEXP s = STRING_ELT(data, i);
+      f_buffer[i] = (s == NA_STRING) ? NULL : CHAR(s);
+    }
+
+    const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
+    h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
+
+    hid_t mem_type_id = H5Tcopy(H5T_C_S1);
+    H5Tset_size(mem_type_id, H5T_VARIABLE);
+    H5Tset_cset(mem_type_id, H5T_CSET_UTF8);
+
+    if (obj_type == H5I_ATTR) {
+      status = H5Awrite(obj_id, mem_type_id, c_buffer);
+    } else { // H5I_DATASET
+      status = H5Dwrite(obj_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
+    }
+
+    free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
+
+  } else { // Numeric, Logical, Opaque, Factor
+    hsize_t total_elements = 1;
+    if (rank > 0 && h5_dims) {
+      for(int i=0; i<rank; i++) total_elements *= h5_dims[i];
+    }
+
+    void *r_data_ptr = get_R_data_ptr(data);
+    if (!r_data_ptr) error("Failed to get data pointer for the given R type.");
+    size_t el_size;
+    hid_t mem_type_id;
+
+    if (strcmp(dtype_str, "raw") == 0) {
+      mem_type_id = H5Tcopy(H5T_NATIVE_UCHAR);
+      el_size = sizeof(unsigned char);
+    } else if (strcmp(dtype_str, "factor") == 0) {
+      mem_type_id = H5Tcopy(H5T_NATIVE_INT);
+      el_size = sizeof(int);
+    } else { // Numeric/Logical
+      mem_type_id = get_mem_type(data);
+      if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
+      else el_size = sizeof(int);
+    }
+
+    void *c_buffer = malloc(total_elements * el_size);
+    if (!c_buffer) error("Memory allocation failed");
+
+    h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0);
+
+    if (obj_type == H5I_ATTR) {
+      status = H5Awrite(obj_id, mem_type_id, c_buffer);
+    } else { // H5I_DATASET
+      status = H5Dwrite(obj_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
+    }
+
+    free(c_buffer);
+  }
+  return status;
+}
+
+/*
+ * Orchestrates the creation and writing of an atomic (non-data.frame) attribute.
+ * It creates the dataspace, file type, and attribute, then calls write_atomic_dataset.
+ */
+void write_atomic_attribute(hid_t file_id, hid_t obj_id, const char *attr_name, SEXP data, SEXP dtype, SEXP dims) {
+  
+  const char *dtype_str = CHAR(STRING_ELT(dtype, 0));
+  int rank = 0;
+  hsize_t *h5_dims = NULL;
+  
+  hid_t space_id = create_dataspace(dims, data, &rank, &h5_dims);
+  if (space_id < 0) { H5Oclose(obj_id); H5Fclose(file_id); error("Failed to create dataspace for attribute."); }
+  
+  hid_t file_type_id = get_file_type(dtype_str, data);
+  if (file_type_id < 0) {
+    H5Sclose(space_id);
+    H5Oclose(obj_id);
+    H5Fclose(file_id);
+    error("Failed to get file type for attribute.");
+  }
+  
+  hid_t attr_id = H5Acreate2(obj_id, attr_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
+  if (attr_id < 0) {
+    H5Sclose(space_id);
+    H5Tclose(file_type_id);
+    H5Oclose(obj_id);
+    H5Fclose(file_id);
+    error("Failed to create attribute '%s'", attr_name);
+  }
+  
+  herr_t status = write_atomic_dataset(attr_id, data, dtype_str, rank, h5_dims);
+  
+  H5Aclose(attr_id); H5Tclose(file_type_id); H5Sclose(space_id);
+  
+  if (status < 0) { H5Oclose(obj_id); H5Fclose(file_id); error("Failed to write data to attribute: %s", attr_name); }
+}
+
+/*
+ * Implements a heuristic to determine chunk dimensions for a dataset.
+ * The goal is to create chunks that are roughly 1MB in size by iteratively
+ * halving the largest dimension until the target size is met.
+ */
 void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
   hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
 hsize_t current_bytes = type_size;
@@ -141,7 +490,10 @@ while (current_bytes > TARGET_SIZE) {
 }
 }
 
-/* --- Memory Type (What is it in R?) --- */
+/*
+ * Gets the native HDF5 memory type corresponding to an R vector's C-level type.
+ * For example, REALSXP -> H5T_NATIVE_DOUBLE.
+ */
 hid_t get_mem_type(SEXP data) {
   switch (TYPEOF(data)) {
     case REALSXP: return H5T_NATIVE_DOUBLE;
@@ -154,7 +506,11 @@ hid_t get_mem_type(SEXP data) {
   return -1;
 }
 
-/* --- File Type (What user wants on disk) --- */
+/*
+ * Translates a user-provided string (e.g., "int32", "float64") into a
+ * portable, little-endian HDF5 file datatype ID. Also handles special
+ * types like "character", "raw", and "factor".
+ */
 hid_t get_file_type(const char *dtype, SEXP data) {
   /* Mappings from user-friendly strings to HDF5 standard types for portability */
   
@@ -230,7 +586,10 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   return -1;
 }
 
-/* --- Get R data pointer --- */
+/*
+ * Gets a void* pointer to the underlying C array of an atomic R vector.
+ * Returns NULL for types that are handled specially (like STRSXP).
+ */
 void* get_R_data_ptr(SEXP data) {
   if (TYPEOF(data) == REALSXP) return (void*)REAL(data);
   if (TYPEOF(data) == INTSXP)  return (void*)INTEGER(data);

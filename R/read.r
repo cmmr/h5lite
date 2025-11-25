@@ -83,7 +83,7 @@ h5_read <- function(file, name, attrs = FALSE) {
   if (h5_is_group(file, name)) {
     
     # Recursively call h5_read on each child.
-    children   <- h5_ls(file, name, recursive = FALSE, full.names = TRUE)
+    children   <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
     res        <- lapply(children, h5_read, file = file, attrs = attrs)
     names(res) <- if (length(res) == 0) NULL else basename(children)
   } else {

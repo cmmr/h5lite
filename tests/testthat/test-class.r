@@ -20,11 +20,8 @@ test_that("h5_class and h5_class_attr return correct R classes", {
   # A simple group
   h5_create_group(file_path, "group_simple")
   
-  # A group with a 'class' attribute, simulating h5_write(..., data.frame)
-  df_list <- list(a = 1:2, b = c("x", "y"))
-  attr(df_list, "class") <- "data.frame"
-  attr(df_list, "other_attr") <- "info"
-  h5_write(file_path, "group_with_class", df_list)
+  # A data.frame, which is written as a compound dataset
+  h5_write(file_path, "dset_df", data.frame(a = 1:2, b = c("x", "y")), attrs = TRUE)
   
   # Attributes of various types
   h5_write_attr(file_path, "dset_int", "attr_int", 1L)
@@ -43,19 +40,20 @@ test_that("h5_class and h5_class_attr return correct R classes", {
   expect_equal(h5_class(file_path, "dset_factor"), "factor")
   expect_equal(h5_class(file_path, "dset_raw"), "raw")
   expect_equal(h5_class(file_path, "group_simple"), "list")
+  expect_equal(h5_class(file_path, "dset_df"), "data.frame")
   
   # Test the 'attrs' argument behavior
-  # 'attrs=FALSE' (default) should just report the object type ("list")
-  expect_equal(h5_class(file_path, "group_with_class", attrs = FALSE), "data.frame")
+  # 'attrs=FALSE' (default) should report the object type from its HDF5 class
+  expect_equal(h5_class(file_path, "dset_df", attrs = FALSE), "data.frame")
   
   # 'attrs=TRUE' should find the "class" HDF5 attribute and return its value
-  expect_equal(h5_class(file_path, "group_with_class", attrs = TRUE), "data.frame")
+  expect_equal(h5_class(file_path, "dset_df", attrs = TRUE), "data.frame")
   
   # 'attrs=c("class")' should also find the "class" attribute
-  expect_equal(h5_class(file_path, "group_with_class", attrs = c("class")), "data.frame")
+  expect_equal(h5_class(file_path, "dset_df", attrs = c("class")), "data.frame")
   
   # 'attrs' with a non-"class" value should ignore the attribute
-  expect_equal(h5_class(file_path, "group_with_class", attrs = c("other_attr")), "data.frame")
+  expect_equal(h5_class(file_path, "dset_df", attrs = c("row.names")), "data.frame")
   
   # Test error case for non-existent object
   expect_error(

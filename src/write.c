@@ -1,23 +1,24 @@
 #include "h5lite.h"
 
 
-/* --- HELPER: Write Null Dataset --- */
-static void write_null_dataset(hid_t file_id, const char *dname, hid_t space_id) {
+/* --- WRITER: DATA.FRAME (COMPOUND) --- */
+SEXP C_h5_write_dataframe(SEXP filename, SEXP dset_name, SEXP data, SEXP dtypes, SEXP compress_level) {
   
-  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
-  H5Pset_create_intermediate_group(lcpl_id, 1);
+  const char *fname = CHAR(STRING_ELT(filename, 0));
+  const char *dname = CHAR(STRING_ELT(dset_name, 0));
+  int compress = asInteger(compress_level);
+  hid_t file_id = open_or_create_file(fname);
   
   handle_overwrite(file_id, dname);
   
-  /* Create a dataset with a null dataspace and a simple integer type (type is ignored for null datasets) */
-  hid_t dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, space_id, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
+  // Call the new helper function for compound data (is_attribute = 0)
+  write_dataframe_as_compound(file_id, file_id, dname, data, dtypes, compress, 0);
   
-  H5Pclose(lcpl_id);
-  H5Sclose(space_id);
-  if (dset_id < 0) error("Failed to create null dataset: %s", dname);
-  H5Dclose(dset_id);
   H5Fclose(file_id);
+  
+  return R_NilValue;
 }
+
 
 /* --- WRITER: DATASET --- */
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level) {
@@ -31,8 +32,8 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   hsize_t *h5_dims = NULL;
   
   if (strcmp(dtype_str, "null") == 0) {
-    hid_t space_id = H5Screate(H5S_NULL);
-    write_null_dataset(file_id, dname, space_id);
+    write_null_dataset(file_id, dname);
+    H5Fclose(file_id);
     return R_NilValue;
   }
 
@@ -76,66 +77,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
     error("Failed to create dataset");
   }
   
-  if (strcmp(dtype_str, "character") == 0) {
-    if (TYPEOF(data) != STRSXP) error("dtype 'character' requires character data");
-    
-    hsize_t n = (hsize_t)XLENGTH(data);
-    const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
-    for (hsize_t i = 0; i < n; i++) f_buffer[i] = CHAR(STRING_ELT(data, i));
-    
-    const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
-    h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
-    
-    hid_t mem_type_id = H5Tcopy(H5T_C_S1);
-    H5Tset_size(mem_type_id, H5T_VARIABLE);
-    H5Tset_cset(mem_type_id, H5T_CSET_UTF8);
-    status = H5Dwrite(dset_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
-    free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
-    
-  } else {
-    /* Numeric, Logical, or Opaque */
-    hsize_t total_elements = 1;
-    if (rank > 0 && h5_dims) {
-      for(int i=0; i<rank; i++) total_elements *= h5_dims[i];
-    }
-    
-    void *r_data_ptr = get_R_data_ptr(data);
-    if (!r_data_ptr) error("Failed to get data pointer for the given R type.");
-    size_t el_size;
-    hid_t mem_type_id;
-    
-    if (strcmp(dtype_str, "opaque") == 0 || strcmp(dtype_str, "raw") == 0) {
-      /* opaque: Force mem type = file type, 1-byte elements */
-      if (TYPEOF(data) != RAWSXP) error("dtype 'opaque' requires raw data input");
-      mem_type_id = H5Tcopy(file_type_id);
-      el_size = H5Tget_size(mem_type_id); /* Should be 1 */
-
-    } else if (strcmp(dtype_str, "factor") == 0) {
-      /* FACTOR: Memory type must also be the enum type */
-      if (TYPEOF(data) != INTSXP) error("dtype 'factor' requires integer-backed factor data");
-      mem_type_id = H5Tcopy(file_type_id);
-      el_size = H5Tget_size(mem_type_id); /* Should be 1 */
-      
-    } else {
-      /* NUMERIC/LOGICAL: Get mem type from R, el_size from R type */
-      mem_type_id = get_mem_type(data);
-      if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
-      else if (TYPEOF(data) == RAWSXP) el_size = sizeof(unsigned char);
-      else el_size = sizeof(int);
-    }
-    
-    void *c_buffer = malloc(total_elements * el_size);
-    if (!c_buffer) error("Memory allocation failed");
-    
-    h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0); // 0 = R->HDF5
-    
-    status = H5Dwrite(dset_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
-    
-    free(c_buffer);
-    if (strcmp(dtype_str, "opaque") == 0 || strcmp(dtype_str, "raw") == 0 || strcmp(dtype_str, "factor") == 0) {
-      H5Tclose(mem_type_id);
-    }
-  }
+  status = write_atomic_dataset(dset_id, data, dtype_str, rank, h5_dims);
   
   /* No free(h5_dims) needed here! R handles it. */
   H5Dclose(dset_id); H5Tclose(file_type_id); H5Sclose(space_id); H5Fclose(file_id);
@@ -160,167 +102,18 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   }
   
   /* --- Overwrite Logic --- */
-  htri_t attr_exists = H5Aexists(obj_id, aname);
-  if (attr_exists > 0) {
-    H5Adelete(obj_id, aname);
-  }
+  handle_attribute_overwrite(file_id, obj_id, aname);
   
   if (TYPEOF(data) == VECSXP) { // This is the C-level check for is.list() / is.data.frame()
-    R_xlen_t n_cols = XLENGTH(data);
-    if (n_cols == 0) return R_NilValue; // Do nothing for a 0-column data.frame
-    
-    R_xlen_t n_rows = XLENGTH(VECTOR_ELT(data, 0));
-    SEXP col_names = getAttrib(data, R_NamesSymbol);
-    
-    hid_t *ft_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
-    hid_t *mt_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
-    hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
-    H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
-    H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
-    
-    size_t total_file_size = 0;
-    size_t total_mem_size = 0;
-    for (R_xlen_t c = 0; c < n_cols; c++) {
-      SEXP r_column = VECTOR_ELT(data, c);
-      const char *dtype_str = CHAR(STRING_ELT(dtype, c));
-      ft_members[c] = get_file_type(dtype_str, r_column);
-      if (TYPEOF(r_column) == STRSXP) {
-        mt_members[c] = H5Tcopy(vl_string_mem_type);
-      } else {
-        // For factors, the memory type must also be the enum type.
-        if (strcmp(dtype_str, "factor") == 0) mt_members[c] = H5Tcopy(ft_members[c]);
-        else mt_members[c] = get_mem_type(r_column);
-      }
-      total_file_size += H5Tget_size(ft_members[c]);
-      total_mem_size += H5Tget_size(mt_members[c]);
-    }
-    
-    hid_t file_type_id = H5Tcreate(H5T_COMPOUND, total_file_size);
-    hid_t mem_type_id  = H5Tcreate(H5T_COMPOUND, total_mem_size);
-    size_t file_offset = 0;
-    size_t mem_offset  = 0;
-    
-    for (R_xlen_t c = 0; c < n_cols; c++) {
-      const char *name = CHAR(STRING_ELT(col_names, c));
-      H5Tinsert(file_type_id, name, file_offset, ft_members[c]);
-      H5Tinsert(mem_type_id,  name, mem_offset,  mt_members[c]);
-      file_offset += H5Tget_size(ft_members[c]);
-      mem_offset  += H5Tget_size(mt_members[c]);
-    }
-    
-    hsize_t h5_dims = (hsize_t) n_rows;
-    hid_t space_id = H5Screate_simple(1, &h5_dims, NULL);
-    
-    hid_t attr_id = H5Acreate2(obj_id, aname, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
-    
-    // This part is identical to C_h5_write_dataframe, but I've left it here for now
-    // to avoid another function call with too many arguments.
-    // It could be further modularized if desired.
-    char *buffer = (char *) malloc(n_rows * total_mem_size);
-    for (hsize_t r = 0; r < n_rows; r++) {
-      char *row_ptr = buffer + (r * total_mem_size);
-      for (R_xlen_t c = 0; c < n_cols; c++) {
-        size_t col_offset = H5Tget_member_offset(mem_type_id, c);
-        char *dest = row_ptr + col_offset;
-        SEXP r_col = VECTOR_ELT(data, c);
-        switch (TYPEOF(r_col)) {
-          case REALSXP: *((double*)dest) = REAL(r_col)[r]; break;
-          case INTSXP:  *((int*)dest) = INTEGER(r_col)[r]; break;
-          case LGLSXP:  *((int*)dest) = LOGICAL(r_col)[r]; break;
-          case RAWSXP:  *((unsigned char*)dest) = RAW(r_col)[r]; break;
-          case STRSXP:  *((const char**)dest) = CHAR(STRING_ELT(r_col, r)); break;
-          default: free(buffer); error("Unsupported R column type in data.frame attribute");
-        }
-      }
-    }
-    
-    herr_t write_status = write_compound_data(attr_id, mem_type_id, buffer);
-    if (write_status < 0) {
-      warning("Failed to write data to compound attribute: %s", aname);
-    }
-    
-    free(buffer);
-    for(int i=0; i<n_cols; i++) { 
-      H5Tclose(ft_members[i]);
-      // Close copied string and factor enum types
-      if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP || isFactor(VECTOR_ELT(data, i))) {
-        H5Tclose(mt_members[i]);
-      }
-    }
-    H5Tclose(vl_string_mem_type);
-    H5Tclose(file_type_id);
-    H5Tclose(mem_type_id);
-    H5Sclose(space_id);
-    H5Aclose(attr_id);
-    
+    // Call the new helper function for compound data (is_attribute = 1)
+    write_dataframe_as_compound(file_id, obj_id, aname, data, dtype, 0, 1);
   } else { // Logic for non-data.frame attributes
     const char *dtype_str_check = CHAR(STRING_ELT(dtype, 0));
     if (strcmp(dtype_str_check, "null") == 0) {
-      hid_t space_id = H5Screate(H5S_NULL);
-      hid_t attr_id = H5Acreate2(obj_id, aname, H5T_STD_I32LE, space_id, H5P_DEFAULT, H5P_DEFAULT);
-      if (attr_id < 0) error("Failed to create null attribute '%s'", aname);
-      H5Aclose(attr_id); H5Sclose(space_id); H5Oclose(obj_id); H5Fclose(file_id);
-      return R_NilValue;
-    }
-
-    const char *dtype_str = CHAR(STRING_ELT(dtype, 0));
-    int rank = 0;
-    hsize_t *h5_dims = NULL;
-    hid_t space_id = create_dataspace(dims, data, &rank, &h5_dims);
-    hid_t file_type_id = get_file_type(dtype_str, data);
-    herr_t status = -1;
-    
-    hid_t attr_id = H5Acreate2(obj_id, aname, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
-    if (attr_id < 0) {
-      H5Oclose(obj_id); H5Sclose(space_id); H5Tclose(file_type_id); H5Fclose(file_id);
-      error("Failed to create attribute");
-    }
-    
-    if (strcmp(dtype_str, "character") == 0) {
-      if (TYPEOF(data) != STRSXP) error("dtype 'character' requires character data");
-      hsize_t n = (hsize_t)XLENGTH(data);
-      const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
-      for (hsize_t i = 0; i < n; i++) f_buffer[i] = CHAR(STRING_ELT(data, i));
-      const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
-      h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
-      hid_t mem_type_id = H5Tcopy(H5T_C_S1);
-      H5Tset_size(mem_type_id, H5T_VARIABLE);
-      H5Tset_cset(mem_type_id, H5T_CSET_UTF8);
-      status = H5Awrite(attr_id, mem_type_id, c_buffer);
-      free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
+      write_null_attribute(file_id, obj_id, aname);
     } else {
-      hsize_t total_elements = 1;
-      if (rank > 0 && h5_dims) {
-        for(int i=0; i<rank; i++) total_elements *= h5_dims[i];
-      }
-      void *r_data_ptr = get_R_data_ptr(data);
-      size_t el_size;
-      hid_t mem_type_id;
-      if (strcmp(dtype_str, "opaque") == 0 || strcmp(dtype_str, "raw") == 0) {
-        if (TYPEOF(data) != RAWSXP) error("dtype 'opaque' requires raw data input");
-        mem_type_id = H5Tcopy(file_type_id);
-        el_size = H5Tget_size(mem_type_id);
-      } else if (strcmp(dtype_str, "factor") == 0) {
-        if (TYPEOF(data) != INTSXP) error("dtype 'factor' requires integer-backed factor data");
-        mem_type_id = H5Tcopy(file_type_id);
-        el_size = H5Tget_size(mem_type_id);
-      } else {
-        mem_type_id = get_mem_type(data);
-        if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
-        else if (TYPEOF(data) == RAWSXP) el_size = sizeof(unsigned char);
-        else el_size = sizeof(int);
-      }
-      void *c_buffer = malloc(total_elements * el_size);
-      if (!c_buffer) error("Memory allocation failed");
-      h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0);
-      status = H5Awrite(attr_id, mem_type_id, c_buffer);
-      free(c_buffer);
-      if (strcmp(dtype_str, "opaque") == 0 || strcmp(dtype_str, "raw") == 0 || strcmp(dtype_str, "factor") == 0) {
-        H5Tclose(mem_type_id);
-      }
+      write_atomic_attribute(file_id, obj_id, aname, data, dtype, dims);
     }
-    H5Aclose(attr_id); H5Tclose(file_type_id); H5Sclose(space_id);
-    if (status < 0) error("Failed to write data to attribute: %s", aname);
   }
   
   H5Oclose(obj_id);

@@ -86,7 +86,7 @@ h5_create_file <- function(file) {
 #' @return This function is called for its side-effect and returns `NULL`
 #'   invisibly.
 #'
-#' @seealso [h5_create_group()], [h5_delete_group()], [h5_delete_dataset()]
+#' @seealso [h5_create_group()], [h5_delete()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

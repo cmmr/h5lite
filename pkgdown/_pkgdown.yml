@@ -38,7 +38,6 @@ reference:
     contents:
       - h5_create_file
       - h5_create_group
-      - h5_delete_dataset
-      - h5_delete_group
+      - h5_delete
       - h5_delete_attr
       - h5_move

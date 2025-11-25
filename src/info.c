@@ -59,7 +59,10 @@ SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
   if (file_id < 0) error("Failed to open file: %s", fname);
   
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
-  if (dset_id < 0) { H5Fclose(file_id); error("Failed to open dataset: %s", dname); }
+  if (dset_id < 0) {
+    H5Fclose(file_id);
+    error("Failed to open dataset: %s", dname);
+  }
   
   /* First, check for a NULL dataspace, which overrides the data type */
   hid_t space_id = H5Dget_space(dset_id);
@@ -87,7 +90,10 @@ SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   if (file_id < 0) error("Failed to open file: %s", fname);
   
   hid_t attr_id = H5Aopen_by_name(file_id, oname, aname, H5P_DEFAULT, H5P_DEFAULT);
-  if (attr_id < 0) { H5Fclose(file_id); error("Failed to open attribute: %s", aname); }
+  if (attr_id < 0) {
+    H5Fclose(file_id);
+    error("Failed to open attribute: %s", aname);
+  }
   
   /* First, check for a NULL dataspace */
   hid_t space_id = H5Aget_space(attr_id);
@@ -114,7 +120,10 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
   if (file_id < 0) error("Failed to open file: %s", fname);
   
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
-  if (dset_id < 0) { H5Fclose(file_id); error("Failed to open dataset: %s", dname); }
+  if (dset_id < 0) {
+    H5Fclose(file_id);
+    error("Failed to open dataset: %s", dname);
+  }
   
   hid_t space_id = H5Dget_space(dset_id);
   int ndims = H5Sget_simple_extent_ndims(space_id);
@@ -150,7 +159,10 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   if (file_id < 0) error("Failed to open file: %s", fname);
   
   hid_t attr_id = H5Aopen_by_name(file_id, oname, aname, H5P_DEFAULT, H5P_DEFAULT);
-  if (attr_id < 0) { H5Fclose(file_id); error("Failed to open attribute: %s", aname); }
+  if (attr_id < 0) {
+    H5Fclose(file_id);
+    error("Failed to open attribute: %s", aname);
+  }
   
   hid_t space_id = H5Aget_space(attr_id);
   int ndims = H5Sget_simple_extent_ndims(space_id);

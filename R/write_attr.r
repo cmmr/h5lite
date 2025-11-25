@@ -83,7 +83,7 @@ h5_write_attr <- function(file, name, attribute, data, dtype = "auto") {
       stop("Cannot write a data.frame with zero columns as an HDF5 attribute.", call. = FALSE)
     }
     dtypes <- sapply(data, validate_dtype)
-    .Call("C_h5_write_attribute", file, name, attribute, data, dtypes, dims, PACKAGE = "h5lite")
+    .Call("C_h5_write_attribute", file, name, attribute, data, dtypes, NULL, PACKAGE = "h5lite")
   } else {
     dtype <- validate_dtype(data, dtype)
     .Call("C_h5_write_attribute", file, name, attribute, data, dtype, dims, PACKAGE = "h5lite")

@@ -13,14 +13,14 @@ test_that("Create and Delete functions work correctly", {
                sort(c("g1", "g1/d1", "g1/g2", "g1/g2/g3")))
 
   # 2. Test Dataset Deletion
-  h5_delete_dataset(file_path, "/g1/d1")
+  h5_delete(file_path, "/g1/d1")
   expect_false("g1/d1" %in% h5_ls(file_path, recursive = TRUE))
 
   # 3. Test Group Deletion (Recursive)
   h5_write(file_path, "/g1/g2/g3/d2", I(2))
   expect_true("g1/g2/g3/d2" %in% h5_ls(file_path, recursive = TRUE))
 
-  h5_delete_group(file_path, "/g1/g2") # Should delete g2, g3, and d2
+  h5_delete(file_path, "/g1/g2") # Should delete g2, g3, and d2
 
   expect_false("g1/g2" %in% h5_ls(file_path, recursive = TRUE))
   expect_false("g1/g2/g3" %in% h5_ls(file_path, recursive = TRUE))

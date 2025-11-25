@@ -53,7 +53,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
   if (class_id == H5T_INTEGER || class_id == H5T_FLOAT) {
     PROTECT(result = allocVector(REALSXP, (R_xlen_t)total_elements));
     double *c_buffer = (double *)malloc(total_elements * sizeof(double));
-    if (!c_buffer) error("Memory allocation failed");
+    if (!c_buffer) {
+      if (dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for read buffer");
+    }
     
     status = H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
     
@@ -70,6 +75,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
       hid_t mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(mem_type, H5T_VARIABLE); H5Tset_cset(mem_type, H5T_CSET_UTF8);
       char **c_buffer = (char **)malloc(total_elements * sizeof(char *));
+      if (!c_buffer) {
+        if (dims) free(dims);
+        H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id); H5Tclose(mem_type);
+        UNPROTECT(1);
+        error("Memory allocation failed for string read buffer");
+      }
       status = H5Dread(dset_id, mem_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
       
       if (status >= 0) {
@@ -89,6 +100,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
       hid_t mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(mem_type, type_size);
       char *c_buffer = (char *)malloc(total_elements * type_size);
+      if (!c_buffer) {
+        if (dims) free(dims);
+        H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id); H5Tclose(mem_type);
+        UNPROTECT(1);
+        error("Memory allocation failed for fixed-string read buffer");
+      }
       status = H5Dread(dset_id, mem_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
       
       if (status >= 0) {
@@ -115,7 +132,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
     
     PROTECT(result = allocVector(RAWSXP, (R_xlen_t)total_elements));
     unsigned char *c_buffer = (unsigned char *)malloc(total_elements * type_size);
-    if (!c_buffer) error("Memory allocation failed");
+    if (!c_buffer) {
+      if (dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for raw read buffer");
+    }
     
     /* Create an opaque memory type for a 1-to-1 byte copy */
     hid_t mem_type = H5Tcreate(H5T_OPAQUE, type_size);
@@ -143,6 +165,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
     // 1. Read the integer data
     PROTECT(result = allocVector(INTSXP, (R_xlen_t)total_elements));
     int *c_buffer = (int *)malloc(total_elements * sizeof(int));
+    if (!c_buffer) {
+      if (dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for enum read buffer");
+    }
     status = H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
     
     if (status >= 0) {
@@ -183,7 +211,10 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
   if (dims) free(dims);
   H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
   
-  if (status < 0) { UNPROTECT(1); error("Failed to read data"); }
+  if (status < 0) {
+    UNPROTECT(1);
+    error("Failed to read data from dataset '%s'", dname);
+  }
 
   UNPROTECT(1);
   return result;
@@ -224,6 +255,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
   if (class_id == H5T_INTEGER || class_id == H5T_FLOAT) {
     PROTECT(result = allocVector(REALSXP, (R_xlen_t)total_elements));
     double *c_buffer = (double *)malloc(total_elements * sizeof(double));
+    if (!c_buffer) {
+      if(dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for attribute read buffer");
+    }
     status = H5Aread(attr_id, H5T_NATIVE_DOUBLE, c_buffer);
     if (status >= 0) {
       h5_transpose(c_buffer, REAL(result), ndims, dims, sizeof(double), 1);
@@ -237,6 +274,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
       hid_t mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(mem_type, H5T_VARIABLE); H5Tset_cset(mem_type, H5T_CSET_UTF8);
       char **c_buffer = (char **)malloc(total_elements * sizeof(char *));
+      if (!c_buffer) {
+        if(dims) free(dims);
+        H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id); H5Tclose(mem_type);
+        UNPROTECT(1);
+        error("Memory allocation failed for string attribute read buffer");
+      }
       status = H5Aread(attr_id, mem_type, c_buffer);
       if(status >= 0) {
         char **f_buffer = (char **)malloc(total_elements * sizeof(char *));
@@ -255,6 +298,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
       hid_t mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(mem_type, type_size);
       char *c_buffer = (char *)malloc(total_elements * type_size);
+      if (!c_buffer) {
+        if(dims) free(dims);
+        H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id); H5Tclose(mem_type);
+        UNPROTECT(1);
+        error("Memory allocation failed for fixed-string attribute read buffer");
+      }
       status = H5Aread(attr_id, mem_type, c_buffer);
       if(status >= 0) {
         char *f_buffer = (char *)malloc(total_elements * type_size);
@@ -280,7 +329,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
     
     PROTECT(result = allocVector(RAWSXP, (R_xlen_t)total_elements));
     unsigned char *c_buffer = (unsigned char *)malloc(total_elements * type_size);
-    if (!c_buffer) error("Memory allocation failed");
+    if (!c_buffer) {
+      if(dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for raw attribute read buffer");
+    }
     
     /* Create an opaque memory type for a 1-to-1 byte copy */
     hid_t mem_type = H5Tcreate(H5T_OPAQUE, type_size);
@@ -307,6 +361,12 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
     // 1. Read the integer data
     PROTECT(result = allocVector(INTSXP, (R_xlen_t)total_elements));
     int *c_buffer = (int *)malloc(total_elements * sizeof(int));
+    if (!c_buffer) {
+      if(dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for enum attribute read buffer");
+    }
     status = H5Aread(attr_id, H5T_NATIVE_INT, c_buffer);
     if (status >= 0) {
       h5_transpose(c_buffer, INTEGER(result), ndims, dims, sizeof(int), 1);
@@ -345,7 +405,10 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   if(dims) free(dims);
   H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
-  if (status < 0) { UNPROTECT(1); error("Failed to read attribute"); }
+  if (status < 0) {
+    UNPROTECT(1);
+    error("Failed to read attribute '%s' from object '%s'", aname, oname);
+  }
   UNPROTECT(1);
   return result;
 }

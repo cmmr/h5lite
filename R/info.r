@@ -75,11 +75,6 @@ h5_class <- function(file, name, attrs = FALSE) {
     }
   }
   
-  # If no class attribute, check by object type (group or dataset)
-  if (h5_is_group(file, name)) {
-    return("list")
-  }
-  
   if (h5_is_dataset(file, name)) {
     hdf5_type <- h5_typeof(file, name)
     return(map_hdf5_type_to_r_class(hdf5_type))
@@ -87,6 +82,11 @@ h5_class <- function(file, name, attrs = FALSE) {
   
   # Fallback for unhandled HDF5 object types (e.g., named datatype)
   NA_character_
+  
+  # If no class attribute, check by object type (group or dataset)
+  if (h5_is_group(file, name)) {
+    return("list")
+  }
 }
 
 
@@ -266,7 +266,7 @@ h5_dim_attr <- function(file, name, attribute) {
 #'     if the specific object exists within it.
 #' }
 #'
-#' @param file Path to the HDF5 file.
+#' @param file Path to the file.
 #' @param name The full path of the object to check (e.g., `"/data/matrix"`).
 #'   Defaults to `"/"`, which tests if the file itself is a valid HDF5 file.
 #' @return A logical value: `TRUE` if the file/object exists and is valid,

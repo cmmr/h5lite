@@ -151,15 +151,14 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
   /* Recursively visit all objects */
   herr_t status = H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_print_cb, NULL, H5O_INFO_BASIC);
   
-  if (status < 0) {
-    H5Oclose(group_id);
-    H5Fclose(file_id);
-    error("Error occurred during HDF5 traversal");
-  }
   
   H5Oclose(group_id);
   H5Fclose(file_id);
   
+  if (status < 0) {
+    error("Error occurred during HDF5 traversal of group '%s'", gname);
+  }
+
   return R_NilValue;
 }
 

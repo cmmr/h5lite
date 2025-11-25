@@ -243,17 +243,18 @@ h5_read(file, "experiment_1/run_id")
 
 ### Deleting Objects
 
-You can explicitly delete datasets, groups, or attributes.
+You can explicitly delete objects (datasets or groups) and attributes.
 
 ```{r delete_objects}
 # Delete a single dataset
-h5_delete_dataset(file, "experiment_1/trial_ids")
+h5_delete(file, "experiment_1/trial_ids")
 
 # Delete an attribute
 h5_delete_attr(file, "experiment_1/sensor_readings", "calibration")
 
-# Delete an entire group and all its contents
-h5_delete_group(file, "old_data")
+# Delete an entire group (and all its contents)
+h5_create_group(file, "old_data") # create a dummy group to delete
+h5_delete(file, "old_data")
 
 h5_ls(file, recursive = TRUE)
 ```
