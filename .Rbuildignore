@@ -5,5 +5,4 @@
 ^pkgdown$
 ^src/.*\.o$
 ^src/.*\.dll$
-^.*\.Rproj$
-^\.Rproj\.user$
+^man/figures/logo_fullsize.png$
