@@ -396,8 +396,12 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     } else { // Numeric/Logical
       mem_type_id = get_mem_type(data);
       if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
+      else if (TYPEOF(data) == CPLXSXP) {
+        el_size = sizeof(Rcomplex);
+        must_close_mem_type = 1; // We created this type, so we must close it
+      }
       else el_size = sizeof(int);
-      must_close_mem_type = 0; 
+      // must_close_mem_type is already 0 for others
     }
 
     void *c_buffer = malloc(total_elements * el_size);
@@ -511,6 +515,7 @@ hid_t get_mem_type(SEXP data) {
     case INTSXP:  return H5T_NATIVE_INT;
     case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
     case RAWSXP:  return H5T_NATIVE_UCHAR;  /* R's raw is unsigned char */
+    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE);
     case STRSXP:  return -1;                /* Handled specially */
     default: error("Unsupported R data type");
   }
@@ -555,6 +560,7 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   if (strcmp(dtype, "ullong") == 0) return H5Tcopy(H5T_NATIVE_ULLONG);
   if (strcmp(dtype, "float")  == 0) return H5Tcopy(H5T_NATIVE_FLOAT);
   if (strcmp(dtype, "double") == 0) return H5Tcopy(H5T_NATIVE_DOUBLE);
+  if (strcmp(dtype, "complex") == 0) return H5Tcomplex_create(H5T_IEEE_F64LE);
   
   /* Special Types */
   
@@ -606,6 +612,7 @@ void* get_R_data_ptr(SEXP data) {
   if (TYPEOF(data) == INTSXP)  return (void*)INTEGER(data);
   if (TYPEOF(data) == LGLSXP)  return (void*)LOGICAL(data);
   if (TYPEOF(data) == RAWSXP)  return (void*)RAW(data);
+  if (TYPEOF(data) == CPLXSXP) return (void*)COMPLEX(data);
   if (TYPEOF(data) == STRSXP)  return NULL; /* Handled separately */
   return NULL;
 }

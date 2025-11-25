@@ -8,7 +8,7 @@
 #' @param name Name of the object to attach the attribute to (e.g., "/data").
 #' @param attribute The name of the attribute to create.
 #' @param data The R object to write. Supported: `numeric`, `integer`,
-#'   `logical`, `character`, `raw`, `data.frame`, and `NULL`.
+#'   `complex`, `logical`, `character`, `raw`, `data.frame`, and `NULL`.
 #' @param dtype The target HDF5 data type. Defaults to \code{typeof(data)}.
 #' @details The `dtype` argument controls the on-disk storage type **for numeric
 #'   data only**.
@@ -32,8 +32,8 @@
 #' dependent and may have different sizes on different machines. For maximum file
 #' portability, it is recommended to use types with explicit widths (e.g., `"int32"`).
 #'
-#' For non-numeric data (`character`, `factor`, `raw`, `logical`), the storage
-#' type is determined automatically and **cannot be changed** by the `dtype`
+#' For non-numeric data (`character`, `complex`, `factor`, `raw`, `logical`), the
+#' storage type is determined automatically and **cannot be changed** by the `dtype`
 #' argument. R `logical` vectors are stored as 8-bit unsigned integers (`uint8`),
 #' as HDF5 does not have a native boolean datatype.
 #' 
@@ -43,6 +43,10 @@
 #' `NULL` objects are written as HDF5 **null attributes**, which contain no data
 #' but can be used as placeholders.
 #'
+#' `complex` objects are written using the native HDF5 `H5T_COMPLEX` datatype
+#' class. HDF5 files containing complex attributes written by `h5lite` can only
+#' be read by other HDF5 tools that support HDF5 version 2.0.0 or later.
+#' 
 #' To write a scalar attribute, wrap the value in `I()` (e.g., `I("meters")`).
 #' Otherwise, dimensions are inferred automatically.
 #'

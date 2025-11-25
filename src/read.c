@@ -67,6 +67,25 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
       set_r_dimensions(result, ndims, dims); // Will only set dim if ndims > 1
     }
     free(c_buffer);
+  } else if (class_id == H5T_COMPLEX) {
+    PROTECT(result = allocVector(CPLXSXP, (R_xlen_t)total_elements));
+    Rcomplex *c_buffer = (Rcomplex *)malloc(total_elements * sizeof(Rcomplex));
+    if (!c_buffer) {
+      if (dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for complex read buffer");
+    }
+    // Create a memory type that matches R's Rcomplex struct
+    hid_t mem_type_id = H5Tcomplex_create(H5T_NATIVE_DOUBLE);
+    status = H5Dread(dset_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
+    H5Tclose(mem_type_id);
+
+    if (status >= 0) {
+      h5_transpose(c_buffer, COMPLEX(result), ndims, dims, sizeof(Rcomplex), 1);
+      set_r_dimensions(result, ndims, dims);
+    }
+    free(c_buffer);
   } else if (class_id == H5T_STRING) {
     htri_t is_variable = H5Tis_variable_str(file_type_id);
     PROTECT(result = allocVector(STRSXP, (R_xlen_t)total_elements));
@@ -265,6 +284,25 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name) {
     if (status >= 0) {
       h5_transpose(c_buffer, REAL(result), ndims, dims, sizeof(double), 1);
       set_r_dimensions(result, ndims, dims); // Will only set dim if ndims > 1
+    }
+    free(c_buffer);
+  } else if (class_id == H5T_COMPLEX) {
+    PROTECT(result = allocVector(CPLXSXP, (R_xlen_t)total_elements));
+    Rcomplex *c_buffer = (Rcomplex *)malloc(total_elements * sizeof(Rcomplex));
+    if (!c_buffer) {
+      if(dims) free(dims);
+      H5Tclose(file_type_id); H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
+      UNPROTECT(1);
+      error("Memory allocation failed for complex attribute read buffer");
+    }
+    // Create a memory type that matches R's Rcomplex struct
+    hid_t mem_type_id = H5Tcomplex_create(H5T_NATIVE_DOUBLE);
+    status = H5Aread(attr_id, mem_type_id, c_buffer);
+    H5Tclose(mem_type_id);
+
+    if (status >= 0) {
+      h5_transpose(c_buffer, COMPLEX(result), ndims, dims, sizeof(Rcomplex), 1);
+      set_r_dimensions(result, ndims, dims);
     }
     free(c_buffer);
   } else if (class_id == H5T_STRING) {

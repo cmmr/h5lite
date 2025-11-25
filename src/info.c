@@ -38,6 +38,7 @@ SEXP h5_type_to_rstr(hid_t type_id) {
   const char *s = "unknown";
   switch(class_id) {
   case H5T_STRING:    s = "string";    break;
+  case H5T_COMPLEX:   s = "complex";   break;
   case H5T_BITFIELD:  s = "bitfield";  break;
   case H5T_OPAQUE:    s = "opaque";    break;
   case H5T_COMPOUND:  s = "compound";  break;

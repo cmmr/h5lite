@@ -17,6 +17,7 @@
 #' 
 #' - **Numeric** datasets are read as `numeric` (double) to prevent overflow.
 #' - **String** datasets are read as `character`.
+#' - **Complex** datasets are read as `complex`.
 #' - **Enum** datasets are read as `factor`.
 #' - **1-byte Opaque** datasets are read as `raw`.
 #' - **Compound** datasets are read as `data.frame`.
@@ -34,7 +35,7 @@
 #' - The elements in the returned list are **sorted alphabetically** by name.
 #' 
 #' @return An R object corresponding to the HDF5 object. This can be a
-#'   `numeric`, `character`, `factor`, `raw`, `data.frame`, a nested `list`,
+#'   `numeric`, `character`, `complex`, `factor`, `raw`, `data.frame`, a nested `list`,
 #'   or `NULL` if the object has a null dataspace.
 #' 
 #' @seealso [h5_read_attr()], [h5_write()], [h5_ls()],
@@ -118,14 +119,15 @@ h5_read <- function(file, name, attrs = FALSE) {
 #' @details
 #' - Numeric attributes are read as `numeric` (double).
 #' - String attributes are read as `character`.
+#' - Complex attributes are read as `complex`.
 #' - `enum` attributes are read as `factor`.
 #' - 1-byte `opaque` attributes are read as `raw`.
 #'
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object (dataset or group) the attribute is attached to.
 #' @param attribute Name of the attribute to read.
-#' @return A `numeric`, `character`, `factor`, or `raw` vector/array. Returns
-#'   `NULL` if the attribute has a null dataspace.
+#' @return A `numeric`, `character`, `complex`, `factor`, or `raw` vector/array.
+#'   Returns `NULL` if the attribute has a null dataspace.
 #' 
 #' @seealso [h5_read()], [h5_write_attr()], [h5_ls_attr()], [h5_exists_attr()]
 #' @export

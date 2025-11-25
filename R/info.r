@@ -11,6 +11,7 @@
 #'   \item **Datasets** (integers, floats) are reported as `"numeric"`
 #'     (since `h5_read` always returns `double`).
 #'   \item **String** datasets are reported as `"character"`.
+#'   \item **Complex** datasets are reported as `"complex"`.
 #'   \item **Enum** datasets are reported as `"factor"`.
 #'   \item **1-byte Opaque** datasets are reported as `"raw"`.
 #'   \item **Compound** datasets are reported as `"data.frame"`.
@@ -28,7 +29,7 @@
 #' @param attrs Controls attribute checking. If `TRUE` or a character
 #'   vector containing `"class"`, the function will check for a `"class"`
 #'   HDF5 attribute on the object.
-#' @return A character string representing the R class (e.g., `"numeric"`,
+#' @return A character string representing the R class (e.g., `"numeric"`, `"complex"`,
 #'   `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
 #'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
@@ -101,6 +102,7 @@ h5_class <- function(file, name, attrs = FALSE) {
 #' \itemize{
 #'   \item **Integer/Float** attributes are reported as `"numeric"`.
 #'   \item **String** attributes are reported as `"character"`.
+#'   \item **Complex** attributes are reported as `"complex"`.
 #'   \item **Enum** attributes are reported as `"factor"`.
 #'   \item **1-byte Opaque** attributes are reported as `"raw"`.
 #'   \item **Null** attributes are reported as `"NULL"`.
@@ -110,7 +112,7 @@ h5_class <- function(file, name, attrs = FALSE) {
 #' @param file Path to the HDF5 file.
 #' @param name Name of the object the attribute is attached to.
 #' @param attribute Name of the attribute.
-#' @return A character string representing the R class (e.g., `"numeric"`, `"NULL"`,
+#' @return A character string representing the R class (e.g., `"numeric"`, `"complex"`, `"NULL"`,
 #'   `"character"`, `"factor"`, `"raw"`).
 #'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
@@ -409,6 +411,9 @@ map_hdf5_type_to_r_class <- function(hdf5_type) {
     
     # String type
     "string" = "character",
+    
+    # Complex type
+    "complex" = "complex",
     
     # Enum type
     "enum" = "factor",

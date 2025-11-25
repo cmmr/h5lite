@@ -7,8 +7,8 @@
 #'
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset (e.g., "/data/matrix").
-#' @param data The R object to write. Supported: `numeric`, `integer`, `logical`, 
-#'   `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested `list`s.
+#' @param data The R object to write. Supported: `numeric`, `integer`, `complex`, 
+#'   `logical`, `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested `list`s.
 #' @param dtype The target HDF5 data type. See details.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
@@ -45,6 +45,12 @@
 #' `data.frame` objects are written as HDF5 **compound datasets**. This is a
 #' native HDF5 table-like structure that is highly efficient and portable.
 #' 
+#' @section Writing Complex Numbers:
+#' `h5lite` writes R `complex` objects using the native HDF5 `H5T_COMPLEX`
+#' datatype class, which was introduced in HDF5 version 2.0.0. As a result,
+#' HDF5 files containing complex numbers written by `h5lite` can only be read
+#' by other HDF5 tools that support HDF5 version 2.0.0 or later.
+#' 
 #' @section Data Type Selection (`dtype`):
 #' The `dtype` argument controls the on-disk storage type **for numeric data only**.
 #'
@@ -68,8 +74,8 @@
 #' dependent and may have different sizes on different machines. For maximum file
 #' portability, it is recommended to use types with explicit bit-widths (e.g., `"int32"`).
 #'
-#' For non-numeric data (`character`, `factor`, `raw`, `logical`), the storage
-#' type is determined automatically and **cannot be changed** by the `dtype` 
+#' For non-numeric data (`character`, `complex`, `factor`, `raw`, and `logical`), the 
+#' storage type is determined automatically and **cannot be changed** by the `dtype` 
 #' argument. R `logical` vectors are stored as 8-bit unsigned integers (`uint8`),
 #' as HDF5 does not have a native boolean datatype.
 #' 
@@ -266,6 +272,7 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.data.frame(data)) return ("data.frame")
   if (is.character(data))  return ("character")
   if (is.list(data))       return ("group")
+  if (is.complex(data))    return ("complex")
   
   # Validate dtype against the list of supported types in the C code
   supported_dtypes <- c("auto", "float", "double",  
@@ -340,9 +347,9 @@ assert_valid_object <- function (data) {
   
   # NULL
   if (is.null(data)) return (NULL)
-  
-  # logical, integer, numeric, character, raw, factor
-  if (is.atomic(data) && !is.complex(data)) return (NULL)
+
+  # logical, integer, numeric, complex, character, raw, factor
+  if (is.atomic(data)) return (NULL)
   
   # list, data.frame
   if (is.list(data)) return (NULL)
