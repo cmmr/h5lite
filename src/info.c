@@ -173,17 +173,17 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
     hsize_t *dims = (hsize_t *)malloc(ndims * sizeof(hsize_t));
     H5Sget_simple_extent_dims(space_id, dims, NULL);
     
-    PROTECT(result = allocVector(INTSXP, ndims));
+    result = PROTECT(allocVector(INTSXP, ndims));
     for (int i = 0; i < ndims; i++) {
       INTEGER(result)[i] = (int)dims[i];
     }
     free(dims);
-    UNPROTECT(1);
   } else {
-    result = allocVector(INTSXP, 0);
+    result = PROTECT(allocVector(INTSXP, 0));
   }
   
   H5Sclose(space_id); H5Aclose(attr_id); H5Fclose(file_id);
+  UNPROTECT(1);
   return result;
 }
 

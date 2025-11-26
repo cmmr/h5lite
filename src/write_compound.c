@@ -18,12 +18,14 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   hid_t *ft_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
   hid_t *mt_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
   
+  /* Create a re-usable memory type for variable-length strings. */
   hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
   H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
   H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
   
   size_t total_file_size = 0;
   size_t total_mem_size = 0;
+  /* For each column, determine its file and memory HDF5 type. */
   for (R_xlen_t c = 0; c < n_cols; c++) {
     SEXP r_column = VECTOR_ELT(data, c);
     const char *dtype_str = CHAR(STRING_ELT(dtypes, c));
@@ -38,11 +40,13 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     total_mem_size += H5Tget_size(mt_members[c]);
   }
   
+  /* Create the compound types for file and memory. */
   hid_t file_type_id = H5Tcreate(H5T_COMPOUND, total_file_size);
   hid_t mem_type_id  = H5Tcreate(H5T_COMPOUND, total_mem_size);
   size_t file_offset = 0;
   size_t mem_offset  = 0;
   
+  /* Insert each column as a member into the compound types. */
   for (R_xlen_t c = 0; c < n_cols; c++) {
     const char *name = CHAR(STRING_ELT(col_names, c));
     H5Tinsert(file_type_id, name, file_offset, ft_members[c]);
@@ -52,6 +56,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   }
   
   /* --- 3. Create C Buffer and Serialize Data --- */
+  /* Allocate a single buffer to hold all rows of the serialized data. */
   char *buffer = (char *) malloc(n_rows * total_mem_size);
   if (!buffer) {
     // Clean up before erroring
@@ -61,6 +66,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     error("Memory allocation failed for data.frame buffer");
   }
   
+  /* Iterate through each row and column, copying data into the C buffer. */
   for (hsize_t r = 0; r < n_rows; r++) {
     char *row_ptr = buffer + (r * total_mem_size);
     for (R_xlen_t c = 0; c < n_cols; c++) {
@@ -93,12 +99,14 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   hid_t space_id = H5Screate_simple(1, &h5_dims, NULL);
   hid_t obj_id = -1;
   
+  /* Create either an attribute or a dataset, depending on the context. */
   if (is_attribute) {
     obj_id = H5Acreate2(loc_id, obj_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
   } else {
     hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
     H5Pset_create_intermediate_group(lcpl_id, 1);
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+    /* If compression is enabled, set up chunking and filters. */
     if (compress_level > 0 && n_rows > 0) {
       hsize_t chunk_dims = 0;
       calculate_chunk_dims(1, &h5_dims, total_mem_size, &chunk_dims);
@@ -130,11 +138,13 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   }
   
   if (obj_id >= 0) {
+    /* Write the entire buffer to the HDF5 object. */
     write_status = write_buffer_to_object(obj_id, mem_type_id, buffer);
     if (is_attribute) H5Aclose(obj_id); else H5Dclose(obj_id);
   }
   
   free(buffer);
+  /* Clean up all the HDF5 type handles created. */
   for(int i=0; i<n_cols; i++) { 
     H5Tclose(ft_members[i]);
     if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP || isFactor(VECTOR_ELT(data, i))) {

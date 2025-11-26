@@ -136,6 +136,7 @@ h5_write <- function(file, name, data,
                      compress = TRUE,
                      attrs = FALSE) {
   
+  # If data is a list (but not a data.frame), handle it as a group structure.
   if (is_list_group(data)) {
     
     # 1. Dry run: Validate the entire structure before writing anything.
@@ -143,20 +144,23 @@ h5_write <- function(file, name, data,
     
     # 2. Write: If validation passed, perform the recursive write.
     write_recursive(file, name, data, compress, attrs)
-    
+  
+  # If data is NULL, write a special HDF5 null dataset.
   } else if (is.null(data)) {
     
     file <- path.expand(file)
-    # For NULL, dims is irrelevant, level is 0, and dtype is "null"
-    # This signals to C to create an H5S_NULL dataset.
+    # For NULL, dims is irrelevant, level is 0, and dtype is "null".
+    # This combination signals to the C code to create an H5S_NULL dataset.
     .Call("C_h5_write_dataset", file, name, data, "null", NULL, 0L, PACKAGE = "h5lite")
     
   }
   
+  # Otherwise, handle as a single dataset (vector, matrix, data.frame, etc.).
   else {
     
     file  <- path.expand(file)
     level <- if (isTRUE(compress)) 5L else as.integer(compress)
+    # Validate attributes before writing the main data.
     attrs <- validate_attrs(data, attrs)
 
     if (is.data.frame(data)) {
@@ -165,22 +169,25 @@ h5_write <- function(file, name, data,
       if (ncol(data) == 0) {
         stop("Cannot write a data.frame with zero columns to HDF5.", call. = FALSE)
       }
-
+      
+      # Get the best dtype for each column and call the compound writer.
       dtypes <- sapply(data, validate_dtype)
       .Call("C_h5_write_dataframe", file, name, data, dtypes, level, PACKAGE = "h5lite")
 
     } else {
-
+      
+      # For atomic vectors/arrays, validate dimensions and data type.
       dims  <- validate_dims(data)
       dtype <- validate_dtype(data, dtype)
       .Call("C_h5_write_dataset", file, name, data, dtype, dims, level, PACKAGE = "h5lite")
 
-      # Rule: Ignore user-added 'AsIs' class for scalars.
+      # Rule: Ignore user-added 'AsIs' class for scalars after writing.
+      # This prevents the class from being written as an HDF5 attribute if attrs=TRUE.
       if (inherits(data, 'AsIs') && is.null(dims) && !isFALSE(attrs))
         class(data) <- setdiff(class(data), "AsIs")
     }
     
-    # If validation passed and attrs is TRUE, write the attributes
+    # If attributes are to be written, get them and write them one by one.
     attrs_to_write <- get_attributes_to_write(data, attrs)
     
     for (attr_name in names(attrs_to_write))
@@ -197,15 +204,15 @@ h5_write <- function(file, name, data,
 #' @keywords internal
 write_recursive <- function(file, name, data, compress, attrs) {
   
-  # It's a group (list)
+  # If the current object is a list, treat it as a group.
   if (is_list_group(data)) {
     
     # Create the group. This is safe even if it exists.
     h5_create_group(file, name)
     
-    # Write the attributes of the list itself to the group.
+    # Write the R attributes of the list object as HDF5 attributes on the group.
     group_attrs <- get_attributes_to_write(data, attrs)
-    group_attrs[['names']] <- NULL
+    group_attrs[['names']] <- NULL # 'names' are the children, not a group attribute.
     for (attr_name in names(group_attrs))
       h5_write_attr(file, name, attr_name, group_attrs[[attr_name]])
     
@@ -215,7 +222,7 @@ write_recursive <- function(file, name, data, compress, attrs) {
       write_recursive(file, child_path, data[[child_name]], compress, attrs)
     }
     
-  } else { # It's a dataset
+  } else { # Otherwise, it's a dataset. Write it directly.
     h5_write(file, name, data, compress = compress, attrs = attrs)
   }
 }
@@ -226,14 +233,14 @@ write_recursive <- function(file, name, data, compress, attrs) {
 #' @keywords internal
 validate_write_recursive <- function(data, current_path, attrs) {
   
+  # First, validate the current object itself.
   dtype <- tryCatch({
     validate_attrs(data, attrs)
     validate_dtype(data)
   }, error = function(e) {
     stop("Validation failed for '", current_path, "': ", e$message, call. = FALSE)
   })
-  
-  
+    
   # It's a group (list)
   if (dtype == "group") {
     
@@ -263,6 +270,7 @@ validate_write_recursive <- function(data, current_path, attrs) {
 #' @keywords internal
 validate_dtype <- function(data, dtype = "auto") {
   
+  # First, check for non-numeric types that have a fixed mapping.
   assert_valid_object(data)
   
   if (is.null(data))       return ("null")
@@ -274,7 +282,7 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.list(data))       return ("group")
   if (is.complex(data))    return ("complex")
   
-  # Validate dtype against the list of supported types in the C code
+  # For numeric data, validate the user's 'dtype' argument.
   supported_dtypes <- c("auto", "float", "double",  
                         "float16", "float32", "float64", 
                         "int8", "int16", "int32", "int64", 
@@ -283,12 +291,14 @@ validate_dtype <- function(data, dtype = "auto") {
                         "uchar", "ushort", "uint", "ulong", "ullong" )
   
   dtype <- match.arg(tolower(dtype), supported_dtypes)
+  # If the user specified an exact type, use it.
   if (dtype != "auto") return(dtype)
   
+  # --- Automatic dtype selection logic ---
   # NA, NaN, Inf, or fractional components require double data type.
   # If data is empty, it has no non-finite values.
   if (length(data) == 0) return("double")
-  
+    
   if (any(!is.finite(data)) || (is.double(data) && any(data %% 1 != 0))) {
     return("double")
   }
@@ -322,7 +332,7 @@ validate_dtype <- function(data, dtype = "auto") {
 
 validate_dims <- function (data) {
   
-  # If data is wrapped in I(), treat as a scalar (NULL dims) but ONLY if it's length 1.
+  # If data is wrapped in I(), treat as a scalar (NULL dims), but ONLY if it's length 1.
   # This prevents accidentally writing a multi-element 'AsIs' vector as a scalar, which would cause data loss.
   if (inherits(data, 'AsIs')) {
     if (length(data) == 1) {
@@ -332,17 +342,18 @@ validate_dims <- function (data) {
     }
   }
   
-  # Otherwise, infer dimensions from the object.
+  # Otherwise, infer dimensions from the object. A vector will have length, a matrix/array will have dim().
   if (is.null(dim(data))) length(data) else dim(data)
 }
 
 
 is_list_group <- function (data) {
+  # A "list group" is a list that is not a data.frame.
   return (is.list(data) && !is.data.frame(data))
 }
 
 
-# Includes lists
+# Checks if an object is of a type that h5lite can potentially write. Includes lists.
 assert_valid_object <- function (data) {
   
   # NULL
@@ -358,7 +369,7 @@ assert_valid_object <- function (data) {
 }
 
 
-# Excludes lists
+# Checks if an object can be written as a single HDF5 dataset. Excludes lists.
 assert_valid_dataset <- function (data) {
   
   assert_valid_object(data)

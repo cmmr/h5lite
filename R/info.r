@@ -64,10 +64,11 @@ h5_class <- function(file, name, attrs = FALSE) {
     stop("Object '", name, "' does not exist in file '", file, "'.")
   }
   
-  # Check for a "class" attribute if attrs is TRUE or contains "class"
+  # Determine if we should check for a "class" attribute on the HDF5 object.
   check_class_attr <- isTRUE(attrs) || (is.character(attrs) && "class" %in% attrs)
   
   if (check_class_attr) {
+    # If a "class" attribute exists and is a string, its value takes precedence.
     if (h5_exists_attr(file, name, "class")) {
       if (h5_typeof_attr(file, name, "class") == "string") {
         class_val <- h5_read_attr(file, name, "class")
@@ -76,18 +77,17 @@ h5_class <- function(file, name, attrs = FALSE) {
     }
   }
   
-  if (h5_is_dataset(file, name)) {
+  # If no "class" attribute was found, determine the class from the object's native type.
+  if (h5_is_group(file, name)) {
+    return("list")
+  } else if (h5_is_dataset(file, name)) {
+    # For datasets, map the underlying HDF5 storage type to an R class.
     hdf5_type <- h5_typeof(file, name)
     return(map_hdf5_type_to_r_class(hdf5_type))
   }
   
-  # Fallback for unhandled HDF5 object types (e.g., named datatype)
+  # Fallback for unhandled HDF5 object types (e.g., named datatype).
   NA_character_
-  
-  # If no class attribute, check by object type (group or dataset)
-  if (h5_is_group(file, name)) {
-    return("list")
-  }
 }
 
 
@@ -137,6 +137,7 @@ h5_class_attr <- function(file, name, attribute) {
     stop("Attribute '", attribute, "' does not exist on object '", name, "'.")
   }
   
+  # Get the HDF5 storage type and map it to the corresponding R class.
   hdf5_type <- h5_typeof_attr(file, name, attribute)
   map_hdf5_type_to_r_class(hdf5_type)
 }
@@ -169,6 +170,7 @@ h5_class_attr <- function(file, name, attribute) {
 h5_typeof <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  # Call the C function to get the low-level HDF5 type string.
   .Call("C_h5_typeof", file, name, PACKAGE = "h5lite")
 }
 
@@ -194,6 +196,7 @@ h5_typeof <- function(file, name) {
 h5_typeof_attr <- function(file, name, attribute) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  # Call the C function to get the attribute's HDF5 type string.
   .Call("C_h5_typeof_attr", file, name, attribute, PACKAGE = "h5lite")
 }
 
@@ -221,6 +224,7 @@ h5_typeof_attr <- function(file, name, attribute) {
 h5_dim <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  # Call the C function to get the dataset's dimensions.
   .Call("C_h5_dim", file, name, PACKAGE = "h5lite")
 }
 
@@ -246,6 +250,7 @@ h5_dim <- function(file, name) {
 h5_dim_attr <- function(file, name, attribute) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  # Call the C function to get the attribute's dimensions.
   .Call("C_h5_dim_attr", file, name, attribute, PACKAGE = "h5lite")
 }
 
@@ -302,6 +307,7 @@ h5_dim_attr <- function(file, name, attribute) {
 h5_exists <- function(file, name = "/") {
   file <- path.expand(file)
   if (!file.exists(file)) return(FALSE)
+  # Call the C function, which safely checks for file/object existence without raising HDF5 errors.
   .Call("C_h5_exists", file, name, PACKAGE = "h5lite")
 }
 
@@ -328,6 +334,7 @@ h5_exists <- function(file, name = "/") {
 h5_exists_attr <- function(file, name, attribute) {
   file <- path.expand(file)
   if (!file.exists(file)) return(FALSE)
+  # Call the C function to safely check for attribute existence.
   .Call("C_h5_exists_attr", file, name, attribute, PACKAGE = "h5lite")
 }
 
@@ -354,6 +361,7 @@ h5_exists_attr <- function(file, name, attribute) {
 h5_is_group <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) return(FALSE)
+  # Call the C function to check if the object's type is H5O_TYPE_GROUP.
   .Call("C_h5_is_group", file, name, PACKAGE = "h5lite")
 }
 
@@ -380,6 +388,7 @@ h5_is_group <- function(file, name) {
 h5_is_dataset <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) return(FALSE)
+  # Call the C function to check if the object's type is H5O_TYPE_DATASET.
   .Call("C_h5_is_dataset", file, name, PACKAGE = "h5lite")
 }
 
@@ -389,6 +398,7 @@ h5_is_dataset <- function(file, name) {
 #' @noRd
 map_hdf5_type_to_r_class <- function(hdf5_type) {
   switch(
+    # Use fall-through for numeric types.
     hdf5_type,
     
     # All numeric types are read as "numeric" (double)

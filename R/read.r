@@ -81,20 +81,23 @@ h5_read <- function(file, name, attrs = FALSE) {
     stop("Object '", name, "' does not exist in file '", file, "'.")
   }
   
+  # If the object is a group, read it recursively into a list.
   if (h5_is_group(file, name)) {
     
-    # Recursively call h5_read on each child.
+    # Get all immediate children, sort them alphabetically for consistent list order.
     children   <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
+    # Recursively call h5_read on each child and name the resulting list elements.
     res        <- lapply(children, h5_read, file = file, attrs = attrs)
     names(res) <- if (length(res) == 0) NULL else basename(children)
+    
   } else {
-
-    # It's a dataset. Read it directly.
+    # If it's a dataset, call the C function to read its data.
     res <- .Call("C_h5_read_dataset", file, name, PACKAGE = "h5lite")
   }
   
-  # If attrs is not FALSE, read and attach attributes
+  # If attrs is not FALSE, read and attach HDF5 attributes as R attributes.
   if (!isFALSE(attrs)) {
+    # Determine which attributes to read based on the 'attrs' argument.
     available_attrs <- h5_ls_attr(file, name)
     attrs_to_read <- get_attributes_to_read(available_attrs, attrs)
     
@@ -157,6 +160,7 @@ h5_read_attr <- function(file, name, attribute) {
     stop("Attribute '", attribute, "' does not exist on object '", name, "'.")
   }
   
+  # Call the C function to read the attribute's data.
   res <- .Call("C_h5_read_attribute", file, name, attribute, PACKAGE = "h5lite")
   
   return(res)
@@ -170,6 +174,7 @@ h5_read_attr <- function(file, name, attribute) {
 #' @keywords internal
 get_attributes_to_read <- function(available_attrs, attrs) {
   
+  # If attrs is TRUE, return all available attributes.
   if (is.logical(attrs)) {
     if (isTRUE(attrs)) {
       return(available_attrs) # Read all
@@ -178,6 +183,7 @@ get_attributes_to_read <- function(available_attrs, attrs) {
     }
   }
   
+  # If attrs is a character vector, handle inclusion/exclusion logic.
   if (is.character(attrs) && length(attrs) > 0) {
     is_exclusion <- startsWith(attrs, "-")
     

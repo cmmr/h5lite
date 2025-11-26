@@ -19,6 +19,7 @@
 #' unlink(file)
 h5_create_group <- function(file, name) {
   file <- path.expand(file)
+  # Call the C function, which handles creating parent groups automatically.
   .Call("C_h5_create_group", file, name, PACKAGE = "h5lite")
   invisible(NULL)
 }
@@ -60,6 +61,7 @@ h5_create_group <- function(file, name) {
 #' unlink(file)
 h5_create_file <- function(file) {
   file <- path.expand(file)
+  # Creating a file is equivalent to creating the root group '/'.
   h5_create_group(file = file, name = "/")
 }
 
@@ -128,6 +130,7 @@ h5_move <- function(file, from, to) {
     stop("'to' must be a single string.")
   }
   
+  # Call the C function that wraps H5Lmove.
   .Call("C_h5_move", file, from, to, PACKAGE = "h5lite")
   invisible(NULL)
 }

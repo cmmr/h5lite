@@ -27,11 +27,14 @@
 h5_delete <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
-
+  
+  # Warn but do not error if the object doesn't exist, to allow for idempotent deletion.
   if (!h5_exists(file, name)) {
     warning("Object '", name, "' not found. Nothing to delete.")
     return(invisible(NULL))
   }
+  
+  # Call the C function to perform the deletion.
   .Call("C_h5_delete", file, name, PACKAGE = "h5lite")
   invisible(NULL)
 }
@@ -59,10 +62,14 @@ h5_delete <- function(file, name) {
 h5_delete_attr <- function(file, name, attribute) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
+  
+  # Warn but do not error if the attribute doesn't exist.
   if (!h5_exists_attr(file, name, attribute)) {
     warning("Attribute '", attribute, "' not found on object '", name, "'. Nothing to delete.")
     return(invisible(NULL))
   }
+  
+  # Call the C function to delete the attribute.
   .Call("C_h5_delete_attr", file, name, attribute, PACKAGE = "h5lite")
   invisible(NULL)
 }

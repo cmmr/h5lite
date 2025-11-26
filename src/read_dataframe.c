@@ -1,41 +1,48 @@
 #include "h5lite.h"
 
-/* Generic helper to read compound data from a dataset OR attribute */
+/*
+ * Generic helper to read compound data from either a dataset or an attribute.
+ * This function handles the complex process of mapping an HDF5 compound type
+ * to an R data.frame.
+ */
 static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id, int is_attribute) {
   
-  // --- 1. Get Dataspace (Number of Rows) ---
+  /* --- 1. Get Dataspace (Number of Rows) --- */
   int ndims = H5Sget_simple_extent_ndims(space_id);
   hsize_t n_rows = (ndims > 0) ? H5Sget_simple_extent_npoints(space_id) : 1;
   
-  // --- 2. Get File Member Info ---
+  /* --- 2. Get File Member Info --- */
   int n_cols = H5Tget_nmembers(file_type_id);
   
-  // --- 3. Create Memory Datatype (based on h5lite conversion rules) ---
-  // R_alloc: memory is garbage-collected by R, no need to free
+  /* --- 3. Create Memory Datatype (based on h5lite conversion rules) --- */
+  /* This defines the C struct layout that HDF5 will read the data into. */
+  /* R_alloc: memory is garbage-collected by R, no need to free. */
   H5T_class_t *member_classes = (H5T_class_t *)R_alloc(n_cols, sizeof(H5T_class_t));
   
-  // Create the C-style variable-length string type (re-used from C_h5_read_dataset)
+  /* Create a re-usable C-style variable-length string type for memory. */
   hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
   H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
   H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
   
-  // Pre-calculate total size for the memory compound type
+  /* Pre-calculate total size for the memory compound type. */
   size_t total_mem_size = 0;
   hid_t *mem_member_types = (hid_t *)R_alloc(n_cols, sizeof(hid_t));
   
+  /* Determine the memory type for each column. */
   for (int i = 0; i < n_cols; i++) {
     hid_t file_member_type = H5Tget_member_type(file_type_id, i);
     H5T_class_t file_class = H5Tget_class(file_member_type);
     
-    member_classes[i] = file_class; // Save for unpacking loop
+    member_classes[i] = file_class; /* Save for the unpacking loop later. */
     
     if (file_class == H5T_INTEGER || file_class == H5T_FLOAT) {
-      // Coerce all numeric types to double
+      /* Coerce all numeric types to double for safety against overflow. */
       mem_member_types[i] = H5T_NATIVE_DOUBLE;
     } else if (file_class == H5T_ENUM) {
-      // Create a corresponding enum type in memory.
-      // This is necessary for H5Dread to correctly interpret the data.
-      // The unpacking logic will then handle creating the R factor.
+      /* For enums, the memory type must match the file type for H5Dread to work.
+       * The unpacking logic will then convert this to an R factor.
+       * We must copy the type, as we will need to close it later.
+       */
       mem_member_types[i] = H5Tcopy(file_member_type);
     } else if (file_class == H5T_STRING) {
       // Use our variable-length string type
@@ -51,9 +58,9 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
     H5Tclose(file_member_type);
   }
   
-  // Now create the memory type with the correct total size
+  /* Now create the compound memory type with the correct total size. */
   hid_t mem_type_id = H5Tcreate(H5T_COMPOUND, total_mem_size);
-  // We must also clean up the enum types we copied
+  /* Keep track of copied enum types so we can close them later. */
   hid_t *copied_enum_types = (hid_t *)R_alloc(n_cols, sizeof(hid_t));
   int n_copied_enums = 0;
 
@@ -69,8 +76,8 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
       copied_enum_types[n_copied_enums++] = mem_member_types[i];
   }
   
-  // --- 4. Read Data ---
-  // Allocate a C buffer to hold all rows of the in-memory struct
+  /* --- 4. Read Data --- */
+  /* Allocate a C buffer to hold all rows of the in-memory struct. */
   char *buffer = (char *)malloc(n_rows * total_mem_size);
   if (!buffer) {
     H5Tclose(vl_string_mem_type);
@@ -78,7 +85,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
     error("Memory allocation failed for compound read buffer");
   }
   
-  // H5Dread handles all conversions from file_type_id to mem_type_id
+  /* H5Dread/H5Aread handles all conversions from file_type_id to mem_type_id. */
   herr_t status;
   if (is_attribute) {
     status = H5Aread(obj_id, mem_type_id, buffer);
@@ -93,12 +100,13 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
     error("Failed to read compound dataset.");
   }
   
-  // --- 5. Unpack C Buffer into R data.frame (VECSXP) ---
+  /* --- 5. Unpack C Buffer into R data.frame (VECSXP) --- */
   SEXP result;
   PROTECT(result = allocVector(VECSXP, n_cols));
   SEXP col_names_sexp;
   PROTECT(col_names_sexp = allocVector(STRSXP, n_cols));
   
+  /* Iterate over columns, creating an R vector for each one. */
   for (int c = 0; c < n_cols; c++) {
     char *member_name = H5Tget_member_name(mem_type_id, c);
     SET_STRING_ELT(col_names_sexp, c, mkChar(member_name));
@@ -107,6 +115,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
     SEXP r_column;
     H5T_class_t mclass = member_classes[c];
     
+    /* Unpack numeric data (already converted to double by H5Dread). */
     if (mclass == H5T_INTEGER || mclass == H5T_FLOAT) {
       PROTECT(r_column = allocVector(REALSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
@@ -114,14 +123,14 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
         REAL(r_column)[r] = *((double*)src);
       }
     } else if (mclass == H5T_ENUM) {
-      // This logic mirrors C_h5_read_dataset for factors
+      /* Unpack enum data into an integer vector and then build the factor. */
       PROTECT(r_column = allocVector(INTSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
         char *src = buffer + (r * total_mem_size) + member_offset;
         INTEGER(r_column)[r] = *((int*)src);
       }
       
-      // Get levels from the *file* type
+      /* Get levels from the *file* type to construct the R factor levels. */
       hid_t file_member_type = H5Tget_member_type(file_type_id, c);
       int n_levels = H5Tget_nmembers(file_member_type);
       SEXP levels;
@@ -141,6 +150,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
       UNPROTECT(1); // class_attr
       H5Tclose(file_member_type);
       
+    /* Unpack variable-length string data. */
     } else if (mclass == H5T_STRING) {
       PROTECT(r_column = allocVector(STRSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
@@ -165,7 +175,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   setAttrib(result, R_NamesSymbol, col_names_sexp);
   UNPROTECT(1); // col_names_sexp
   
-  // --- 6. Set data.frame Attributes ---
+  /* --- 6. Set data.frame Attributes --- */
   SEXP class_attr;
   PROTECT(class_attr = allocVector(STRSXP, 1));
   SET_STRING_ELT(class_attr, 0, mkChar("data.frame"));
@@ -179,8 +189,8 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   setAttrib(result, R_RowNamesSymbol, row_names_attr);
   UNPROTECT(1); // row_names_attr
   
-  // --- 7. Clean Up ---
-  // Reclaim memory allocated by H5Dread for variable-length strings
+  /* --- 7. Clean Up --- */
+  /* Reclaim memory allocated by H5Dread/H5Aread for variable-length strings. */
   if (is_attribute) {
     H5Treclaim(mem_type_id, space_id, H5P_DEFAULT, buffer);
   } else {
@@ -189,6 +199,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   free(buffer);
   
   H5Tclose(vl_string_mem_type);
+  /* Close the enum types we copied earlier. */
   for (int i = 0; i < n_copied_enums; i++) {
     H5Tclose(copied_enum_types[i]);
   }
@@ -198,12 +209,18 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
   return result;
 }
 
-/* --- Read a compound dataset into an R data.frame --- */
+/*
+ * Reads a compound dataset into an R data.frame.
+ * This is a wrapper around the generic read_compound_data function.
+ */
 SEXP read_dataframe(hid_t dset_id, hid_t file_type_id, hid_t space_id) {
   return read_compound_data(dset_id, file_type_id, space_id, 0); // 0 = is not attribute
 }
 
-/* --- Read a compound attribute into an R data.frame --- */
+/*
+ * Reads a compound attribute into an R data.frame.
+ * This is a wrapper around the generic read_compound_data function.
+ */
 SEXP read_compound_attribute(hid_t attr_id, hid_t file_type_id, hid_t space_id) {
   return read_compound_data(attr_id, file_type_id, space_id, 1); // 1 = is attribute
 }

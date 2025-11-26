@@ -1,6 +1,9 @@
 #include "h5lite.h"
 
-/* Deletes a Dataset or Group by removing its link */
+/*
+ * C implementation of h5_delete().
+ * Deletes a dataset or group by removing its link from the file structure.
+ */
 SEXP C_h5_delete(SEXP filename, SEXP name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *oname = CHAR(STRING_ELT(name, 0));
@@ -16,7 +19,10 @@ SEXP C_h5_delete(SEXP filename, SEXP name) {
   return R_NilValue;
 }
 
-/* Deletes an Attribute from an object */
+/*
+ * C implementation of h5_delete_attr().
+ * Deletes an attribute from a specified object.
+ */
 SEXP C_h5_delete_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *oname = CHAR(STRING_ELT(obj_name, 0));

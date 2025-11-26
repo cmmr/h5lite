@@ -16,7 +16,7 @@ hid_t open_or_create_file(const char *fname) {
   void *old_client_data;
   /* Save old error handler */
   H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-  /* Turn off error handling */
+  /* Turn off error handling so H5Fis_hdf5 doesn't print an error if the file doesn't exist. */
   H5Eset_auto(H5E_DEFAULT, NULL, NULL);
   
   htri_t is_hdf5 = H5Fis_hdf5(fname);
@@ -24,6 +24,7 @@ hid_t open_or_create_file(const char *fname) {
   /* Restore error handler */
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
+  /* Open the file if it's a valid HDF5 file, otherwise create a new one. */
   if (is_hdf5 > 0) {
     file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   } else {
@@ -50,13 +51,13 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
     space_id = H5Screate(H5S_SCALAR);
   } else {
     /* ARRAY */
-    *out_rank = (int)length(dims);
+    *out_rank = (int)XLENGTH(dims);
     if (*out_rank == 0) error("dims must be NULL or a vector");
     
-    /* R_alloc takes (n, size). No check for NULL needed. */
+    /* R_alloc allocates memory that is garbage-collected by R. No free() needed. */
     hsize_t *h5_dims = (hsize_t *)R_alloc(*out_rank, sizeof(hsize_t));
     
-    int *r_dims = INTEGER(dims);
+    const int *r_dims = INTEGER(dims);
     hsize_t total_elements = 1;
     for (int i = 0; i < *out_rank; i++) {
       h5_dims[i] = (hsize_t)r_dims[i];
@@ -64,7 +65,6 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
     }
     
     if (total_elements != (hsize_t)XLENGTH(data)) {
-      /* No free(h5_dims) needed here! R handles it. */
       error("Dimensions do not match data length");
     }
     *out_h5_dims = h5_dims;
@@ -82,7 +82,7 @@ void handle_overwrite(hid_t file_id, const char *name) {
   herr_t (*old_func)(hid_t, void*);
   void *old_client_data;
   H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL); // Suppress error for non-existent link.
   
   htri_t link_exists = H5Lexists(file_id, name, H5P_DEFAULT);
   
@@ -106,7 +106,7 @@ void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_na
   herr_t (*old_func)(hid_t, void*);
   void *old_client_data;
   H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL); // Suppress error for non-existent attribute.
   
   htri_t attr_exists = H5Aexists(obj_id, attr_name);
   
@@ -130,14 +130,14 @@ void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_na
 herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer) {
   herr_t status = -1;
   
-  // Check if obj_id is a dataset or an attribute
+  /* Check if obj_id is a dataset or an attribute and call the appropriate write function. */
   H5I_type_t obj_type = H5Iget_type(obj_id);
   
   if (obj_type == H5I_DATASET) {
-    // For datasets, we need to specify memory and file space, which are the same here.
+    /* For datasets, we specify memory and file space (H5S_ALL means entire space). */
     status = H5Dwrite(obj_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer);
   } else if (obj_type == H5I_ATTR) {
-    // For attributes, the dataspace is defined on creation, so we only need the memory type.
+    /* For attributes, the dataspace is part of the attribute, so we only need the memory type. */
     status = H5Awrite(obj_id, mem_type_id, buffer);
   }
   
@@ -150,7 +150,7 @@ herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer) {
  * halving the largest dimension until the target size is met.
  */
 void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
-  hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
+  const hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
   hsize_t current_bytes = type_size;
 
   /* 1. Start with the full dimensions */
@@ -158,7 +158,6 @@ void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize
     out_chunk_dims[i] = dims[i];
     current_bytes *= dims[i];
   }
-
   /* 2. If the dataset is small (< 1MB), just use one chunk (full dims) */
   if (current_bytes <= TARGET_SIZE) {
     return;
@@ -174,7 +173,7 @@ void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize
       }
     }
     
-    /* Safety check: if largest dim is 1, we can't shrink anymore */
+    /* Safety check: if largest dim is 1, we can't shrink anymore. */
     if (out_chunk_dims[max_idx] <= 1) break;
     
     /* Halve the largest dimension (ceiling division) */
@@ -198,7 +197,7 @@ hid_t get_mem_type(SEXP data) {
     case INTSXP:  return H5T_NATIVE_INT;
     case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
     case RAWSXP:  return H5T_NATIVE_UCHAR;  /* R's raw is unsigned char */
-    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE);
+    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE); /* Custom complex type */
     case STRSXP:  return -1;                /* Handled specially */
     default: error("Unsupported R data type");
   }
@@ -211,7 +210,7 @@ hid_t get_mem_type(SEXP data) {
  * types like "character", "raw", and "factor".
  */
 hid_t get_file_type(const char *dtype, SEXP data) {
-  /* Mappings from user-friendly strings to HDF5 standard types for portability */
+  /* Mappings from user-friendly strings to HDF5 standard types for portability. */
   
   /* Floating Point Types (IEEE Standard) */
   if (strcmp(dtype, "float16") == 0) return H5Tcopy(H5T_IEEE_F16LE);
@@ -247,7 +246,7 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   
   /* Special Types */
   
-  if (strcmp(dtype, "character") == 0) {
+  if (strcmp(dtype, "character") == 0) { /* Variable-length UTF-8 string */
     hid_t t = H5Tcopy(H5T_C_S1);
     H5Tset_size(t, H5T_VARIABLE);
     H5Tset_cset(t, H5T_CSET_UTF8);
@@ -269,13 +268,14 @@ hid_t get_file_type(const char *dtype, SEXP data) {
     SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
     R_xlen_t n_levels = XLENGTH(levels);
     
-    // Base type for enum is INT
+    /* Base type for enum is INT. */
     hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
     if (type_id < 0) {
       UNPROTECT(1);
       error("Failed to create enum type");
     }
     
+    /* Insert each level name and its corresponding integer value into the enum type. */
     for (R_xlen_t i = 0; i < n_levels; i++) {
       // R factors are 1-based, so value is i+1
       int val = i + 1;

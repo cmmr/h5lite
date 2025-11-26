@@ -33,6 +33,7 @@ h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
   
+  # Call the C function that performs a recursive or non-recursive listing.
   .Call("C_h5_ls", file, name, recursive, full.names, PACKAGE = "h5lite")
 }
 
@@ -51,6 +52,7 @@ h5_ls_attr <- function(file, name) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
   
+  # Call the C function that iterates over attributes and returns their names.
   .Call("C_h5_ls_attr", file, name, PACKAGE = "h5lite")
 }
 
@@ -92,6 +94,7 @@ h5_str <- function(file, name = "/") {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
   
+  # Call the C function that recursively visits objects and prints a summary.
   .Call("C_h5_str", file, name, PACKAGE = "h5lite")
   invisible(NULL)
 }

@@ -1,6 +1,11 @@
 #include <R_ext/Rdynload.h>
 #include "h5lite.h"
 
+/*
+ * This structure defines the mapping between the C function names and the
+ * character strings that will be used to call them from R's .Call() interface.
+ * The format is: {"r_name", (DL_FUNC) &c_function_name, number_of_arguments}.
+ */
 static const R_CallMethodDef CallEntries[] = {
   
   /* read.c */
@@ -38,6 +43,11 @@ static const R_CallMethodDef CallEntries[] = {
   {NULL, NULL, 0}
 };
 
+/*
+ * This function is called by R when the package is loaded.
+ * It registers the C functions defined in CallEntries with R's dynamic loading system.
+ * R_useDynamicSymbols(dll, FALSE) tells R that we are providing an explicit registration list.
+ */
 void R_init_h5lite(DllInfo *dll) {
   R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
   R_useDynamicSymbols(dll, FALSE);

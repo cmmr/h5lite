@@ -5,13 +5,16 @@
 /* Use the type helper defined in info.c */
 extern SEXP h5_type_to_rstr(hid_t type_id);
 
-/* --- HELPER: Format Dimensions with Brackets --- */
-/* Formats dataspace dimensions into a string like "[100,50]" */
-/* Returns empty string for scalars */
+/*
+ * Formats HDF5 dataspace dimensions into a string like "[100,50]".
+ * Returns an empty string for scalars or on error.
+ * @param space_id The HDF5 dataspace ID.
+ * @param buffer The character buffer to write the formatted string into.
+ * @param buf_len The size of the buffer.
+ */
 static void format_dims_bracket(hid_t space_id, char *buffer, size_t buf_len) {
   int ndims = H5Sget_simple_extent_ndims(space_id);
   
-  /* Handle Scalar or Error */
   if (ndims <= 0) {
     buffer[0] = '\0';
     return;
@@ -39,8 +42,11 @@ static void format_dims_bracket(hid_t space_id, char *buffer, size_t buf_len) {
 
 /* --- SUMMARY/PRINT HELPERS --- */
 
-/* Callback for printing attributes */
-/* op_data is the name (path) of the parent object */
+/*
+ * H5Aiterate callback function for printing a summary of a single attribute.
+ * Used by C_h5_str.
+ * @param op_data A void pointer to the name (path) of the parent object.
+ */
 static herr_t op_print_attr_cb(hid_t loc_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data) {
   const char *parent_name = (const char *)op_data;
   
@@ -56,15 +62,14 @@ static herr_t op_print_attr_cb(hid_t loc_id, const char *attr_name, const H5A_in
   /* 2. Get Type Name (e.g., "int32") */
   hid_t type_id = H5Aget_type(attr_id);
   SEXP type_sexp = h5_type_to_rstr(type_id);
-  PROTECT(type_sexp);
+  PROTECT(type_sexp); // Protect before potential allocation in Rprintf/snprintf
   const char *type_base = CHAR(STRING_ELT(type_sexp, 0));
   
   /* 3. Construct Composite Type String: "int32[10]" */
   char full_type[256];
   snprintf(full_type, sizeof(full_type), "%s%s", type_base, dim_str);
   
-  /* 4. Construct Full Name: "parent@attr" */
-  /* Note: If parent is ".", we usually just print "@attr", but here we assume paths. */
+  /* 4. Print the formatted line. */
   Rprintf("%-12s %s @%s\n", full_type, parent_name, attr_name);
   
   UNPROTECT(1); // type_sexp
@@ -73,10 +78,12 @@ static herr_t op_print_attr_cb(hid_t loc_id, const char *attr_name, const H5A_in
   return 0;
 }
 
-/* Callback for Recursive Summary (H5Ovisit) */
+/*
+ * H5Ovisit callback function for printing a summary of a single object (group or dataset).
+ * Used by C_h5_str.
+ */
 static herr_t op_print_cb(hid_t root_id, const char *name, const H5O_info_t *info, void *op_data) {
-  /* Skip visiting the root node itself to avoid "." in output, 
-   unless specifically desired. Standard ls -R behavior usually lists children. */
+  /* Skip visiting the root node itself to avoid printing "." in the output. */
   if (strcmp(name, ".") == 0 || strlen(name) == 0) return 0;
   
   char full_type[256] = "Unknown";
@@ -127,7 +134,10 @@ static herr_t op_print_cb(hid_t root_id, const char *name, const H5O_info_t *inf
   return 0;
 }
 
-/* --- SUMMARY FUNCTION --- */
+/*
+ * C implementation of h5_str().
+ * Prints a recursive summary of an HDF5 object and its children to the console.
+ */
 SEXP C_h5_str(SEXP filename, SEXP group_name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *gname = CHAR(STRING_ELT(group_name, 0));
@@ -151,7 +161,6 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
   /* Recursively visit all objects */
   herr_t status = H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_print_cb, NULL, H5O_INFO_BASIC);
   
-  
   H5Oclose(group_id);
   H5Fclose(file_id);
   
@@ -163,6 +172,10 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
 }
 
 
+/*
+ * A struct to pass data between the main 'ls' function and the HDF5 callback functions.
+ * This allows the callbacks to either count items or fill an R character vector.
+ */
 typedef struct {
   int count;
   int idx;
@@ -171,10 +184,16 @@ typedef struct {
   int full_names;
 } h5_op_data_t;
 
+/*
+ * H5Ovisit callback for recursively listing objects.
+ * This is used for `h5_ls(recursive = TRUE)`.
+ */
 static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, void *op_data) {
   h5_op_data_t *data = (h5_op_data_t *)op_data;
+  /* Skip the root object itself. */
   if (strcmp(name, ".") == 0 || strlen(name) == 0) return 0;
   
+  /* If names is not NULL, we are in the "fill" pass. Otherwise, we are counting. */
   if (data->names != R_NilValue) {
     if (data->full_names) {
       int gname_is_root = (strcmp(data->gname, "/") == 0);
@@ -197,9 +216,14 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
   return 0;
 }
 
+/*
+ * H5Literate callback for non-recursively listing objects.
+ * This is used for `h5_ls(recursive = FALSE)`.
+ */
 static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *info, void *op_data) {
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   
+  /* If names is not NULL, we are in the "fill" pass. Otherwise, we are counting. */
   if (data->names != R_NilValue) {
     if (data->full_names) {
       int gname_is_root = (strcmp(data->gname, "/") == 0);
@@ -222,6 +246,10 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
   return 0;
 }
 
+/*
+ * H5Aiterate callback for listing attribute names.
+ * Used by C_h5_ls_attr.
+ */
 static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data) {
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   if (data->names != R_NilValue) {
@@ -231,6 +259,11 @@ static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_inf
   return 0;
 }
 
+/*
+ * C implementation of h5_ls().
+ * Lists objects in a group, either recursively or non-recursively.
+ * It uses a two-pass approach: first pass counts items, second pass allocates and fills the R vector.
+ */
 SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *gname = CHAR(STRING_ELT(group_name, 0));
@@ -246,6 +279,7 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
     error("Failed to open group/object: %s", gname);
   }
   
+  /* Initialize the data structure to pass to the callback. */
   h5_op_data_t op_data;
   op_data.count = 0;
   op_data.idx = 0;
@@ -253,12 +287,14 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   op_data.gname = gname;
   op_data.full_names = use_full_names;
   
+  /* First pass: Count the number of items. `op_data.names` is NULL. */
   if (is_recursive) {
     H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC);
   } else {
     H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data);
   }
   
+  /* Second pass: Allocate the R vector and fill it with names. */
   if (op_data.count > 0) {
     PROTECT(op_data.names = allocVector(STRSXP, op_data.count));
     if (is_recursive) {
@@ -277,6 +313,10 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   return op_data.names;
 }
 
+/*
+ * C implementation of h5_ls_attr().
+ * Lists the names of all attributes on a given object.
+ */
 SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *oname = CHAR(STRING_ELT(obj_name, 0));
@@ -290,6 +330,7 @@ SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
     error("Failed to open object: %s", oname);
   }
   
+  /* Get the number of attributes on the object. */
   H5O_info_t oinfo;
   herr_t status = H5Oget_info(obj_id, &oinfo, H5O_INFO_NUM_ATTRS);
   if (status < 0) {
@@ -300,6 +341,7 @@ SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
   hsize_t n_attrs = oinfo.num_attrs;
   SEXP result;
   
+  /* Allocate the result vector and use H5Aiterate to fill it. */
   if (n_attrs > 0) {
     PROTECT(result = allocVector(STRSXP, (R_xlen_t)n_attrs));
     h5_op_data_t op_data;
