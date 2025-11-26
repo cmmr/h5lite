@@ -74,16 +74,32 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
       char *dest = row_ptr + col_offset;
       SEXP r_col = VECTOR_ELT(data, c);
       switch (TYPEOF(r_col)) {
-        case REALSXP: *((double*)dest) = REAL(r_col)[r]; break;
-        case INTSXP:  *((int*)dest) = INTEGER(r_col)[r]; break;
-        case LGLSXP:  *((int*)dest) = LOGICAL(r_col)[r]; break;
-        case RAWSXP:  *((unsigned char*)dest) = RAW(r_col)[r]; break;
-        case STRSXP:
-          {
-            SEXP s = STRING_ELT(r_col, r);
-            *((const char**)dest) = (s == NA_STRING) ? NULL : CHAR(s);
-          }
+        case REALSXP: {
+          double val = REAL(r_col)[r];
+          memcpy(dest, &val, sizeof(double));
           break;
+        }
+        case INTSXP: {
+          int val = INTEGER(r_col)[r];
+          memcpy(dest, &val, sizeof(int));
+          break;
+        }
+        case LGLSXP: {
+          int val = LOGICAL(r_col)[r];
+          memcpy(dest, &val, sizeof(int));
+          break;
+        }
+        case RAWSXP: {
+          unsigned char val = RAW(r_col)[r];
+          memcpy(dest, &val, sizeof(unsigned char));
+          break;
+        }
+        case STRSXP: {
+          SEXP s = STRING_ELT(r_col, r);
+          const char *ptr = (s == NA_STRING) ? NULL : CHAR(s);
+          memcpy(dest, &ptr, sizeof(const char *));
+          break;
+        }
         default:
           free(buffer);
           for(int i=0; i<n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }

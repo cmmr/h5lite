@@ -120,14 +120,18 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
       PROTECT(r_column = allocVector(REALSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
         char *src = buffer + (r * total_mem_size) + member_offset;
-        REAL(r_column)[r] = *((double*)src);
+        double val;
+        memcpy(&val, src, sizeof(double));
+        REAL(r_column)[r] = val;
       }
     } else if (mclass == H5T_ENUM) {
       /* Unpack enum data into an integer vector and then build the factor. */
       PROTECT(r_column = allocVector(INTSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
         char *src = buffer + (r * total_mem_size) + member_offset;
-        INTEGER(r_column)[r] = *((int*)src);
+        int val;
+        memcpy(&val, src, sizeof(int));
+        INTEGER(r_column)[r] = val;
       }
       
       /* Get levels from the *file* type to construct the R factor levels. */
@@ -155,7 +159,8 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
       PROTECT(r_column = allocVector(STRSXP, n_rows));
       for (hsize_t r = 0; r < n_rows; r++) {
         char *src = buffer + (r * total_mem_size) + member_offset;
-        char *str_ptr = *((char**)src); // Get the pointer
+        char *str_ptr;
+        memcpy(&str_ptr, src, sizeof(char *)); // Get the pointer
         if (str_ptr) {
           SET_STRING_ELT(r_column, r, mkChar(str_ptr));
         } else {
@@ -213,7 +218,7 @@ static SEXP read_compound_data(hid_t obj_id, hid_t file_type_id, hid_t space_id,
  * Reads a compound dataset into an R data.frame.
  * This is a wrapper around the generic read_compound_data function.
  */
-SEXP read_dataframe(hid_t dset_id, hid_t file_type_id, hid_t space_id) {
+SEXP read_compound(hid_t dset_id, hid_t file_type_id, hid_t space_id) {
   return read_compound_data(dset_id, file_type_id, space_id, 0); // 0 = is not attribute
 }
 

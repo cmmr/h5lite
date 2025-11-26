@@ -246,8 +246,8 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
   /* --- COMPOUND (used for R data.frame) --- */
   } else if (class_id == H5T_COMPOUND) {
     /* Delegate to the specialized data.frame reader. */
-    result = read_dataframe(dset_id, file_type_id, space_id);
-    PROTECT(result); /* Protect the result from read_dataframe. */
+    result = read_compound(dset_id, file_type_id, space_id);
+    PROTECT(result); /* Protect the result from read_compound. */
     status = 0;      /* Mark as successful. */
   } else {
     if (dims) free(dims);

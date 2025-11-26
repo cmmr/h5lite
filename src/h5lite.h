@@ -11,8 +11,8 @@
 SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name);
 SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name);
 
-/* --- read_dataframe.c --- */
-SEXP read_dataframe(hid_t dset_id, hid_t file_type_id, hid_t space_id);
+/* --- read_compound.c --- */
+SEXP read_compound(hid_t dset_id, hid_t file_type_id, hid_t space_id);
 SEXP read_compound_attribute(hid_t attr_id, hid_t file_type_id, hid_t space_id);
 
 /* --- write.c --- */
