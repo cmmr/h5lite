@@ -4,8 +4,9 @@
 name: Test Coverage
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - R/**
       - src/**
