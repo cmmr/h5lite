@@ -65,6 +65,8 @@
 <img src="logo.png" class="logo" alt=""><h1 id="h5lite-">h5lite <a class="anchor" aria-label="anchor" href="#h5lite-"></a>
 </h1>
 </div>
+<!-- badges: start -->
+
 <p><strong>h5lite</strong> is an R package that provides a simple and lightweight interface for reading and writing HDF5 files.</p>
 <p>It is designed for R users who want to save and load common R objects (vectors, factors, matrices, data.frames, lists, and NULLs) to an HDF5 file without needing to understand the low-level details of the HDF5 library.</p>
 <div class="section level2">
@@ -284,7 +286,7 @@
 </tbody>
 </table>
 <p><strong>Use <code>rhdf5</code> or <code>hdf5r</code> if you need to:</strong> - Work with complex or custom HDF5 data types not supported by <code>h5lite</code> (e.g., bitfields, references). - Have fine-grained control over file properties, chunking, or compression filters. - Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).</p>
-<p><strong>Use <code>h5lite</code> if you want to:</strong> - Quickly and safely save R matrices, arrays, and other objects to a file. - Avoid thinking about low-level details.</p>
+<p><strong>Use <code>h5lite</code> if you want to:</strong> - Quickly and safely get data into or out of a file. - Avoid thinking about low-level details.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -318,7 +320,12 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://app.codecov.io/gh/cmmr/h5lite" class="external-link"><img src="https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov" alt="covr"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

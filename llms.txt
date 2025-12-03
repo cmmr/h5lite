@@ -201,9 +201,8 @@ references). - Have fine-grained control over file properties, chunking,
 or compression filters. - Perform partial I/O (i.e., read or write a
 small slice of a very large on-disk dataset).
 
-**Use `h5lite` if you want to:** - Quickly and safely save R matrices,
-arrays, and other objects to a file. - Avoid thinking about low-level
-details.
+**Use `h5lite` if you want to:** - Quickly and safely get data into or
+out of a file. - Avoid thinking about low-level details.
 
 # Package index
 
