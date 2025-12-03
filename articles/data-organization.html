@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -64,14 +65,14 @@
       <img src="../logo.png" class="logo" alt=""><h1>Data Organization</h1>
             
       
-
+      <small class="dont-index">Source: <a href="https://github.com/cmmr/h5lite/blob/master/vignettes/data-organization.Rmd" class="external-link"><code>vignettes/data-organization.Rmd</code></a></small>
       <div class="d-none name"><code>data-organization.Rmd</code></div>
     </div>
 
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://cmmr.github.io/h5lite/">h5lite</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># We'll use a temporary file for this guide.</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
@@ -121,7 +122,7 @@ sub-groups.</li>
 hierarchy that was created.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpHhzkDh/file1be97bdb4ae0.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/Rtmp0qi6ZY/file243a3b7508f7.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -207,7 +208,7 @@ not rewrite any data.</p>
 <span><span class="fu"><a href="../reference/h5_move.html">h5_move</a></span><span class="op">(</span><span class="va">file</span>, from <span class="op">=</span> <span class="st">"session_1"</span>, to <span class="op">=</span> <span class="st">"/archive/2024/run_01/data"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpHhzkDh/file1be97bdb4ae0.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/Rtmp0qi6ZY/file243a3b7508f7.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
