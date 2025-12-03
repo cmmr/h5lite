@@ -1,5 +1,9 @@
 # h5lite <img src="man/figures/logo.png" align="right" width="172" height="200" alt="h5lite logo" />
 
+<!-- badges: start -->
+[![covr](https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov)](https://app.codecov.io/gh/cmmr/h5lite)
+<!-- badges: end -->
+
 **h5lite** is an R package that provides a simple and lightweight interface for reading and writing HDF5 files.
 
 It is designed for R users who want to save and load common R objects (vectors, factors, matrices, data.frames, lists, and NULLs) to an HDF5 file without needing to understand the low-level details of the HDF5 library.
@@ -163,5 +167,5 @@ You can also access these vignettes from within R using `browseVignettes("h5lite
 -   Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).
 
 **Use `h5lite` if you want to:**
--   Quickly and safely save R matrices, arrays, and other objects to a file.
+-   Quickly and safely get data into or out of a file.
 -   Avoid thinking about low-level details.

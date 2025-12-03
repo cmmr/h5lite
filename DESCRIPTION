@@ -6,7 +6,8 @@ Authors@R:
 Description: Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
 URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
 BugReports: https://github.com/cmmr/h5lite/issues
-LinkingTo: hdf5lib
+Depends: R (>= 4.2.0)
+LinkingTo: hdf5lib (>= 2.0.0)
 Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
 NeedsCompilation: yes
 License: MIT + file LICENSE
