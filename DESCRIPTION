@@ -1,20 +1,18 @@
 Package: h5lite
-Title: Simplified HDF5 Interface
-Version: 0.0.0.9000
+Title: Simplified 'HDF5' Interface
+Version: 2.0.0.0
 Authors@R: 
     person("Daniel P.", "Smith", , "dansmith01@gmail.com", role = c("aut", "cre"))
 Description: Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
+URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
+BugReports: https://github.com/cmmr/h5lite/issues
+LinkingTo: hdf5lib
+Suggests: knitr, rmarkdown, testthat (>= 3.0.0)
+NeedsCompilation: yes
 License: MIT + file LICENSE
 Encoding: UTF-8
+Config/testthat/edition: 3
+Config/Needs/website: rmarkdown
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
-LinkingTo: hdf5lib
-NeedsCompilation: yes
-Suggests: 
-    knitr,
-    rmarkdown,
-    testthat (>= 3.0.0)
-Config/testthat/edition: 3
-URL: https://cmmr.github.io/h5lite/
-Remotes: cmmr/hdf5lib
 VignetteBuilder: knitr
