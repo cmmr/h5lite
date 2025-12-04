@@ -48,7 +48,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpRWn3Jr/file243324c2789d.h5
+#> Listing contents of: /tmp/RtmpMRHgrR/file24072cef0e13.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
