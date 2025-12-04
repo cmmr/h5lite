@@ -46,6 +46,8 @@ test_that("Info, existence, and type checking functions work correctly", {
   expect_false(h5_is_dataset(file_path, "g1"))
   expect_false(h5_is_group(file_path, "nonexistent"))
   expect_false(h5_is_dataset(file_path, "nonexistent"))
+  expect_false(h5_is_group("nonexistent.h5", "any"))
+  expect_false(h5_is_dataset("nonexistent.h5", "any"))
 
   # --- 5. TEST h5_ls and h5_ls_attr ---
   # Test non-recursive listing from root
@@ -94,6 +96,7 @@ test_that("Info, existence, and type checking functions work correctly", {
   expect_equal(h5_dim(file_path, "g1/g1.1/d1.1.1"), c(2, 2))
 
   # Test scalar dim
+  expect_equal(h5_dim_attr(file_path, "g1/d1.1", "a2"), 3)
   expect_equal(h5_dim(file_path, "g2/d2.1"), integer(0))
   expect_equal(h5_dim_attr(file_path, "g1/d1.1", "a3_scalar"), integer(0))
 

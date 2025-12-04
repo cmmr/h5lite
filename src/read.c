@@ -113,8 +113,8 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
         if (dims) free(dims); // # nocov
         H5Tclose(file_type_id); H5Sclose(space_id); // # nocov
         H5Dclose(dset_id); H5Fclose(file_id); H5Tclose(mem_type); // # nocov
-        UNPROTECT(1);
-        error("Memory allocation failed for string read buffer");
+        UNPROTECT(1); // # nocov
+        error("Memory allocation failed for string read buffer"); // # nocov
       }
       /* H5Dread allocates memory for each string in c_buffer. */
       status = H5Dread(dset_id, mem_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
@@ -142,10 +142,11 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name) {
       H5Tset_size(mem_type, type_size);
       char *c_buffer = (char *)malloc(total_elements * type_size);
       if (!c_buffer) {
-        if (dims) free(dims);
-        H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id); H5Tclose(mem_type);
-        UNPROTECT(1);
-        error("Memory allocation failed for fixed-string read buffer");
+        if (dims) free(dims); // # nocov
+        H5Tclose(file_type_id); H5Sclose(space_id); // # nocov
+        H5Dclose(dset_id); H5Fclose(file_id); H5Tclose(mem_type); // # nocov
+        UNPROTECT(1); // # nocov
+        error("Memory allocation failed for fixed-string read buffer"); // # nocov
       }
       status = H5Dread(dset_id, mem_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, c_buffer);
       

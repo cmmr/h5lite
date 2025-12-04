@@ -195,9 +195,9 @@ hid_t get_mem_type(SEXP data) {
     case REALSXP: return H5T_NATIVE_DOUBLE;
     case INTSXP:  return H5T_NATIVE_INT;
     case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
-    case RAWSXP:  return H5T_NATIVE_UCHAR;  /* R's raw is unsigned char */
     case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE); /* Custom complex type, must be closed */
-    case STRSXP:  return -1;                /* Handled specially */
+    case RAWSXP:  return -1;  /* Handled specially */ // # nocov
+    case STRSXP:  return -1;  /* Handled specially */ // # nocov
     default: error("Unsupported R data type"); // # nocov
   }
   return -1;
@@ -298,6 +298,6 @@ void* get_R_data_ptr(SEXP data) {
   if (TYPEOF(data) == LGLSXP)  return (void*)LOGICAL(data);
   if (TYPEOF(data) == RAWSXP)  return (void*)RAW(data);
   if (TYPEOF(data) == CPLXSXP) return (void*)COMPLEX(data);
-  if (TYPEOF(data) == STRSXP)  return NULL; /* Handled separately */
+  if (TYPEOF(data) == STRSXP)  return NULL; /* Handled separately */  // # nocov
   return NULL; // # nocov
 }

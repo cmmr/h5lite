@@ -204,11 +204,20 @@ test_that("Chunking heuristic for large datasets works correctly", {
   # trigger the chunk dimension calculation loop that needs to be tested.
   large_matrix <- matrix(rnorm(512 * 512), nrow = 512)
 
+  # Create a large 3D array where the largest dimension is not the first.
+  # This will exercise the loop that finds the 'max_idx' in calculate_chunk_dims().
+  # Size: 10 * 20 * 1024 * 8 bytes = 1.6 MiB
+  large_array <- array(rnorm(10 * 20 * 1024), dim = c(10, 20, 1024))
+
   # Write the large matrix with compression enabled.
   # This will execute the calculate_chunk_dims() C function.
   h5_write(file_path, "large_matrix", large_matrix, compress = TRUE)
+  h5_write(file_path, "large_array", large_array, compress = TRUE)
 
   # Read the data back and verify it is identical to the original.
   read_matrix <- h5_read(file_path, "large_matrix")
   expect_equal(read_matrix, large_matrix)
+
+  read_array <- h5_read(file_path, "large_array")
+  expect_equal(read_array, large_array)
 })
