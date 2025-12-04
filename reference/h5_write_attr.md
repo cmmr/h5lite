@@ -67,10 +67,14 @@ For maximum file portability, it is recommended to use types with
 explicit widths (e.g., `"int32"`).
 
 For non-numeric data (`character`, `complex`, `factor`, `raw`,
-`logical`), the storage type is determined automatically and **cannot be
-changed** by the `dtype` argument. R `logical` vectors are stored as
-8-bit unsigned integers (`uint8`), as HDF5 does not have a native
-boolean datatype.
+`logical`), the storage type is determined automatically. For `logical`
+attributes, `h5lite` follows the same rules as for integer data:
+
+- If the vector contains no `NA` values, it is saved using an efficient
+  integer type (e.g., `uint8`).
+
+- If the vector contains any `NA` values, it is automatically promoted
+  and written as a `float64` attribute to correctly preserve `NA`.
 
 `data.frame` objects are written as HDF5 **compound attributes**, a
 native table-like structure.

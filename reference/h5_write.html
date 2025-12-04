@@ -162,10 +162,12 @@ list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</c
 dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit bit-widths (e.g., <code>"int32"</code>).</p>
 <p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, and <code>logical</code>), the
-storage type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
-argument. R <code>logical</code> vectors are stored as 8-bit unsigned integers (<code>uint8</code>),
-as HDF5 does not have a native boolean datatype.</p>
-    </div>
+storage type is determined automatically. For <code>logical</code> vectors, <code>h5lite</code>
+follows the same rules as for integer vectors:</p><ul><li><p>If the vector contains no <code>NA</code> values, it is saved using an efficient integer
+type (e.g., <code>uint8</code>, where <code>FALSE</code> is 0 and <code>TRUE</code> is 1).</p></li>
+<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted and
+written as a <code>float64</code> dataset to correctly preserve <code>NA</code>.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="attribute-round-tripping">Attribute Round-tripping<a class="anchor" aria-label="anchor" href="#attribute-round-tripping"></a></h2>
 

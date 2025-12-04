@@ -111,7 +111,7 @@ and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "trial_ids"    "sample_names" "qc_pass"</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpWXEdMS/file23f91ae6738f.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpYC0H7c/file1bba532e4c15.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -233,17 +233,35 @@ HDF5 and are read back as <code>NA_character_</code>.</p>
 <h3 id="logical-vectors">Logical Vectors<a class="anchor" aria-label="anchor" href="#logical-vectors"></a>
 </h3>
 <p>Since HDF5 has no native boolean type, <code>logical</code> vectors
-are stored as 8-bit unsigned integers (<code>uint8</code>), where
-<code>FALSE</code> is 0 and <code>TRUE</code> is 1.</p>
-<p>To preserve missing values, <code>NA</code> is converted to the
-integer <code>2</code> on write. When reading, any integer that is not
-<code>0</code> or <code>1</code> is converted back to <code>NA</code>,
-ensuring a correct round-trip.</p>
+are handled similarly to integer vectors to ensure consistent
+<code>NA</code> preservation.</p>
+<ul>
+<li>If a logical vector contains <strong>no <code>NA</code>
+values</strong>, it is stored efficiently as an 8-bit unsigned integer
+(<code>uint8</code>), where <code>FALSE</code> is 0 and
+<code>TRUE</code> is 1.</li>
+<li>If a logical vector contains <strong>any <code>NA</code>
+values</strong>, it is automatically promoted and written as a
+<code>float64</code> dataset to correctly preserve <code>NA</code>. This
+is the same behavior as for integer vectors containing
+<code>NA</code>.</li>
+</ul>
+<p>This ensures that missing values in logical vectors are handled
+consistently with other numeric types.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">logi_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">NA</span>, <span class="cn">FALSE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># A logical vector with NA</span></span>
+<span><span class="va">logi_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">NA</span>, <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The presence of NA forces the dtype to float64</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span>, <span class="va">logi_na</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">logi_na</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "'is.NA' value mismatch: 0 in current 1 in target"</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "float64"</span></span>
+<span></span>
+<span><span class="co"># Reading it back restores the NA correctly</span></span>
+<span><span class="co"># Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">logi_na</span>, <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Modes: logical, numeric"              </span></span>
+<span><span class="co">#&gt; [2] "target is logical, current is numeric"</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="factor-vectors">Factor Vectors<a class="anchor" aria-label="anchor" href="#factor-vectors"></a>

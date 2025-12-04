@@ -112,7 +112,7 @@ identifies it as a <code>data.frame</code> backed by a
 <code>compound</code> HDF5 type.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpzZeVtZ/file246b4c8d2675.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpwSoRqk/file1c2c5a8f2a7b.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -151,13 +151,14 @@ integers (0/1) and are also read back as <code>numeric</code>.</li>
 <p><code>factor</code> columns, however, are perfectly preserved.</p>
 <p>Let’s verify the round-trip by manually converting the original
 <code>data.frame</code> to match the expected output.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">my_df_cmp</span> <span class="op">&lt;-</span> <span class="va">my_df</span></span>
+<pre><code><span><span class="co">#&gt; [1] TRUE</span></span></code></pre>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># To verify the round-trip, convert integer/logical columns to numeric</span></span>
+<span><span class="va">my_df_cmp</span> <span class="op">&lt;-</span> <span class="va">my_df</span></span>
 <span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">trial</span><span class="op">)</span></span>
 <span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">pass_qc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">pass_qc</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">read_df</span>, <span class="va">my_df_cmp</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">read_df</span>, <span class="va">my_df_cmp</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -211,7 +212,7 @@ reading from multiple disparate datasets.</li>
 <p>Like other R objects, <code>data.frame</code>s can have metadata
 attached. The most common is <code>row.names</code>. To ensure these are
 saved, use <code>attrs = TRUE</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df_with_attrs</span> <span class="op">&lt;-</span> <span class="va">my_df</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/row.names.html" class="external-link">row.names</a></span><span class="op">(</span><span class="va">df_with_attrs</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">df_with_attrs</span><span class="op">$</span><span class="va">sample_id</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">df_with_attrs</span>, <span class="st">"description"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"My experiment data"</span></span>
@@ -238,7 +239,7 @@ detects the attribute named <code>"row.names"</code>, and if it is a
 <code>numeric</code> vector, it is coerced back to <code>integer</code>
 to satisfy R’s requirements for a valid <code>data.frame</code>.</p>
 </blockquote>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
 </div>

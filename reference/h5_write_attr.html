@@ -99,10 +99,12 @@ list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</c
 dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit widths (e.g., <code>"int32"</code>).</p>
 <p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the
-storage type is determined automatically and <strong>cannot be changed</strong> by the <code>dtype</code>
-argument. R <code>logical</code> vectors are stored as 8-bit unsigned integers (<code>uint8</code>),
-as HDF5 does not have a native boolean datatype.</p>
-<p><code>data.frame</code> objects are written as HDF5 <strong>compound attributes</strong>, a native
+storage type is determined automatically. For <code>logical</code> attributes, <code>h5lite</code>
+follows the same rules as for integer data:</p><ul><li><p>If the vector contains no <code>NA</code> values, it is saved using an efficient integer
+type (e.g., <code>uint8</code>).</p></li>
+<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted and
+written as a <code>float64</code> attribute to correctly preserve <code>NA</code>.</p></li>
+</ul><p><code>data.frame</code> objects are written as HDF5 <strong>compound attributes</strong>, a native
 table-like structure.</p>
 <p><code>NULL</code> objects are written as HDF5 <strong>null attributes</strong>, which contain no data
 but can be used as placeholders.</p>

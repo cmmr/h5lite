@@ -48,7 +48,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpWXEdMS/file23f91ae6738f.h5
+#> Listing contents of: /tmp/RtmpYC0H7c/file1bba532e4c15.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -178,18 +178,34 @@ all.equal(char_na, h5_read(file, "char_na"))
 
 ### Logical Vectors
 
-Since HDF5 has no native boolean type, `logical` vectors are stored as
-8-bit unsigned integers (`uint8`), where `FALSE` is 0 and `TRUE` is 1.
+Since HDF5 has no native boolean type, `logical` vectors are handled
+similarly to integer vectors to ensure consistent `NA` preservation.
 
-To preserve missing values, `NA` is converted to the integer `2` on
-write. When reading, any integer that is not `0` or `1` is converted
-back to `NA`, ensuring a correct round-trip.
+- If a logical vector contains **no `NA` values**, it is stored
+  efficiently as an 8-bit unsigned integer (`uint8`), where `FALSE` is 0
+  and `TRUE` is 1.
+- If a logical vector contains **any `NA` values**, it is automatically
+  promoted and written as a `float64` dataset to correctly preserve
+  `NA`. This is the same behavior as for integer vectors containing
+  `NA`.
+
+This ensures that missing values in logical vectors are handled
+consistently with other numeric types.
 
 ``` r
+# A logical vector with NA
 logi_na <- c(TRUE, NA, FALSE)
+
+# The presence of NA forces the dtype to float64
 h5_write(file, "logi_na", logi_na)
-all.equal(logi_na, as.logical(h5_read(file, "logi_na")))
-#> [1] "'is.NA' value mismatch: 0 in current 1 in target"
+h5_typeof(file, "logi_na")
+#> [1] "float64"
+
+# Reading it back restores the NA correctly
+# Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.
+all.equal(logi_na, h5_read(file, "logi_na"))
+#> [1] "Modes: logical, numeric"              
+#> [2] "target is logical, current is numeric"
 ```
 
 ### Factor Vectors

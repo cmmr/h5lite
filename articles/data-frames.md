@@ -47,7 +47,7 @@ a `compound` HDF5 type.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpzZeVtZ/file246b4c8d2675.h5
+#> Listing contents of: /tmp/RtmpwSoRqk/file1c2c5a8f2a7b.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -89,13 +89,15 @@ important conversions to note:
 Let’s verify the round-trip by manually converting the original
 `data.frame` to match the expected output.
 
+    #> [1] TRUE
+
 ``` r
+# To verify the round-trip, convert integer/logical columns to numeric
 my_df_cmp <- my_df
 my_df_cmp$trial <- as.numeric(my_df_cmp$trial)
 my_df_cmp$pass_qc <- as.numeric(my_df_cmp$pass_qc)
 
 all.equal(read_df, my_df_cmp)
-#> [1] TRUE
 ```
 
 ## Advanced Details: The HDF5 Compound Type
