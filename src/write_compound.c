@@ -9,10 +9,15 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   R_xlen_t n_cols = XLENGTH(data);
   if (n_cols == 0) return; 
   
-  R_xlen_t n_rows    = XLENGTH(VECTOR_ELT(data, 0));
+  R_xlen_t n_rows = XLENGTH(VECTOR_ELT(data, 0));
   SEXP col_names = PROTECT(getAttrib(data, R_NamesSymbol));
+  int n_protected = 1; // Also track how many coerced vectors we protect
   
-  /* --- 2. Create File and Memory Compound Types --- */
+  /* --- 2. Prepare Columns, Types, and Coercion --- */
+  /* We use col_ptrs to store the columns we will actually write. 
+     If type promotion is needed (int -> double), we coerce here and store the result in col_ptrs. */
+  SEXP *col_ptrs = (SEXP *) R_alloc(n_cols, sizeof(SEXP));
+
   hid_t *ft_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
   hid_t *mt_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
   
@@ -26,6 +31,21 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   for (R_xlen_t c = 0; c < n_cols; c++) {
     SEXP r_column = VECTOR_ELT(data, c);
     const char *dtype_str = CHAR(STRING_ELT(dtypes, c));
+    
+    /* Check if we need to promote Integer/Logical to Double to handle NAs correctly. */
+    if (TYPEOF(r_column) == INTSXP || TYPEOF(r_column) == LGLSXP) {
+      if (strcmp(dtype_str, "double") == 0 || strcmp(dtype_str, "float64") == 0 ||
+          strcmp(dtype_str, "float") == 0  || strcmp(dtype_str, "float32") == 0 ||
+          strcmp(dtype_str, "float16") == 0) {
+        /* Coerce to REAL. This handles NA_INTEGER -> NA_REAL conversion automatically. */
+        r_column = PROTECT(coerceVector(r_column, REALSXP));
+        n_protected++;
+      }
+    }
+    
+    col_ptrs[c] = r_column;
+
+    /* Now determine HDF5 types based on the (possibly coerced) column */
     ft_members[c] = get_file_type(dtype_str, r_column);
 
     if (TYPEOF(r_column) == STRSXP) {
@@ -38,9 +58,10 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
       mt_members[c] = H5Tcreate(H5T_OPAQUE, 1);
     }
     else {
-      /* This returns H5Tcomplex_create(...) for CPLXSXP, which is a NEW ID */
+      /* This returns H5T_NATIVE_DOUBLE if r_column is REALSXP (including coerced ones) */
       mt_members[c] = get_mem_type(r_column);
     }
+    
     total_file_size += H5Tget_size(ft_members[c]);
     total_mem_size += H5Tget_size(mt_members[c]);
   }
@@ -65,7 +86,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     // # nocov start
     for(int c=0; c<n_cols; c++) { H5Tclose(ft_members[c]); H5Tclose(mt_members[c]); }
     H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
-    UNPROTECT(1);
+    UNPROTECT(n_protected);
     error("Memory allocation failed for data.frame buffer");  // # nocov end
   }
   
@@ -74,21 +95,25 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     for (R_xlen_t c = 0; c < n_cols; c++) {
       size_t col_offset = H5Tget_member_offset(mem_type_id, c);
       char *dest = row_ptr + col_offset;
-      SEXP r_col = VECTOR_ELT(data, c);
+      
+      /* Use the pointer from col_ptrs, which may be a coerced SEXP */
+      SEXP r_col = col_ptrs[c];
+      
       switch (TYPEOF(r_col)) {
         case REALSXP: {
+          /* Handles standard doubles AND promoted integers/logicals */
           double val = REAL(r_col)[r];
           memcpy(dest, &val, sizeof(double));
           break;
         }
         case INTSXP: {
-          int val = INTEGER(r_col)[r];
-          memcpy(dest, &val, sizeof(int));
+          int int_val = INTEGER(r_col)[r];
+          memcpy(dest, &int_val, sizeof(int));
           break;
         }
         case LGLSXP: {
-          int val = LOGICAL(r_col)[r];
-          memcpy(dest, &val, sizeof(int));
+          int lgl_val = LOGICAL(r_col)[r];
+          memcpy(dest, &lgl_val, sizeof(int));
           break;
         }
         case RAWSXP: {
@@ -97,7 +122,6 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
           break;
         }
         case CPLXSXP: {
-          /* NEW: Handle complex numbers */
           Rcomplex val = COMPLEX(r_col)[r];
           memcpy(dest, &val, sizeof(Rcomplex));
           break;
@@ -112,7 +136,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
           free(buffer);
           for(int i=0; i<n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
           H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
-          UNPROTECT(1);
+          UNPROTECT(n_protected);
           error("Unsupported R column type in data.frame"); // # nocov end
       }
     }
@@ -149,11 +173,11 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Sclose(space_id);
     if (is_attribute) {
       H5Oclose(loc_id); H5Fclose(file_id);
-      UNPROTECT(1);
+      UNPROTECT(n_protected);
       error("Failed to create compound attribute '%s'", obj_name);
     } else {
       H5Fclose(file_id);
-      UNPROTECT(1);
+      UNPROTECT(n_protected);
       error("Failed to create compound dataset '%s'", obj_name);
     } // # nocov end
   }
@@ -169,10 +193,11 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     H5Tclose(ft_members[i]);
     
     /* Close the memory type if it was created specifically for this column. */
-    if (TYPEOF(VECTOR_ELT(data, i)) == STRSXP || 
-        isFactor(VECTOR_ELT(data, i)) || 
-        TYPEOF(VECTOR_ELT(data, i)) == RAWSXP ||
-        TYPEOF(VECTOR_ELT(data, i)) == CPLXSXP) {
+    SEXP col = col_ptrs[i];
+    if (TYPEOF(col) == STRSXP || 
+        isFactor(col) || 
+        TYPEOF(col) == RAWSXP ||
+        TYPEOF(col) == CPLXSXP) {
       H5Tclose(mt_members[i]);
     }
   }
@@ -182,14 +207,14 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   if (write_status < 0) {
     if (is_attribute) { // # nocov start
       H5Oclose(loc_id); H5Fclose(file_id);
-      UNPROTECT(1);
+      UNPROTECT(n_protected);
       error("Failed to write compound attribute '%s'", obj_name);
     } else {
       H5Fclose(file_id);
-      UNPROTECT(1);
+      UNPROTECT(n_protected);
       error("Failed to write compound dataset '%s'", obj_name);
     } // # nocov end
   }
   
-  UNPROTECT(1);
+  UNPROTECT(n_protected); // Unprotect names + coerced columns
 }

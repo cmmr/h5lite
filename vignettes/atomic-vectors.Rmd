@@ -134,14 +134,24 @@ all.equal(char_na, h5_read(file, "char_na"))
 
 ### Logical Vectors
 
-Since HDF5 has no native boolean type, `logical` vectors are stored as 8-bit unsigned integers (`uint8`), where `FALSE` is 0 and `TRUE` is 1.
+Since HDF5 has no native boolean type, `logical` vectors are handled similarly to integer vectors to ensure consistent `NA` preservation.
 
-To preserve missing values, `NA` is converted to the integer `2` on write. When reading, any integer that is not `0` or `1` is converted back to `NA`, ensuring a correct round-trip.
+*   If a logical vector contains **no `NA` values**, it is stored efficiently as an 8-bit unsigned integer (`uint8`), where `FALSE` is 0 and `TRUE` is 1.
+*   If a logical vector contains **any `NA` values**, it is automatically promoted and written as a `float64` dataset to correctly preserve `NA`. This is the same behavior as for integer vectors containing `NA`.
+
+This ensures that missing values in logical vectors are handled consistently with other numeric types.
 
 ```{r logical_na}
+# A logical vector with NA
 logi_na <- c(TRUE, NA, FALSE)
+
+# The presence of NA forces the dtype to float64
 h5_write(file, "logi_na", logi_na)
-all.equal(logi_na, as.logical(h5_read(file, "logi_na")))
+h5_typeof(file, "logi_na")
+
+# Reading it back restores the NA correctly
+# Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.
+all.equal(logi_na, h5_read(file, "logi_na"))
 ```
 
 ### Factor Vectors
@@ -213,4 +223,3 @@ When `attrs = TRUE`, `h5lite` extracts all R attributes (except `dim`, which is 
 # Clean up the temporary file
 unlink(file)
 ```
-

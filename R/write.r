@@ -75,9 +75,12 @@
 #' portability, it is recommended to use types with explicit bit-widths (e.g., `"int32"`).
 #'
 #' For non-numeric data (`character`, `complex`, `factor`, `raw`, and `logical`), the 
-#' storage type is determined automatically and **cannot be changed** by the `dtype` 
-#' argument. R `logical` vectors are stored as 8-bit unsigned integers (`uint8`),
-#' as HDF5 does not have a native boolean datatype.
+#' storage type is determined automatically. For `logical` vectors, `h5lite`
+#' follows the same rules as for integer vectors:
+#' - If the vector contains no `NA` values, it is saved using an efficient integer
+#'   type (e.g., `uint8`, where `FALSE` is 0 and `TRUE` is 1).
+#' - If the vector contains any `NA` values, it is automatically promoted and
+#'   written as a `float64` dataset to correctly preserve `NA`.
 #' 
 #' @section Attribute Round-tripping:
 #' To properly round-trip an R object, it is helpful to set `attrs = TRUE`. This
@@ -275,7 +278,6 @@ validate_dtype <- function(data, dtype = "auto") {
   
   if (is.null(data))       return ("null")
   if (is.factor(data))     return ("factor")
-  if (is.logical(data))    return ("uchar")
   if (is.raw(data))        return ("raw")
   if (is.data.frame(data)) return ("data.frame")
   if (is.character(data))  return ("character")
@@ -291,17 +293,32 @@ validate_dtype <- function(data, dtype = "auto") {
                         "uchar", "ushort", "uint", "ulong", "ullong" )
   
   dtype <- match.arg(tolower(dtype), supported_dtypes)
-  # If the user specified an exact type, use it.
+  
+  # --- Validation for non-finite values ---
+  # If NA/NaN/Inf are present, we must use a float type to represent them.
+  if (any(!is.finite(data))) {
+    if (dtype == "auto") {
+      return("double") # Default to double for safety.
+    }
+    else if (dtype %in% c("float", "double", "float16", "float32", "float64")) {
+      return(dtype)
+    }
+    else {
+      stop("Data contains NA, NaN, or Inf, which can only be stored as a ",
+          "floating-point type (e.g., 'double' or 'float64'). ",
+          "The specified dtype '", dtype, "' is not supported for these values.",
+           call. = FALSE)
+    }
+  }
+  
+  # If the user specified an exact type and the data is finite, use it.
   if (dtype != "auto") return(dtype)
   
-  # --- Automatic dtype selection logic ---
-  # NA, NaN, Inf, or fractional components require double data type.
-  # If data is empty, it has no non-finite values.
+  # --- Automatic dtype selection logic (for finite data) ---
+  # If data is empty, default to double.
   if (length(data) == 0) return("double")
     
-  if (any(!is.finite(data)) || (is.double(data) && any(data %% 1 != 0))) {
-    return("double")
-  }
+  if (is.double(data) && any(data %% 1 != 0)) return("double")
   
   # It's integer data. Find the range.
   val_range <- range(data)

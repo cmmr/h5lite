@@ -59,13 +59,15 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
       mem_type_id = H5Tcreate(H5T_OPAQUE, 1);
       el_size = sizeof(unsigned char);
       must_close_mem_type = 1;
-    } else if (strcmp(dtype_str, "factor") == 0) {
+    }
+    else if (strcmp(dtype_str, "factor") == 0) {
       /* Use ENUM memory type for factor data to match file type. */
       /* We recreate the enum type definition from the R factor. */
       mem_type_id = get_file_type("factor", data);
       el_size = sizeof(int);
       must_close_mem_type = 1;
-    } else { // Numeric/Logical
+    }
+    else { // Numeric/Logical
       mem_type_id = get_mem_type(data);
       /* Determine element size and if the memory type needs to be closed. */
       if (TYPEOF(data) == REALSXP) el_size = sizeof(double);
@@ -74,7 +76,6 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
         must_close_mem_type = 1; // We created this type, so we must close it
       }
       else el_size = sizeof(int);
-      // must_close_mem_type is already 0 for others
     }
 
     /* Allocate a C buffer and transpose the R data into it. */
@@ -86,6 +87,34 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
 
     /* Transpose from R's column-major to C's row-major order. */
     h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0);
+
+    /* --- Special Handling for Integer/Logical to Double Promotion --- */
+    /* If we are writing an integer/logical vector to a float/double file type,
+     * we must manually convert NA_INTEGER to R_NaReal (double NA). A direct
+     * write with mismatched types will just cast INT_MIN to a double.
+     * This must be done AFTER transposition.
+     */
+    int promote_to_double = 0;
+    if (TYPEOF(data) == INTSXP || TYPEOF(data) == LGLSXP) {
+      if (strcmp(dtype_str, "double") == 0 || strcmp(dtype_str, "float64") == 0 ||
+          strcmp(dtype_str, "float") == 0  || strcmp(dtype_str, "float32") == 0 ||
+          strcmp(dtype_str, "float16") == 0) {
+        promote_to_double = 1;
+      }
+    }
+    if (promote_to_double) {
+      int *int_data = (int *)c_buffer;
+      double *double_buffer = (double *)malloc(total_elements * sizeof(double));
+      if (!double_buffer) { free(c_buffer); error("Memory allocation failed for double conversion buffer"); }
+
+      for(hsize_t i = 0; i < total_elements; i++) {
+        double_buffer[i] = (int_data[i] == NA_INTEGER) ? R_NaReal : (double)int_data[i];
+      }
+      
+      status = write_buffer_to_object(obj_id, H5T_NATIVE_DOUBLE, double_buffer);
+      free(double_buffer); free(c_buffer);
+      return status;
+    }
 
     status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
 

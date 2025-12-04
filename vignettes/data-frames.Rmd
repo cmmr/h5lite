@@ -71,7 +71,18 @@ str(read_df)
 
 Let's verify the round-trip by manually converting the original `data.frame` to match the expected output.
 
-```{r verify_df}
+```{r verify_df, echo=FALSE}
+# The read_df has numeric columns for integer and logical, so we must
+# convert the original data.frame's columns to match before comparing.
+my_df_cmp <- my_df
+my_df_cmp$trial <- as.numeric(my_df_cmp$trial)
+my_df_cmp$pass_qc <- as.numeric(my_df_cmp$pass_qc)
+
+all.equal(read_df, my_df_cmp)
+```
+
+```{r verify_df_code, eval=FALSE}
+# To verify the round-trip, convert integer/logical columns to numeric
 my_df_cmp <- my_df
 my_df_cmp$trial <- as.numeric(my_df_cmp$trial)
 my_df_cmp$pass_qc <- as.numeric(my_df_cmp$pass_qc)

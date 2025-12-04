@@ -26,10 +26,10 @@ test_that("data.frame as dataset: basic round-trip works", {
   df_read <- h5_read(file_path, "df_standard")
 
   expect_s3_class(df_read, "data.frame")
-  # Logicals are read back as doubles, which is expected.
+  # Logicals and integers are read back as doubles, which is expected for safety.
   # We compare after converting the column to numeric.
   df_standard_cmp <- df_standard
-  df_standard_cmp$col_logical <- as.numeric(df_standard_cmp$col_logical)
+  df_standard_cmp$col_logical <- as.numeric(df_standard_cmp$col_logical) # TRUE -> 1, FALSE -> 0
   expect_equal(df_read, df_standard_cmp)
 })
 
@@ -44,8 +44,8 @@ test_that("data.frame as dataset: round-trip with attributes works", {
   h5_write(file_path, "df_with_attrs", df_with_attrs, attrs = TRUE)
   df_read <- h5_read(file_path, "df_with_attrs", attrs = TRUE)
 
-  # Convert logical to double for comparison
-  df_with_attrs$col_logical <- as.numeric(df_with_attrs$col_logical)
+  # Convert logical and integer columns to double for comparison
+  df_with_attrs$col_logical <- as.numeric(df_with_attrs$col_logical) 
   expect_equal(df_read, df_with_attrs)
 })
 
@@ -89,7 +89,7 @@ test_that("data.frame as attribute: round-trip works", {
   df_attr_read <- h5_read_attr(file_path, "my_data", "df_attr")
 
   df_standard_cmp <- df_standard
-  df_standard_cmp$col_logical <- as.numeric(df_standard_cmp$col_logical)
+  df_standard_cmp$col_logical <- as.numeric(df_standard_cmp$col_logical) # Convert for comparison
   expect_equal(df_attr_read, df_standard_cmp)
 
   # --- Zero-row data.frame attribute ---

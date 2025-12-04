@@ -104,9 +104,14 @@ dependent and may have different sizes on different machines. For maximum file
 portability, it is recommended to use types with explicit bit-widths (e.g., \code{"int32"}).
 
 For non-numeric data (\code{character}, \code{complex}, \code{factor}, \code{raw}, and \code{logical}), the
-storage type is determined automatically and \strong{cannot be changed} by the \code{dtype}
-argument. R \code{logical} vectors are stored as 8-bit unsigned integers (\code{uint8}),
-as HDF5 does not have a native boolean datatype.
+storage type is determined automatically. For \code{logical} vectors, \code{h5lite}
+follows the same rules as for integer vectors:
+\itemize{
+\item If the vector contains no \code{NA} values, it is saved using an efficient integer
+type (e.g., \code{uint8}, where \code{FALSE} is 0 and \code{TRUE} is 1).
+\item If the vector contains any \code{NA} values, it is automatically promoted and
+written as a \code{float64} dataset to correctly preserve \code{NA}.
+}
 }
 
 \section{Attribute Round-tripping}{
