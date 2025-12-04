@@ -264,6 +264,15 @@ hid_t get_file_type(const char *dtype, SEXP data) {
       error("dtype 'factor' requires factor data input"); // # nocov
     }
     
+    /* Check for NA values which are not supported for Enums */
+    int *data_ptr = INTEGER(data);
+    R_xlen_t n = XLENGTH(data);
+    for (R_xlen_t i = 0; i < n; i++) {
+      if (data_ptr[i] == NA_INTEGER) {
+        error("Factors with NA values cannot be written to HDF5 Enum types. Convert to character vector first.");
+      }
+    }
+    
     SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
     R_xlen_t n_levels = XLENGTH(levels);
     

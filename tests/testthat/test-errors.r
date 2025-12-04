@@ -40,7 +40,7 @@ test_that("Delete functions handle errors and warnings correctly", {
 
 test_that("Write functions validate inputs", {
 
-    file_path <- tempfile(fileext = ".h5")
+  file_path <- tempfile(fileext = ".h5")
   on.exit(unlink(file_path), add = TRUE)
 
   # h5_write requires a list to have named elements
