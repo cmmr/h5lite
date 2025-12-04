@@ -27,7 +27,7 @@ The `data.frame` is R's primary data structure for tabular data, containing colu
 
 This vignette explains how `data.frame` objects are written and read, and provides technical details on the underlying HDF5 implementation.
 
-For details on other data structures, see `vignette("atomic-vectors", package = "h5lite")` and `vignette("matrices", package = "h5lite")`.
+For details on other data structures, see `vignette("atomic-vectors")` and `vignette("matrices")`.
 
 ## 1. Writing and Reading Data Frames
 

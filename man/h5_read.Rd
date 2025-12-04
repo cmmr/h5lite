@@ -89,6 +89,6 @@ unlink(file)
 }
 \seealso{
 \code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}},
-\code{vignette("data-organization", package = "h5lite")} for reading lists,
-\code{vignette("attributes-in-depth", package = "h5lite")} for the \code{attrs} argument.
+\code{vignette("data-organization")} for reading lists,
+\code{vignette("attributes-in-depth")} for the \code{attrs} argument.
 }

@@ -39,8 +39,8 @@
 #'   or `NULL` if the object has a null dataspace.
 #' 
 #' @seealso [h5_read_attr()], [h5_write()], [h5_ls()],
-#'   `vignette("data-organization", package = "h5lite")` for reading lists,
-#'   `vignette("attributes-in-depth", package = "h5lite")` for the `attrs` argument.
+#'   `vignette("data-organization")` for reading lists,
+#'   `vignette("attributes-in-depth")` for the `attrs` argument.
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

@@ -52,7 +52,7 @@
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
 #' @seealso [h5_write()], [h5_read_attr()],
-#'   `vignette("attributes-in-depth", package = "h5lite")`
+#'   `vignette("attributes-in-depth")`
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

@@ -31,7 +31,7 @@ This vignette explores:
 *   The important detail of alphabetical ordering.
 *   How to manually manage the file structure using `h5lite`'s organizational functions.
 
-For an introduction to writing data, see `vignette("h5lite", package = "h5lite")`.
+For an introduction to writing data, see `vignette("h5lite")`.
 
 ## 1. Recursive Writing with Lists
 

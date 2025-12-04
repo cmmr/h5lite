@@ -91,11 +91,11 @@
 #' 
 #' @return Invisibly returns `file`. This function is called for its side effects.
 #' @seealso [h5_read()], [h5_write_attr()],
-#'   `vignette("atomic-vectors", package = "h5lite")`,
-#'   `vignette("matrices", package = "h5lite")`,
-#'   `vignette("data-frames", package = "h5lite")`,
-#'   `vignette("data-organization", package = "h5lite")`,
-#'   `vignette("attributes-in-depth", package = "h5lite")`
+#'   `vignette("atomic-vectors")`,
+#'   `vignette("matrices")`,
+#'   `vignette("data-frames")`,
+#'   `vignette("data-organization")`,
+#'   `vignette("attributes-in-depth")`
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")

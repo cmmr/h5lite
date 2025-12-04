@@ -86,5 +86,5 @@ unlink(file)
 }
 \seealso{
 \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_read_attr]{h5_read_attr()}},
-\code{vignette("attributes-in-depth", package = "h5lite")}
+\code{vignette("attributes-in-depth")}
 }

@@ -158,9 +158,9 @@ unlink(file)
 }
 \seealso{
 \code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}},
-\code{vignette("atomic-vectors", package = "h5lite")},
-\code{vignette("matrices", package = "h5lite")},
-\code{vignette("data-frames", package = "h5lite")},
-\code{vignette("data-organization", package = "h5lite")},
-\code{vignette("attributes-in-depth", package = "h5lite")}
+\code{vignette("atomic-vectors")},
+\code{vignette("matrices")},
+\code{vignette("data-frames")},
+\code{vignette("data-organization")},
+\code{vignette("attributes-in-depth")}
 }

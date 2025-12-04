@@ -33,7 +33,7 @@ This vignette provides a deep dive into working with attributes in `h5lite`, cov
 *   The powerful `attrs` argument for round-tripping R object attributes.
 *   Important limitations and special cases.
 
-For an introduction to writing datasets, see `vignette("h5lite", package = "h5lite")`.
+For an introduction to writing datasets, see `vignette("h5lite")`.
 
 ## Basic Attribute I/O
 
@@ -124,7 +124,7 @@ h5_write(file, "my_vec_list_attr", my_vec, attrs = TRUE)
 
 R stores the `dimnames` of a matrix or array as a `list` attribute. As explained above, `h5lite` **cannot** write list-like attributes. Attempting to write a named matrix with `attrs = TRUE` will fail.
 
-See `vignette("matrices", package = "h5lite")` for more details on this specific case.
+See `vignette("matrices")` for more details on this specific case.
 
 ```{r dimnames_error, error=TRUE}
 named_matrix <- matrix(1:4, 2, dimnames = list(c("r1", "r2"), c("c1", "c2")))
@@ -137,7 +137,7 @@ h5_write(file, "named_matrix", named_matrix, attrs = TRUE)
 
 #### Data Frames:
 
-Unlike matrices, the attributes of a `data.frame` can be safely round-tripped with `h5lite`. This is because its key metadata is stored in a format that `h5lite` can handle. See `vignette("data-frames", package = "h5lite")` for more on working with data frames.
+Unlike matrices, the attributes of a `data.frame` can be safely round-tripped with `h5lite`. This is because its key metadata is stored in a format that `h5lite` can handle. See `vignette("data-frames")` for more on working with data frames.
 
 - The column names are stored in the `names` attribute, which is a character vector.
 - The row names are stored in the `row.names` attribute, which is either a character or integer vector.
