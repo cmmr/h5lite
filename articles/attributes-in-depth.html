@@ -91,7 +91,7 @@ data.</p>
 <code>attrs</code> argument for round-tripping R object attributes. *
 Important limitations and special cases.</p>
 <p>For an introduction to writing datasets, see
-<code><a href="../articles/h5lite.html">vignette("h5lite", package = "h5lite")</a></code>.</p>
+<code><a href="../articles/h5lite.html">vignette("h5lite")</a></code>.</p>
 </div>
 <div class="section level2">
 <h2 id="basic-attribute-io">Basic Attribute I/O<a class="anchor" aria-label="anchor" href="#basic-attribute-io"></a>
@@ -203,8 +203,8 @@ will result in an error.</p>
 <code>list</code> attribute. As explained above, <code>h5lite</code>
 <strong>cannot</strong> write list-like attributes. Attempting to write
 a named matrix with <code>attrs = TRUE</code> will fail.</p>
-<p>See <code><a href="../articles/matrices.html">vignette("matrices", package = "h5lite")</a></code> for more
-details on this specific case.</p>
+<p>See <code><a href="../articles/matrices.html">vignette("matrices")</a></code> for more details on this
+specific case.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">named_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span>, dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"r1"</span>, <span class="st">"r2"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"c1"</span>, <span class="st">"c2"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -220,8 +220,8 @@ which will save the matrix data but discard the names.</p>
 <p>Unlike matrices, the attributes of a <code>data.frame</code> can be
 safely round-tripped with <code>h5lite</code>. This is because its key
 metadata is stored in a format that <code>h5lite</code> can handle. See
-<code><a href="../articles/data-frames.html">vignette("data-frames", package = "h5lite")</a></code> for more on
-working with data frames.</p>
+<code><a href="../articles/data-frames.html">vignette("data-frames")</a></code> for more on working with data
+frames.</p>
 <ul>
 <li>The column names are stored in the <code>names</code> attribute,
 which is a character vector.</li>

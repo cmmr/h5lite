@@ -74,9 +74,9 @@ complex, structured data in a single command.
 [`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
 [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
-[`vignette("data-organization", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-organization.md)
+[`vignette("data-organization")`](https://cmmr.github.io/h5lite/articles/data-organization.md)
 for reading lists,
-[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 for the `attrs` argument.
 
 ## Examples

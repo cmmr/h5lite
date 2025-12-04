@@ -91,7 +91,7 @@ Otherwise, dimensions are inferred automatically.
 
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
 [`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
-[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 
 ## Examples
 

@@ -22,7 +22,7 @@ argument for round-tripping R object attributes. \* Important
 limitations and special cases.
 
 For an introduction to writing datasets, see
-[`vignette("h5lite", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
+[`vignette("h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
 
 ## Basic Attribute I/O
 
@@ -144,7 +144,7 @@ explained above, `h5lite` **cannot** write list-like attributes.
 Attempting to write a named matrix with `attrs = TRUE` will fail.
 
 See
-[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md)
+[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md)
 for more details on this specific case.
 
 ``` r
@@ -164,7 +164,7 @@ discard the names.
 Unlike matrices, the attributes of a `data.frame` can be safely
 round-tripped with `h5lite`. This is because its key metadata is stored
 in a format that `h5lite` can handle. See
-[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md)
+[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md)
 for more on working with data frames.
 
 - The column names are stored in the `names` attribute, which is a

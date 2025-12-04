@@ -1,4 +1,4 @@
-# Getting Started with h5lite
+# Get Started with h5lite
 
 ``` r
 library(h5lite)
@@ -124,7 +124,7 @@ file.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpBqwJfJ/file24ea482b511d.h5
+#> Listing contents of: /tmp/RtmpRBho2I/file24db258ffb9a.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name

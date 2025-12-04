@@ -23,7 +23,7 @@ of alphabetical ordering. \* How to manually manage the file structure
 using `h5lite`’s organizational functions.
 
 For an introduction to writing data, see
-[`vignette("h5lite", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
+[`vignette("h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
 
 ## 1. Recursive Writing with Lists
 
@@ -59,7 +59,7 @@ the hierarchy that was created.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpXbc6RC/file24b2f7a9168.h5
+#> Listing contents of: /tmp/RtmpBOq920/file24a3561cd18.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -154,7 +154,7 @@ a fast metadata operation that does not rewrite any data.
 h5_move(file, from = "session_1", to = "/archive/2024/run_01/data")
 
 h5_str(file)
-#> Listing contents of: /tmp/RtmpXbc6RC/file24b2f7a9168.h5
+#> Listing contents of: /tmp/RtmpBOq920/file24a3561cd18.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name

@@ -146,11 +146,11 @@ to write an object that has `dimnames` (e.g., a named matrix) with
 
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
 [`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
-[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md),
-[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md),
-[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md),
-[`vignette("data-organization", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-organization.md),
-[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md),
+[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md),
+[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md),
+[`vignette("data-organization")`](https://cmmr.github.io/h5lite/articles/data-organization.md),
+[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 
 ## Examples
 

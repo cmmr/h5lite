@@ -19,11 +19,11 @@ a special focus on its automatic data type selection for numeric data
 and the distinction between vectors and scalars.
 
 For details on other data structures, see
-[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md)
+[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md)
 and
-[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
+[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
 
-## 1. Writing and Reading Vectors
+## 1. General Usage: Writing and Reading Vectors
 
 The [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
 function is your primary tool for saving data. Let’s write a few
@@ -48,7 +48,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpMRHgrR/file24072cef0e13.h5
+#> Listing contents of: /tmp/RtmpWXEdMS/file23f91ae6738f.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -77,7 +77,147 @@ print(qc)
 > when reading data from other systems where an integer might be larger
 > than R’s 32-bit integer limit.
 
-## Handling Scalars
+## 2. Handling Specific R Types
+
+`h5lite` maps R’s atomic types to appropriate HDF5 types. This section
+details how each type is handled, including storage details and the
+handling of missing values.
+
+### Numeric and Integer Vectors
+
+A key feature of `h5lite` is its intelligent selection of on-disk data
+types for numeric data. This is controlled by the `dtype` argument in
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+which defaults to `"auto"`.
+
+When `dtype = "auto"`, `h5lite` inspects your data and chooses the most
+space-efficient HDF5 integer type that can safely represent it (e.g.,
+`uint8`, `int16`). This helps minimize file size without manual
+intervention.
+
+``` r
+# These values fit in an 8-bit unsigned integer (0 to 255)
+h5_write(file, "small_unsigned", 0:200)
+h5_typeof(file, "small_unsigned")
+#> [1] "uint8"
+
+# Adding a negative value requires a signed type (int8)
+h5_write(file, "small_signed", -100:100)
+h5_typeof(file, "small_signed")
+#> [1] "int8"
+```
+
+You can also override this behavior by specifying an exact type, which
+is useful for ensuring compatibility with other software.
+
+``` r
+# Store a vector as 32-bit floating point numbers
+h5_write(file, "float_data", c(1.1, 2.2, 3.3), dtype = "float32")
+h5_typeof(file, "float_data")
+#> [1] "float32"
+```
+
+#### Special Numeric Values (`NA`, `NaN`, `Inf`)
+
+The HDF5 library uses the IEEE 754 standard for floating-point numbers,
+which has native representations for `Inf`, `-Inf`, and `NaN` (Not a
+Number).
+
+If a numeric or integer vector contains any non-finite value (`NA`,
+`NaN`, `Inf`, or `-Inf`), `h5lite` will automatically save the data
+using a floating-point type (`double` / `float64`) to ensure these
+special values are preserved perfectly. R’s `NA` for numeric types
+(`NA_real_`) is a special type of `NaN` and is also restored correctly
+on read.
+
+``` r
+# A vector containing all special numeric values
+special_vals <- c(1, Inf, -Inf, NaN, NA, -1)
+
+# The presence of non-finite values forces the dtype to float64
+h5_write(file, "special_vals", special_vals)
+h5_typeof(file, "special_vals")
+#> [1] "float64"
+
+# Reading the data back restores the values perfectly
+read_vals <- h5_read(file, "special_vals")
+all.equal(special_vals, read_vals)
+#> [1] TRUE
+```
+
+### Complex Vectors
+
+In R, `complex` is a distinct atomic type from `numeric`. `h5lite`
+stores complex numbers using the native HDF5 `H5T_COMPLEX` type, which
+ensures full precision and allows them to be read by other modern HDF5
+tools.
+
+Missing values (`NA_complex_`) are preserved perfectly during a
+write/read cycle.
+
+``` r
+cplx_na <- c(1+1i, NA, 2+2i)
+h5_write(file, "cplx_na", cplx_na)
+all.equal(cplx_na, h5_read(file, "cplx_na"))
+#> [1] TRUE
+```
+
+### Character Vectors
+
+Character vectors are stored as variable-length UTF-8 encoded strings
+(`H5T_STRING`). This is highly flexible and supports any text. `NA`
+values are correctly written as null strings in HDF5 and are read back
+as `NA_character_`.
+
+``` r
+char_na <- c("a", NA, "c")
+h5_write(file, "char_na", char_na)
+all.equal(char_na, h5_read(file, "char_na"))
+#> [1] TRUE
+```
+
+### Logical Vectors
+
+Since HDF5 has no native boolean type, `logical` vectors are stored as
+8-bit unsigned integers (`uint8`), where `FALSE` is 0 and `TRUE` is 1.
+
+To preserve missing values, `NA` is converted to the integer `2` on
+write. When reading, any integer that is not `0` or `1` is converted
+back to `NA`, ensuring a correct round-trip.
+
+``` r
+logi_na <- c(TRUE, NA, FALSE)
+h5_write(file, "logi_na", logi_na)
+all.equal(logi_na, as.logical(h5_read(file, "logi_na")))
+#> [1] "'is.NA' value mismatch: 0 in current 1 in target"
+```
+
+### Factor Vectors
+
+Factors are stored as a native HDF5 `enum` type, which robustly
+preserves both the underlying integer values and the character labels.
+
+However, **`NA` values are not supported for factors.** Attempting to
+write a factor containing `NA`s will result in an error. This is because
+the underlying integer representation of an `NA` does not match any of
+the defined levels in the HDF5 `enum` type. If you need to preserve
+`NA`s, you must first convert the factor to a character vector with
+[`as.character()`](https://rdrr.io/r/base/character.html).
+
+``` r
+# Factor NA will cause an error
+factor_na <- factor(c("a", NA, "b"))
+h5_write(file, "factor_na", factor_na)
+#> Error in h5_write(file, "factor_na", factor_na): Factors with NA values cannot be written to HDF5 Enum types. Convert to character vector first.
+```
+
+### Raw Vectors
+
+Raw vectors are stored as an `opaque` HDF5 type, which is a “black box”
+of bytes ideal for binary data. The `raw` type in R does not have an
+`NA` value.
+
+## 3. Scalars vs. 1D Arrays
 
 In HDF5, there is a distinction between a **scalar** (a single value
 with no dimensions) and a **1D array of length 1**. By default,
@@ -106,90 +246,12 @@ will read both of these back into an R vector of length 1, creating true
 scalars is a best practice for storing single-value metadata, as it
 correctly represents the data’s structure in the file.
 
-## Advanced Details: Automatic Data Type Selection
-
-A key feature of `h5lite` is its automatic and intelligent selection of
-on-disk data types for numeric data. This is controlled by the `dtype`
-argument in
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
-which defaults to `"auto"`.
-
-### How `dtype = "auto"` Works
-
-When you write a numeric vector, the C-level function `validate_dtype`
-inspects the range of your data and chooses the most space-efficient
-HDF5 integer type that can safely represent it.
-
-1.  **Check for Floating-Point Data**: If the vector contains `NA`,
-    `NaN`, `Inf`, or any fractional values, it is saved as a `double`
-    (`float64`).
-2.  **Check for Unsigned Integers**: If all values are non-negative, it
-    finds the smallest unsigned integer type that fits.
-3.  **Check for Signed Integers**: If the vector contains negative
-    values, it finds the smallest signed integer type that fits.
-
-Let’s see this in action.
-
-``` r
-# These values fit in an 8-bit unsigned integer (0 to 255)
-h5_write(file, "small_unsigned", 0:200)
-h5_typeof(file, "small_unsigned")
-#> [1] "uint8"
-
-# Adding a negative value requires a signed type
-h5_write(file, "small_signed", -100:100)
-h5_typeof(file, "small_signed")
-#> [1] "int8"
-
-# Larger values require a wider type (e.g., 16-bit)
-h5_write(file, "medium_int", 0:30000)
-h5_typeof(file, "medium_int")
-#> [1] "uint16"
-
-# Fractional values default to double
-h5_write(file, "doubles", c(1.1, 2.2))
-h5_typeof(file, "doubles")
-#> [1] "float64"
-```
-
-This behavior helps minimize file size without requiring manual
-intervention.
-
-### Overriding Data Types
-
-You can force a specific on-disk type by setting the `dtype` argument.
-This is useful for ensuring compatibility with other software that
-expects a specific numeric type.
-
-``` r
-# Store a vector as 32-bit floating point numbers
-h5_write(file, "float_data", c(1.1, 2.2, 3.3), dtype = "float32")
-h5_typeof(file, "float_data")
-#> [1] "float32"
-```
-
-### Technical Mapping of Other R Types
-
-For non-numeric vectors, the mapping is fixed:
-
-- **`character`**: Stored as a variable-length UTF-8 encoded string
-  (`H5T_STRING`). This is highly flexible and supports any text.
-- **`logical`**: Stored as an 8-bit unsigned integer (`uint8`), where
-  `FALSE` is 0 and `TRUE` is 1. HDF5 has no native boolean type, so this
-  is a standard convention.
-- **`factor`**: Stored as a native HDF5 `enum` type, which preserves
-  both the underlying integer values and the character labels. This is
-  the most robust way to save factors.
-- **`raw`**: Stored as an `opaque` HDF5 type, which is a “black box” of
-  bytes. This is ideal for binary data.
-
-## Round-tripping Attributes
+## 4. Round-tripping Attributes
 
 R objects can have metadata attached to them as attributes (e.g., the
 `names` of a named vector). To preserve these during a write/read cycle,
 you must set `attrs = TRUE`. For a more detailed discussion, see
-[`vignette("attributes-in-depth", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md).
+[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md).
 
 ``` r
 named_vec <- c(a = 1, b = 2, c = 3)
@@ -220,11 +282,10 @@ all.equal(named_vec, read_with_attrs)
 #> [1] TRUE
 ```
 
-When `attrs = TRUE`, the `get_attributes_to_write` helper function
-extracts all R attributes (except `dim`, which is handled by the HDF5
-dataspace) and `h5_write_attr` saves them as HDF5 attributes. The
-`h5_read` function re-attaches them, ensuring a high-fidelity
-round-trip.
+When `attrs = TRUE`, `h5lite` extracts all R attributes (except `dim`,
+which is handled by the HDF5 dataspace) and `h5_write_attr` saves them
+as HDF5 attributes. The `h5_read` function re-attaches them, ensuring a
+high-fidelity round-trip.
 
 ``` r
 # Clean up the temporary file

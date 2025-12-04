@@ -20,9 +20,9 @@ limitation and the automatic handling of row-major vs. column-major data
 ordering.
 
 For details on other data structures, see
-[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
+[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
 and
-[`vignette("data-frames", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
+[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
 
 ## 1. Writing and Reading Matrices
 

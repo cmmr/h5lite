@@ -18,9 +18,9 @@ This vignette explains how `data.frame` objects are written and read,
 and provides technical details on the underlying HDF5 implementation.
 
 For details on other data structures, see
-[`vignette("atomic-vectors", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
+[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
 and
-[`vignette("matrices", package = "h5lite")`](https://cmmr.github.io/h5lite/articles/matrices.md).
+[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md).
 
 ## 1. Writing and Reading Data Frames
 
@@ -47,7 +47,7 @@ a `compound` HDF5 type.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpIxzAzC/file247a75595fe0.h5
+#> Listing contents of: /tmp/RtmpzZeVtZ/file246b4c8d2675.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
