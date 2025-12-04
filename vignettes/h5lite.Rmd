@@ -1,5 +1,5 @@
 ---
-title: "Getting Started with h5lite"
+title: "Get Started with h5lite"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Getting Started with h5lite}

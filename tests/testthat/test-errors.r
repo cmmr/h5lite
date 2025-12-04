@@ -51,6 +51,10 @@ test_that("Write functions validate inputs", {
   attr(d_with_attrs, "my_info") <- "info"
   class(d_with_attrs) <- "special"
   expect_error(h5_write(file_path, "dset_mixed", d_with_attrs, attrs = c("my_info", "-class")))
+
+  # h5_write with a factor containing NA
+  factor_na <- factor(c("a", NA, "b"))
+  expect_error(h5_write(file_path, "factor_na", factor_na))
 })
 
 test_that("Info functions error on non-existent files", {
