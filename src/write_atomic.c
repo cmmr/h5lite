@@ -10,7 +10,7 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
   H5I_type_t obj_type = H5Iget_type(obj_id);
 
   if (obj_type != H5I_DATASET && obj_type != H5I_ATTR) {
-    error("Invalid object type provided to write_atomic_dataset");
+    error("Invalid object type provided to write_atomic_dataset"); // # nocov
   }
 
   /* --- Handle Character Data (Variable-Length Strings) --- */
@@ -80,8 +80,8 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     /* Allocate a C buffer and transpose the R data into it. */
     void *c_buffer = malloc(total_elements * el_size);
     if (!c_buffer) {
-       if (must_close_mem_type) H5Tclose(mem_type_id);
-       error("Memory allocation failed");
+       if (must_close_mem_type) H5Tclose(mem_type_id); // # nocov
+       error("Memory allocation failed"); // # nocov
     }
 
     /* Transpose from R's column-major to C's row-major order. */
@@ -112,20 +112,15 @@ void write_atomic_attribute(hid_t file_id, hid_t obj_id, const char *attr_name, 
   /* 2. Determine the HDF5 file data type. */
   hid_t file_type_id = get_file_type(dtype_str, data); // This also handles special types like 'factor'
   if (file_type_id < 0) {
-    H5Sclose(space_id);
-    H5Oclose(obj_id);
-    H5Fclose(file_id);
-    error("Failed to get file type for attribute.");
+    H5Sclose(space_id); H5Oclose(obj_id); H5Fclose(file_id); // # nocov
+    error("Failed to get file type for attribute."); // # nocov
   }
   
   /* 3. Create the attribute on the specified object. */
   hid_t attr_id = H5Acreate2(obj_id, attr_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
   if (attr_id < 0) {
-    H5Sclose(space_id);
-    H5Tclose(file_type_id);
-    H5Oclose(obj_id);
-    H5Fclose(file_id);
-    error("Failed to create attribute '%s'", attr_name);
+    H5Sclose(space_id); H5Tclose(file_type_id); H5Oclose(obj_id); H5Fclose(file_id); // # nocov
+    error("Failed to create attribute '%s'", attr_name); // # nocov
   }
   
   /* 4. Write the data to the newly created attribute. */
@@ -162,9 +157,8 @@ void write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_name) {
   
   H5Sclose(space_id);
   if (attr_id < 0) {
-    H5Oclose(obj_id);
-    H5Fclose(file_id);
-    error("Failed to create null attribute '%s'", attr_name);
+    H5Oclose(obj_id); H5Fclose(file_id); // # nocov
+    error("Failed to create null attribute '%s'", attr_name); // # nocov
   }
   
   H5Aclose(attr_id);

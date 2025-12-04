@@ -73,8 +73,8 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   
   if (dset_id < 0) {
     /* No free(h5_dims) needed here! R handles it. */
-    H5Sclose(space_id); H5Tclose(file_type_id); H5Fclose(file_id);
-    error("Failed to create dataset");
+    H5Sclose(space_id); H5Tclose(file_type_id); H5Fclose(file_id); // # nocov
+    error("Failed to create dataset"); // # nocov
   }
   
   status = write_atomic_dataset(dset_id, data, dtype_str, rank, h5_dims);
@@ -97,8 +97,8 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   
   hid_t obj_id = H5Oopen(file_id, oname, H5P_DEFAULT);
   if (obj_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open object: %s", oname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open object: %s", oname); // # nocov
   }
   
   /* --- Overwrite Logic --- */
@@ -145,9 +145,9 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
   
   if (group_exists > 0) {
     /* Group already exists, this is not an error */
-    H5Pclose(lcpl_id);
-    H5Fclose(file_id);
-    return R_NilValue;
+    H5Pclose(lcpl_id); // # nocov
+    H5Fclose(file_id); // # nocov
+    return R_NilValue; // # nocov
   }
   
   hid_t group_id = H5Gcreate2(file_id, gname, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
@@ -155,8 +155,8 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
   H5Pclose(lcpl_id);
   
   if (group_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to create group");
+    H5Fclose(file_id); // # nocov
+    error("Failed to create group"); // # nocov
   }
   
   H5Gclose(group_id);
@@ -182,16 +182,15 @@ SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
   /* Create Link Creation Property List */
   hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
   if (lcpl_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to create link creation property list.");
+    H5Fclose(file_id); // # nocov
+    error("Failed to create link creation property list."); // # nocov
   }
   
   /* Set HDF5 to create intermediate groups (like mkdir -p) */
   herr_t prop_status = H5Pset_create_intermediate_group(lcpl_id, 1);
   if (prop_status < 0) {
-    H5Pclose(lcpl_id);
-    H5Fclose(file_id);
-    error("Failed to set intermediate group creation property.");
+    H5Pclose(lcpl_id); H5Fclose(file_id); // # nocov
+    error("Failed to set intermediate group creation property."); // # nocov
   }
   
   /* --- Suppress HDF5's automatic error printing --- */

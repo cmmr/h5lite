@@ -33,8 +33,8 @@ SEXP C_h5_delete_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   hid_t obj_id = H5Oopen(file_id, oname, H5P_DEFAULT);
   if (obj_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open object: %s", oname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open object: %s", oname); // # nocov
   }
   
   herr_t status = H5Adelete(obj_id, aname);

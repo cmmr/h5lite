@@ -35,6 +35,21 @@ test_that("Create and Delete functions work correctly", {
   expect_equal(h5_ls_attr(file_path, "/g1"), character(0))
 })
 
+test_that("h5_create_file creates a new file", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # File should not exist initially
+  expect_false(file.exists(file_path))
+
+  h5_create_file(file_path)
+
+  # File should exist now
+  expect_true(file.exists(file_path))
+  # And it should be a valid HDF5 file
+  expect_true(h5_exists(file_path))
+})
+
 test_that("h5_move works for datasets, groups, and auto-creates parents", {
   file_path <- tempfile(fileext = ".h5")
   on.exit(unlink(file_path), add = TRUE)
@@ -82,9 +97,21 @@ test_that("h5_move works for datasets, groups, and auto-creates parents", {
   expect_true(h5_is_group(file_path, "/new/path"))
   expect_true(h5_is_group(file_path, "/new"))
   
-  # 6. Test error on moving non-existent object
+  # 6. Test error conditions
+  # Moving non-existent object
   expect_error(
     h5_move(file_path, "/does/not/exist", "/foo"),
     "Failed to move object"
   )
+  # Non-existent source file
+  expect_error(
+    h5_move("nonexistent.h5", "/a", "/b"),
+    "File does not exist"
+  )
+  # Invalid 'from' argument
+  expect_error(h5_move(file_path, from = c("a", "b"), to = "c"), "'from' must be a single string.")
+  expect_error(h5_move(file_path, from = 123, to = "c"), "'from' must be a single string.")
+  # Invalid 'to' argument
+  expect_error(h5_move(file_path, from = "a", to = c("b", "c")), "'to' must be a single string.")
+  expect_error(h5_move(file_path, from = "a", to = 123), "'to' must be a single string.")
 })

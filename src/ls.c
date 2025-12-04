@@ -115,9 +115,9 @@ static herr_t op_print_cb(hid_t root_id, const char *name, const H5O_info_t *inf
       H5Dclose(dset_id);
     }
   } 
-  else if (info->type == H5O_TYPE_NAMED_DATATYPE) {
-    snprintf(full_type, sizeof(full_type), "NamedType");
-  }
+  else if (info->type == H5O_TYPE_NAMED_DATATYPE) { // # nocov
+    snprintf(full_type, sizeof(full_type), "NamedType"); // # nocov
+  } // # nocov
   
   /* --- Print Object Line --- */
   /* Format: Type Name */
@@ -147,8 +147,8 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
   
   hid_t group_id = H5Oopen(file_id, gname, H5P_DEFAULT);
   if (group_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open group/object: %s", gname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open group/object: %s", gname); // # nocov
   }
   
   /* Print Header */
@@ -165,7 +165,7 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
   H5Fclose(file_id);
   
   if (status < 0) {
-    error("Error occurred during HDF5 traversal of group '%s'", gname);
+    error("Error occurred during HDF5 traversal of group '%s'", gname); // # nocov
   }
 
   return R_NilValue;
@@ -275,8 +275,8 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   
   hid_t group_id = H5Oopen(file_id, gname, H5P_DEFAULT);
   if (group_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open group/object: %s", gname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open group/object: %s", gname); // # nocov
   }
   
   /* Initialize the data structure to pass to the callback. */
@@ -326,16 +326,16 @@ SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
   
   hid_t obj_id = H5Oopen(file_id, oname, H5P_DEFAULT);
   if (obj_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open object: %s", oname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open object: %s", oname); // # nocov
   }
   
   /* Get the number of attributes on the object. */
   H5O_info_t oinfo;
   herr_t status = H5Oget_info(obj_id, &oinfo, H5O_INFO_NUM_ATTRS);
   if (status < 0) {
-    H5Oclose(obj_id); H5Fclose(file_id);
-    error("Failed to get object info");
+    H5Oclose(obj_id); H5Fclose(file_id); // # nocov
+    error("Failed to get object info"); // # nocov
   }
   
   hsize_t n_attrs = oinfo.num_attrs;

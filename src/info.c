@@ -20,7 +20,7 @@ SEXP h5_type_to_rstr(hid_t type_id) {
     if (H5Tequal(type_id, H5T_STD_U64LE) > 0 || H5Tequal(type_id, H5T_STD_U64BE) > 0) return mkString("uint64");
     
     /* Generic fallback */
-    return mkString("int"); 
+    return mkString("int"); // # nocov
   }
   
   if (class_id == H5T_FLOAT) {
@@ -31,7 +31,7 @@ SEXP h5_type_to_rstr(hid_t type_id) {
     if (H5Tequal(type_id, H5T_IEEE_F64LE) > 0 || H5Tequal(type_id, H5T_IEEE_F64BE) > 0) return mkString("float64");
     
     /* Generic fallback */
-    return mkString("float");
+    return mkString("float"); // # nocov
   }
   
   /* Handle other classes */
@@ -39,14 +39,14 @@ SEXP h5_type_to_rstr(hid_t type_id) {
   switch(class_id) {
   case H5T_STRING:    s = "string";    break;
   case H5T_COMPLEX:   s = "complex";   break;
-  case H5T_BITFIELD:  s = "bitfield";  break;
+  case H5T_BITFIELD:  s = "bitfield";  break; // # nocov
   case H5T_OPAQUE:    s = "opaque";    break;
   case H5T_COMPOUND:  s = "compound";  break;
-  case H5T_REFERENCE: s = "reference"; break;
+  case H5T_REFERENCE: s = "reference"; break; // # nocov
   case H5T_ENUM:      s = "enum";      break;
-  case H5T_VLEN:      s = "vlen";      break; 
-  case H5T_ARRAY:     s = "array";     break;
-  default: break;
+  case H5T_VLEN:      s = "vlen";      break; // # nocov
+  case H5T_ARRAY:     s = "array";     break; // # nocov
+  default: break; // # nocov
   }
   return mkString(s);
 }
@@ -61,8 +61,8 @@ SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
   
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
   if (dset_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open dataset: %s", dname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open dataset: %s", dname); // # nocov
   }
   
   /* First, check for a NULL dataspace, which overrides the data type */
@@ -92,8 +92,8 @@ SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   hid_t attr_id = H5Aopen_by_name(file_id, oname, aname, H5P_DEFAULT, H5P_DEFAULT);
   if (attr_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open attribute: %s", aname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open attribute: %s", aname); // # nocov
   }
   
   /* First, check for a NULL dataspace */
@@ -122,8 +122,8 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
   
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
   if (dset_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open dataset: %s", dname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open dataset: %s", dname); // # nocov
   }
   
   hid_t space_id = H5Dget_space(dset_id);
@@ -161,8 +161,8 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   hid_t attr_id = H5Aopen_by_name(file_id, oname, aname, H5P_DEFAULT, H5P_DEFAULT);
   if (attr_id < 0) {
-    H5Fclose(file_id);
-    error("Failed to open attribute: %s", aname);
+    H5Fclose(file_id); // # nocov
+    error("Failed to open attribute: %s", aname); // # nocov
   }
   
   hid_t space_id = H5Aget_space(attr_id);

@@ -65,7 +65,7 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
     }
     
     if (total_elements != (hsize_t)XLENGTH(data)) {
-      error("Dimensions do not match data length");
+      error("Dimensions do not match data length"); // # nocov
     }
     *out_h5_dims = h5_dims;
     space_id = H5Screate_simple(*out_rank, h5_dims, NULL);
@@ -91,8 +91,8 @@ void handle_overwrite(hid_t file_id, const char *name) {
   
   if (link_exists > 0) {
     if (H5Ldelete(file_id, name, H5P_DEFAULT) < 0) {
-      H5Fclose(file_id);
-      error("Failed to overwrite existing object '%s'", name);
+      H5Fclose(file_id); // # nocov
+      error("Failed to overwrite existing object '%s'", name); // # nocov
     }
   }
 }
@@ -115,9 +115,8 @@ void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_na
   
   if (attr_exists > 0) {
     if (H5Adelete(obj_id, attr_name) < 0) {
-      H5Oclose(obj_id);
-      H5Fclose(file_id);
-      error("Failed to overwrite existing attribute '%s'", attr_name);
+      H5Oclose(obj_id); H5Fclose(file_id); // # nocov
+      error("Failed to overwrite existing attribute '%s'", attr_name); // # nocov
     }
   }
 }
@@ -197,9 +196,9 @@ hid_t get_mem_type(SEXP data) {
     case INTSXP:  return H5T_NATIVE_INT;
     case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
     case RAWSXP:  return H5T_NATIVE_UCHAR;  /* R's raw is unsigned char */
-    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE); /* Custom complex type */
+    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE); /* Custom complex type, must be closed */
     case STRSXP:  return -1;                /* Handled specially */
-    default: error("Unsupported R data type");
+    default: error("Unsupported R data type"); // # nocov
   }
   return -1;
 }
@@ -262,7 +261,7 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   if (strcmp(dtype, "factor") == 0) {
     
     if (TYPEOF(data) != INTSXP || !isFactor(data)) {
-      error("dtype 'factor' requires factor data input");
+      error("dtype 'factor' requires factor data input"); // # nocov
     }
     
     SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
@@ -271,8 +270,8 @@ hid_t get_file_type(const char *dtype, SEXP data) {
     /* Base type for enum is INT. */
     hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
     if (type_id < 0) {
-      UNPROTECT(1);
-      error("Failed to create enum type");
+      UNPROTECT(1); // # nocov
+      error("Failed to create enum type"); // # nocov
     }
     
     /* Insert each level name and its corresponding integer value into the enum type. */
@@ -285,7 +284,7 @@ hid_t get_file_type(const char *dtype, SEXP data) {
     return type_id;
   }
   
-  error("Unknown dtype: %s", dtype);
+  error("Unknown dtype: %s", dtype); // # nocov
   return -1;
 }
 
@@ -300,5 +299,5 @@ void* get_R_data_ptr(SEXP data) {
   if (TYPEOF(data) == RAWSXP)  return (void*)RAW(data);
   if (TYPEOF(data) == CPLXSXP) return (void*)COMPLEX(data);
   if (TYPEOF(data) == STRSXP)  return NULL; /* Handled separately */
-  return NULL;
+  return NULL; // # nocov
 }

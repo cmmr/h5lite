@@ -310,7 +310,7 @@ validate_dtype <- function(data, dtype = "auto") {
   
   # R's doubles can precisely represent integers up to 2^53.
   # This is our effective upper bound for integer checks.
-  max_safe_int <- 2^53
+  max_safe_int <- 2^53 - 1
   
   if (min_val >= 0) {
     # Unsigned integers
