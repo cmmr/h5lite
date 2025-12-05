@@ -35,7 +35,7 @@ jobs:
 
       # --- Generate HDF5 File with R ---
       - name: Generate HDF5 Test Data
-        run: Rscript scripts/generate_h5.R
+        run: Rscript scripts/generate_h5.r
 
       # --- Setup Python Environment ---
       - uses: actions/setup-python@v5
