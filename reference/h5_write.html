@@ -70,11 +70,15 @@ and nested <code>list</code>s.</p>
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>The R object to write. Supported: <code>numeric</code>, <code>integer</code>, <code>complex</code>,
-<code>logical</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>matrix</code>, <code>data.frame</code>, <code>NULL</code>, and nested <code>list</code>s.</p></dd>
+<code>logical</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>matrix</code>, <code>data.frame</code>, <code>NULL</code>,
+and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-dtype">dtype<a class="anchor" aria-label="anchor" href="#arg-dtype"></a></dt>
-<dd><p>The target HDF5 data type. See details.</p></dd>
+<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code>, <code>"float16"</code>,
+<code>"float32"</code>, <code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code>, <code>"uint8"</code>,
+<code>"uint16"</code>, <code>"uint32"</code>, or <code>"uint64"</code>. The default, <code>"auto"</code>, selects the
+most space-efficient type for the data. See details below.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
@@ -144,24 +148,26 @@ by other HDF5 tools that support HDF5 version 2.0.0 or later.</p>
     <h2 id="data-type-selection-dtype-">Data Type Selection (<code>dtype</code>)<a class="anchor" aria-label="anchor" href="#data-type-selection-dtype-"></a></h2>
 
 
-<p>The <code>dtype</code> argument controls the on-disk storage type <strong>for numeric data only</strong>.</p>
+<p>The <code>dtype</code> argument controls the on-disk storage type and only applies to
+<code>integer</code>, <code>numeric</code>, and <code>logical</code> vectors. For all other data types
+(<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>), the storage type is determined
+automatically.</p>
 <p>If <code>dtype</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
-select the most space-efficient HDF5 type for numeric data that can safely
-represent the full range of values. For example, writing <code>1:100</code> will
-result in an 8-bit unsigned integer (<code>uint8</code>) dataset, which helps minimize
-file size.</p>
-<p>To override this behavior, you can specify an exact type. The input
-is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values for numeric data is:</p><ul><li><p><code>"auto"</code></p></li>
+select the most space-efficient HDF5 type based on the following rules:</p><ol><li><p>If the data contains fractional values (e.g., <code>1.5</code>), it is stored as
+<code>float64</code>.</p></li>
+<li><p>If the data contains <code>NA</code>, <code>NaN</code>, or <code>Inf</code>, it is stored using the
+smallest floating-point type (<code>float16</code>, <code>float32</code>, or <code>float64</code>) that
+can precisely represent all integer values in the vector.</p></li>
+<li><p>If the data contains only finite integers (this includes <code>logical</code>
+vectors, where <code>FALSE</code> is 0 and <code>TRUE</code> is 1), <code>h5lite</code> selects the
+smallest possible integer type (e.g., <code>uint8</code>, <code>int16</code>).</p></li>
+<li><p>If integer values exceed R's safe integer range (<code>+/- 2^53</code>), they are
+automatically stored as <code>float64</code> to preserve precision.</p></li>
+</ol><p>To override this automatic behavior, you can specify an exact type. The full
+list of supported values is:</p><ul><li><p><code>"auto"</code></p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
-</ul><p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, and <code>logical</code>), the
-storage type is determined automatically. For <code>logical</code> vectors, <code>h5lite</code>
-follows the same rules as for integer vectors:</p><ul><li><p>If the vector contains no <code>NA</code> values, it is saved using an efficient integer
-type (e.g., <code>uint8</code>, where <code>FALSE</code> is 0 and <code>TRUE</code> is 1).</p></li>
-<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted to a
-floating-point type (<code>float16</code>) to correctly preserve <code>NA</code>.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="attribute-round-tripping">Attribute Round-tripping<a class="anchor" aria-label="anchor" href="#attribute-round-tripping"></a></h2>

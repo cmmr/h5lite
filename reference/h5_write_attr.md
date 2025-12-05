@@ -29,25 +29,68 @@ h5_write_attr(file, name, attribute, data, dtype = "auto")
 
 - dtype:
 
-  The target HDF5 data type. Defaults to `typeof(data)`.
+  The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
+  `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`,
+  `"uint8"`, `"uint16"`, `"uint32"`, or `"uint64"`. The default,
+  `"auto"`, selects the most space-efficient type for the data. See
+  details below.
 
 ## Value
 
 Invisibly returns `NULL`. This function is called for its side effects.
 
-## Details
+## Writing Scalars
 
-The `dtype` argument controls the on-disk storage type **for numeric
-data only**.
+By default, `h5_write` saves single-element vectors as 1-dimensional
+arrays. To write a true HDF5 scalar, wrap the value in
+[`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
+example, `h5_write(file, "x", I(5))` will create a scalar dataset, while
+`h5_write(file, "x", 5)` will create a 1D array of length 1.
+
+## Writing NULL
+
+If `data` is `NULL`, `h5_write` will create an HDF5 **null dataset**.
+This is a dataset with a null dataspace, which contains no data.
+
+## Writing Data Frames
+
+`data.frame` objects are written as HDF5 **compound datasets**. This is
+a native HDF5 table-like structure that is highly efficient and
+portable.
+
+## Writing Complex Numbers
+
+`h5lite` writes R `complex` objects using the native HDF5 `H5T_COMPLEX`
+datatype class, which was introduced in HDF5 version 2.0.0. As a result,
+HDF5 files containing complex numbers written by `h5lite` can only be
+read by other HDF5 tools that support HDF5 version 2.0.0 or later.
+
+## Data Type Selection (`dtype`)
+
+The `dtype` argument controls the on-disk storage type and only applies
+to `integer`, `numeric`, and `logical` vectors. For all other data types
+(`character`, `complex`, `factor`, `raw`), the storage type is
+determined automatically.
 
 If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
-select the most space-efficient type for numeric data that can safely
-represent the full range of values. For example, writing `1:100` will
-result in an 8-bit unsigned integer (`uint8`) attribute.
+select the most space-efficient HDF5 type based on the following rules:
 
-To override this for numeric data, you can specify an exact type. The
-input is case-insensitive and allows for unambiguous partial matching.
-The full list of supported values for numeric data is:
+1.  If the data contains fractional values (e.g., `1.5`), it is stored
+    as `float64`.
+
+2.  If the data contains `NA`, `NaN`, or `Inf`, it is stored using the
+    smallest floating-point type (`float16`, `float32`, or `float64`)
+    that can precisely represent all integer values in the vector.
+
+3.  If the data contains only finite integers (this includes `logical`
+    vectors, where `FALSE` is 0 and `TRUE` is 1), `h5lite` selects the
+    smallest possible integer type (e.g., `uint8`, `int16`).
+
+4.  If integer values exceed R's safe integer range (`+/- 2^53`), they
+    are automatically stored as `float64` to preserve precision.
+
+To override this automatic behavior, you can specify an exact type. The
+full list of supported values is:
 
 - `"auto"`
 
@@ -56,31 +99,6 @@ The full list of supported values for numeric data is:
 - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 
 - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-
-For non-numeric data (`character`, `complex`, `factor`, `raw`,
-`logical`), the storage type is determined automatically. For `logical`
-attributes, `h5lite` follows the same rules as for integer data:
-
-- If the vector contains no `NA` values, it is saved using an efficient
-  integer type (e.g., `uint8`).
-
-- If the vector contains any `NA` values, it is automatically promoted
-  to a floating-point type (`float16`) to correctly preserve `NA`.
-
-`data.frame` objects are written as HDF5 **compound attributes**, a
-native table-like structure.
-
-`NULL` objects are written as HDF5 **null attributes**, which contain no
-data but can be used as placeholders.
-
-`complex` objects are written using the native HDF5 `H5T_COMPLEX`
-datatype class. HDF5 files containing complex attributes written by
-`h5lite` can only be read by other HDF5 tools that support HDF5 version
-2.0.0 or later.
-
-To write a scalar attribute, wrap the value in
-[`I()`](https://rdrr.io/r/base/AsIs.html) (e.g., `I("meters")`).
-Otherwise, dimensions are inferred automatically.
 
 ## See also
 

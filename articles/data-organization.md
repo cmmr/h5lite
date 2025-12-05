@@ -59,7 +59,7 @@ the hierarchy that was created.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/Rtmpltfh5P/file1c9d291d2289.h5
+#> Listing contents of: /tmp/Rtmp9ZdK8z/file1c5524a53499.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -154,7 +154,7 @@ a fast metadata operation that does not rewrite any data.
 h5_move(file, from = "session_1", to = "/archive/2024/run_01/data")
 
 h5_str(file)
-#> Listing contents of: /tmp/Rtmpltfh5P/file1c9d291d2289.h5
+#> Listing contents of: /tmp/Rtmp9ZdK8z/file1c5524a53499.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
