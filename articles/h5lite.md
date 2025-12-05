@@ -124,7 +124,7 @@ file.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpoWynyZ/file1d0541e39d2d.h5
+#> Listing contents of: /tmp/Rtmphav3cc/file1c937b9f7291.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
