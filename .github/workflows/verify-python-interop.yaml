@@ -1,0 +1,50 @@
+name: Verify Python Interoperability
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - R/**
+      - src/**
+      - .github/workflows/verify-python-interop.yaml
+      - scripts/**
+
+jobs:
+  verify-h5py:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- Setup R Environment ---
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      # Install the package from the current source
+      - name: Install h5lite
+        run: R CMD INSTALL .
+
+      # --- Generate HDF5 File with R ---
+      - name: Generate HDF5 Test Data
+        run: Rscript scripts/generate_h5.R
+
+      # --- Setup Python Environment ---
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python Dependencies
+        run: pip install h5py numpy
+
+      # --- Verify with Python ---
+      - name: Verify HDF5 with h5py
+        run: python scripts/verify_h5.py

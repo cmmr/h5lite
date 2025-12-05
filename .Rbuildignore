@@ -3,9 +3,7 @@
 ^pkgdown$
 ^docs$
 ^pkgdown$
+^scripts$
 ^src/.*\.o$
 ^src/.*\.dll$
 ^man/figures/logo_fullsize.png$
-^.*\.Rproj$
-^\.Rproj\.user$
-^codecov\.yml$

@@ -19,15 +19,15 @@
  *    the data from this (potentially modified) duplicated data.frame.
  */
 void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, SEXP dtypes, int compress_level, int is_attribute) {
-  
-  /* Create and protect a shallow copy of `data` so we can modify it without affecting the original R object. */
-  data = PROTECT(duplicate(data));
 
   /* --- 1. Get data.frame properties --- */
   R_xlen_t n_cols = XLENGTH(data);
-  if (n_cols == 0) return; 
-  
+  if (n_cols == 0) return;
   R_xlen_t n_rows = (n_cols > 0) ? XLENGTH(VECTOR_ELT(data, 0)) : 0;
+  
+  /* Create and protect a shallow copy of `data` so we can modify it without affecting the original R object. */
+  data = PROTECT(duplicate(data));
+  
   SEXP col_names = PROTECT(getAttrib(data, R_NamesSymbol));
   
   /* --- 2. Prepare Columns, Types, and Coercion --- */
