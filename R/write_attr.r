@@ -9,43 +9,16 @@
 #' @param attribute The name of the attribute to create.
 #' @param data The R object to write. Supported: `numeric`, `integer`,
 #'   `complex`, `logical`, `character`, `raw`, `data.frame`, and `NULL`.
-#' @param dtype The target HDF5 data type. Defaults to \code{typeof(data)}.
-#' @details The `dtype` argument controls the on-disk storage type **for numeric
-#'   data only**.
-#'
-#' If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
-#' select the most space-efficient type for numeric data that can safely
-#' represent the full range of values. For example, writing `1:100` will
-#' result in an 8-bit unsigned integer (`uint8`) attribute.
+#' @param dtype The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
+#'   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
+#'   `"uint16"`, `"uint32"`, or `"uint64"`. The default, `"auto"`, selects the
+#'   most space-efficient type for the data. See details below.
 #' 
-#' To override this for numeric data, you can specify an exact type. The input
-#' is case-insensitive and allows for unambiguous partial matching. The full
-#' list of supported values for numeric data is:
-#' * `"auto"`
-#' * `"float16"`, `"float32"`, `"float64"`
-#' * `"int8"`, `"int16"`, `"int32"`, `"int64"`
-#' * `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-#'
-#' For non-numeric data (`character`, `complex`, `factor`, `raw`, `logical`), the
-#' storage type is determined automatically. For `logical` attributes, `h5lite`
-#' follows the same rules as for integer data:
-#' - If the vector contains no `NA` values, it is saved using an efficient integer
-#'   type (e.g., `uint8`).
-#' - If the vector contains any `NA` values, it is automatically promoted to a
-#'   floating-point type (`float16`) to correctly preserve `NA`.
-#' 
-#' `data.frame` objects are written as HDF5 **compound attributes**, a native
-#' table-like structure.
-#' 
-#' `NULL` objects are written as HDF5 **null attributes**, which contain no data
-#' but can be used as placeholders.
-#'
-#' `complex` objects are written using the native HDF5 `H5T_COMPLEX` datatype
-#' class. HDF5 files containing complex attributes written by `h5lite` can only
-#' be read by other HDF5 tools that support HDF5 version 2.0.0 or later.
-#' 
-#' To write a scalar attribute, wrap the value in `I()` (e.g., `I("meters")`).
-#' Otherwise, dimensions are inferred automatically.
+#' @inheritSection h5_write Writing Scalars
+#' @inheritSection h5_write Writing NULL
+#' @inheritSection h5_write Writing Data Frames
+#' @inheritSection h5_write Writing Complex Numbers
+#' @inheritSection h5_write Data Type Selection (`dtype`)
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
 #' @seealso [h5_write()], [h5_read_attr()],

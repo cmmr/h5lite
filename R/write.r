@@ -8,8 +8,12 @@
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset (e.g., "/data/matrix").
 #' @param data The R object to write. Supported: `numeric`, `integer`, `complex`, 
-#'   `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`, `NULL`, and nested `list`s.
-#' @param dtype The target HDF5 data type. See details.
+#'   `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`, `NULL`,
+#'   and nested `list`s.
+#' @param dtype The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
+#'   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
+#'   `"uint16"`, `"uint32"`, or `"uint64"`. The default, `"auto"`, selects the
+#'   most space-efficient type for the data. See details below.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
@@ -52,31 +56,31 @@
 #' by other HDF5 tools that support HDF5 version 2.0.0 or later.
 #' 
 #' @section Data Type Selection (`dtype`):
-#' The `dtype` argument controls the on-disk storage type **for numeric data only**.
-#'
+#' The `dtype` argument controls the on-disk storage type and only applies to
+#' `integer`, `numeric`, and `logical` vectors. For all other data types
+#' (`character`, `complex`, `factor`, `raw`), the storage type is determined
+#' automatically.
+#' 
 #' If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
-#' select the most space-efficient HDF5 type for numeric data that can safely
-#' represent the full range of values. For example, writing `1:100` will
-#' result in an 8-bit unsigned integer (`uint8`) dataset, which helps minimize
-#' file size.
+#' select the most space-efficient HDF5 type based on the following rules:
+#' 1.  If the data contains fractional values (e.g., `1.5`), it is stored as
+#'     `float64`.
+#' 2.  If the data contains `NA`, `NaN`, or `Inf`, it is stored using the
+#'     smallest floating-point type (`float16`, `float32`, or `float64`) that
+#'     can precisely represent all integer values in the vector.
+#' 3.  If the data contains only finite integers (this includes `logical`
+#'     vectors, where `FALSE` is 0 and `TRUE` is 1), `h5lite` selects the
+#'     smallest possible integer type (e.g., `uint8`, `int16`).
+#' 4.  If integer values exceed R's safe integer range (`+/- 2^53`), they are
+#'     automatically stored as `float64` to preserve precision.
 #'
-#' To override this behavior, you can specify an exact type. The input
-#' is case-insensitive and allows for unambiguous partial matching. The full
-#' list of supported values for numeric data is:
+#' To override this automatic behavior, you can specify an exact type. The full
+#' list of supported values is:
 #' - `"auto"`
 #' - `"float16"`, `"float32"`, `"float64"`
 #' - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 #' - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 #'
-#'
-#' For non-numeric data (`character`, `complex`, `factor`, `raw`, and `logical`), the 
-#' storage type is determined automatically. For `logical` vectors, `h5lite`
-#' follows the same rules as for integer vectors:
-#' - If the vector contains no `NA` values, it is saved using an efficient integer
-#'   type (e.g., `uint8`, where `FALSE` is 0 and `TRUE` is 1).
-#' - If the vector contains any `NA` values, it is automatically promoted to a
-#'   floating-point type (`float16`) to correctly preserve `NA`.
-#' 
 #' @section Attribute Round-tripping:
 #' To properly round-trip an R object, it is helpful to set `attrs = TRUE`. This
 #' preserves important R metadata—such as the `names` of a named vector, `row.names`

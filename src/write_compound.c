@@ -28,7 +28,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   if (n_cols == 0) return; 
   
   R_xlen_t n_rows = (n_cols > 0) ? XLENGTH(VECTOR_ELT(data, 0)) : 0;
-  SEXP col_names = getAttrib(data, R_NamesSymbol);
+  SEXP col_names = PROTECT(getAttrib(data, R_NamesSymbol));
   
   /* --- 2. Prepare Columns, Types, and Coercion --- */
   /* We use col_ptrs to store the columns we will actually write. 
@@ -103,7 +103,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     // # nocov start
     for(int c=0; c<n_cols; c++) { H5Tclose(ft_members[c]); H5Tclose(mt_members[c]); }
     H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
-    UNPROTECT(1); // data
+    UNPROTECT(2); // data, col_names
     error("Memory allocation failed for data.frame buffer");  // # nocov end
   }
   
@@ -153,7 +153,7 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
           free(buffer);
           for(int i=0; i<n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
           H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Tclose(vl_string_mem_type);
-          UNPROTECT(1); // data
+          UNPROTECT(2); // data, col_names
           error("Unsupported R column type in data.frame"); // # nocov end
       }
     }
@@ -190,11 +190,11 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
     H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Sclose(space_id);
     if (is_attribute) {
       H5Oclose(loc_id); H5Fclose(file_id);
-      UNPROTECT(1); // data
+      UNPROTECT(2); // data, col_names
       error("Failed to create compound attribute '%s'", obj_name);
     } else {
       H5Fclose(file_id);
-      UNPROTECT(1); // data
+      UNPROTECT(2); // data, col_names
       error("Failed to create compound dataset '%s'", obj_name);
     } // # nocov end
   }
@@ -224,14 +224,14 @@ void write_dataframe_as_compound(hid_t file_id, hid_t loc_id, const char *obj_na
   if (write_status < 0) {
     if (is_attribute) { // # nocov start
       H5Oclose(loc_id); H5Fclose(file_id);
-      UNPROTECT(1); // data
+      UNPROTECT(2); // data, col_names
       error("Failed to write compound attribute '%s'", obj_name);
     } else {
       H5Fclose(file_id);
-      UNPROTECT(1); // data
+      UNPROTECT(2); // data, col_names
       error("Failed to write compound dataset '%s'", obj_name);
     } // # nocov end
   }
   
-  UNPROTECT(1); // data
+  UNPROTECT(2); // data, col_names
 }

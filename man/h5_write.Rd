@@ -12,9 +12,13 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{complex},
-\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{NULL}, and nested \code{list}s.}
+\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{NULL},
+and nested \code{list}s.}
 
-\item{dtype}{The target HDF5 data type. See details.}
+\item{dtype}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"float16"},
+\code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
+\code{"uint16"}, \code{"uint32"}, or \code{"uint64"}. The default, \code{"auto"}, selects the
+most space-efficient type for the data. See details below.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
@@ -79,32 +83,33 @@ by other HDF5 tools that support HDF5 version 2.0.0 or later.
 
 \section{Data Type Selection (\code{dtype})}{
 
-The \code{dtype} argument controls the on-disk storage type \strong{for numeric data only}.
+The \code{dtype} argument controls the on-disk storage type and only applies to
+\code{integer}, \code{numeric}, and \code{logical} vectors. For all other data types
+(\code{character}, \code{complex}, \code{factor}, \code{raw}), the storage type is determined
+automatically.
 
 If \code{dtype} is set to \code{"auto"} (the default), \code{h5lite} will automatically
-select the most space-efficient HDF5 type for numeric data that can safely
-represent the full range of values. For example, writing \code{1:100} will
-result in an 8-bit unsigned integer (\code{uint8}) dataset, which helps minimize
-file size.
+select the most space-efficient HDF5 type based on the following rules:
+\enumerate{
+\item If the data contains fractional values (e.g., \code{1.5}), it is stored as
+\code{float64}.
+\item If the data contains \code{NA}, \code{NaN}, or \code{Inf}, it is stored using the
+smallest floating-point type (\code{float16}, \code{float32}, or \code{float64}) that
+can precisely represent all integer values in the vector.
+\item If the data contains only finite integers (this includes \code{logical}
+vectors, where \code{FALSE} is 0 and \code{TRUE} is 1), \code{h5lite} selects the
+smallest possible integer type (e.g., \code{uint8}, \code{int16}).
+\item If integer values exceed R's safe integer range (\verb{+/- 2^53}), they are
+automatically stored as \code{float64} to preserve precision.
+}
 
-To override this behavior, you can specify an exact type. The input
-is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values for numeric data is:
+To override this automatic behavior, you can specify an exact type. The full
+list of supported values is:
 \itemize{
 \item \code{"auto"}
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
-}
-
-For non-numeric data (\code{character}, \code{complex}, \code{factor}, \code{raw}, and \code{logical}), the
-storage type is determined automatically. For \code{logical} vectors, \code{h5lite}
-follows the same rules as for integer vectors:
-\itemize{
-\item If the vector contains no \code{NA} values, it is saved using an efficient integer
-type (e.g., \code{uint8}, where \code{FALSE} is 0 and \code{TRUE} is 1).
-\item If the vector contains any \code{NA} values, it is automatically promoted to a
-floating-point type (\code{float16}) to correctly preserve \code{NA}.
 }
 }
 
