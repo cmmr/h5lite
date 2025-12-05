@@ -123,3 +123,16 @@ test_that("Special float values round-trip correctly with float16 and float32 dt
   expect_equal(h5_read_attr(file_path, "special_f32_dset", "special_f32_attr"), d_special_vals)
   expect_equal(h5_typeof_attr(file_path, "special_f32_dset", "special_f32_attr"), "float32")
 })
+
+test_that("Writing numeric data outside the dtype range throws an error", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # Test 1: Value too large for the specified unsigned type
+  d_too_large <- c(100, 75000) # 75000 is > 65504 (max for float16)
+  expect_error(h5_write(file_path, "too_large", d_too_large, dtype = "float16"))
+
+  # Test 2: Negative value for an unsigned type
+  d_negative <- c(-10, 50) # -10 is < 0 (min for uint8)
+  expect_error(h5_write(file_path, "negative", d_negative, dtype = "uint8"))
+})

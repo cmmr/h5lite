@@ -18,8 +18,8 @@ test_that("Logical datasets are written with correct types and round-trip correc
   # --- 3. VERIFY TYPES ---
   # Without NA, should be an efficient integer type (uint8)
   expect_equal(h5_typeof(file_path, "logical_no_na"), "uint8")
-  # With NA, should be promoted to float64
-  expect_equal(h5_typeof(file_path, "logical_with_na"), "float64")
+  # With NA, should be promoted to float16
+  expect_equal(h5_typeof(file_path, "logical_with_na"), "float16")
   # Scalar
   expect_equal(h5_dim(file_path, "scalar_logical"), integer(0))
 
@@ -45,7 +45,7 @@ test_that("Logical attributes are written with correct types and round-trip corr
 
   # --- 3. VERIFY TYPES ---
   expect_equal(h5_typeof_attr(file_path, "dset", "attr_no_na"), "uint8")
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float64")
+  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float16")
 
   # --- 4. READ AND VERIFY DATA ---
   expect_equal(h5_read_attr(file_path, "dset", "attr_no_na"), as.numeric(d_attr_no_na))

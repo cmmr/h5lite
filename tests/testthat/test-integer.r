@@ -83,3 +83,16 @@ test_that("Writing integer data with NA to a non-float dtype throws an error", {
   h5_write(file_path, "dset", 1)
   expect_error(h5_write_attr(file_path, "dset", "int_attr_with_na", d_int_with_na, dtype = "int16"))
 })
+
+test_that("Writing integer data outside the dtype range throws an error", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # Test 1: Value too large for the specified unsigned type
+  d_too_large <- c(100L, 300L) # 300 is > 255 (max for uint8)
+  expect_error(h5_write(file_path, "too_large", d_too_large, dtype = "uint8"))
+
+  # Test 2: Negative value for an unsigned type
+  d_negative <- c(-10L, 50L) # -10 is < 0 (min for uint8)
+  expect_error(h5_write(file_path, "negative", d_negative, dtype = "uint8"))
+})

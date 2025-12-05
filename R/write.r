@@ -8,7 +8,7 @@
 #' @param file Path to the HDF5 file.
 #' @param name Name of the dataset (e.g., "/data/matrix").
 #' @param data The R object to write. Supported: `numeric`, `integer`, `complex`, 
-#'   `logical`, `character`, `factor`, `raw`, `data.frame`, `NULL`, and nested `list`s.
+#'   `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`, `NULL`, and nested `list`s.
 #' @param dtype The target HDF5 data type. See details.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
@@ -285,19 +285,22 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.complex(data))    return ("complex")
   
   # For numeric data, validate the user's 'dtype' argument.
-  supported_dtypes <- c("auto", "float", "double",  
-                        "float16", "float32", "float64", 
-                        "int8", "int16", "int32", "int64", 
-                        "uint8", "uint16", "uint32", "uint64", 
-                        "char", "short", "int", "long", "llong", 
-                        "uchar", "ushort", "uint", "ulong", "ullong" )
+  supported_dtypes <- c(
+    "auto", "double",  "float", "float16", "float32", "float64", 
+    "int8", "int16", "int32", "int64", "char", "short", "int", "long", "llong", 
+    "uint8", "uint16", "uint32", "uint64", "uchar", "ushort", "uint", "ulong", "ullong" )
   
   dtype <- match.arg(tolower(dtype), supported_dtypes)
+
+  # If data is empty, default to uint8.
+  if (length(data) == 0)
+    return(ifelse(dtype == "auto", "uint8", dtype))
   
   # --- Validation for non-finite values ---
   # If NA/NaN/Inf are present, we must use a float type to represent them.
   if (any(!is.finite(data))) {
     if (dtype == "auto") {
+      if (is.logical(data)) return ("float16") # Logical with NA -> float16
       return("double") # Default to double for safety.
     }
     else if (dtype %in% c("float", "double", "float16", "float32", "float64")) {
@@ -310,25 +313,52 @@ validate_dtype <- function(data, dtype = "auto") {
            call. = FALSE)
     }
   }
-  
-  # If the user specified an exact type and the data is finite, use it.
-  if (dtype != "auto") return(dtype)
-  
-  # --- Automatic dtype selection logic (for finite data) ---
-  # If data is empty, default to double.
-  if (length(data) == 0) return("double")
-    
-  if (is.double(data) && any(data %% 1 != 0)) return("double")
+
+  # Default to double if data is non-integer
+  if (dtype == "auto" && is.double(data) && any(data %% 1 != 0)) {
+      return ("double")
+  }
   
   # It's integer data. Find the range.
   val_range <- range(data)
   min_val <- val_range[1]
   max_val <- val_range[2]
   
+  # --- Confirm user's dtype can hold the data's range ---
+
+  # Users will be able to coerce floats to ints, losing the fractional part.
+
+  if (dtype != "auto") {
+
+    type_ranges <- list(
+      int8    = c(-2^7,    2^7-1),  char   = c(-2^7,  2^7-1),
+      int16   = c(-2^15,   2^15-1), short  = c(-2^15, 2^15-1),
+      int32   = c(-2^31,   2^31-1), long   = c(-2^31, 2^31-1), int = c(-2^31, 2^31-1),
+      int64   = c(-2^63,   2^63-1), llong  = c(-2^63, 2^63-1),
+      uint8   = c(0,       2^8-1),  uchar  = c(0,     2^8-1),
+      uint16  = c(0,       2^16-1), ushort = c(0,     2^16-1),
+      uint32  = c(0,       2^32-1), ulong  = c(0,     2^32-1), uint = c(0, 2^32-1),
+      uint64  = c(0,       2^64-1), ullong = c(0,     2^64-1),
+      float16 = c(-65504,  65504), 
+      float32 = c(-3.4e38, 3.4e38), float  = c(-3.4e38, 3.4e38) )
+    
+    if (dtype %in% names(type_ranges)) {
+      range_limits <- type_ranges[[dtype]]
+      if (min_val < range_limits[1] || max_val > range_limits[2]) {
+        stop("The specified dtype '", dtype, "' cannot represent the data range [",
+             min_val, ", ", max_val, "]. Please choose a larger type.", call. = FALSE)
+      }
+    }
+    
+    return(dtype)
+  }
+  
+  # --- Automatic dtype selection logic (for finite data) ---
+  
   # R's doubles can precisely represent integers up to 2^53.
   # This is our effective upper bound for integer checks.
   max_safe_int <- 2^53 - 1
-  
+
   if (min_val >= 0) {
     # Unsigned integers
     if (max_val <= 255) "uint8"
