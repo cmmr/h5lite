@@ -48,7 +48,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpYC0H7c/file1bba532e4c15.h5
+#> Listing contents of: /tmp/RtmpX9XtIr/file1beb501dacb6.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -199,7 +199,7 @@ logi_na <- c(TRUE, NA, FALSE)
 # The presence of NA forces the dtype to float64
 h5_write(file, "logi_na", logi_na)
 h5_typeof(file, "logi_na")
-#> [1] "float64"
+#> [1] "float16"
 
 # Reading it back restores the NA correctly
 # Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.
