@@ -64,7 +64,7 @@ str(read_df)
 
 `h5lite` aims for a high-fidelity round-trip, but there are two important conversions to note:
 
-1.  **`integer` -> `numeric`**: All integer columns (`trial` in our example) are read back as `numeric` (double) vectors. This is a safety measure to prevent integer overflow.
+1.  **`integer` -> `numeric`**: All integer columns (`trial` in our example) are read back as `numeric` (double-precision) vectors. This is a safety measure to prevent integer overflow.
 2.  **`logical` -> `numeric`**: `logical` columns (`pass_qc`) are stored as 8-bit integers (0/1) and are also read back as `numeric`.
 
 `factor` columns, however, are perfectly preserved.

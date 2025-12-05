@@ -22,8 +22,8 @@ test_that("Integer datasets are written with correct types and round-trip", {
   expect_equal(h5_typeof(file_path, "int_no_na"), "uint8")
   expect_equal(h5_typeof(file_path, "scalar_int"), "uint8")
   expect_equal(h5_dim(file_path, "scalar_int"), integer(0))
-  # With NA, should be promoted to float64
-  expect_equal(h5_typeof(file_path, "int_with_na"), "float64")
+  # With NA, should be promoted to float16
+  expect_equal(h5_typeof(file_path, "int_with_na"), "float16")
 
   # --- 4. READ AND VERIFY DATA ---
   # Reading converts to numeric (double) for safety, which is expected.
@@ -48,7 +48,7 @@ test_that("Integer attributes are written with correct types and round-trip", {
 
   # --- 3. VERIFY TYPES ---
   expect_equal(h5_typeof_attr(file_path, "dset", "attr_no_na"), "uint8")
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float64")
+  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float16")
 
   # --- 4. READ AND VERIFY DATA ---
   expect_equal(h5_read_attr(file_path, "dset", "attr_no_na"), as.numeric(d_attr_no_na))
@@ -95,4 +95,60 @@ test_that("Writing integer data outside the dtype range throws an error", {
   # Test 2: Negative value for an unsigned type
   d_negative <- c(-10L, 50L) # -10 is < 0 (min for uint8)
   expect_error(h5_write(file_path, "negative", d_negative, dtype = "uint8"))
+})
+
+test_that("Automatic integer type selection is correct", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # --- Unsigned Integer Types ---
+  h5_write(file_path, "u8", c(0L, 255L))
+  expect_equal(h5_typeof(file_path, "u8"), "uint8")
+
+  h5_write(file_path, "u16", c(0L, 256L))
+  expect_equal(h5_typeof(file_path, "u16"), "uint16")
+
+  h5_write(file_path, "u32", c(0L, 65536L))
+  expect_equal(h5_typeof(file_path, "u32"), "uint32")
+
+  # For values > 2^31-1, R uses numeric (double)
+  h5_write(file_path, "u64", c(0, 2^32))
+  expect_equal(h5_typeof(file_path, "u64"), "uint64")
+
+  # Value exceeds R's safe integer range, should become float64
+  h5_write(file_path, "u_as_f64", c(0, 2^53))
+  expect_equal(h5_typeof(file_path, "u_as_f64"), "float64")
+
+  # --- Signed Integer Types ---
+  h5_write(file_path, "s8", c(-128L, 127L))
+  expect_equal(h5_typeof(file_path, "s8"), "int8")
+
+  h5_write(file_path, "s16", c(-129L, 128L))
+  expect_equal(h5_typeof(file_path, "s16"), "int16")
+
+  h5_write(file_path, "s32", c(-32769L, 32768L))
+  expect_equal(h5_typeof(file_path, "s32"), "int32")
+
+  # For values outside R's 32-bit integer range, use numeric (double)
+  h5_write(file_path, "s64", c(-2^32, 2^32))
+  expect_equal(h5_typeof(file_path, "s64"), "int64")
+
+  # Value exceeds R's safe integer range, should become float64
+  h5_write(file_path, "s_as_f64", c(-2^54, 0))
+  expect_equal(h5_typeof(file_path, "s_as_f64"), "float64")
+})
+
+test_that("Writing a zero-length integer vector works", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # Test with auto dtype
+  h5_write(file_path, "zero_len_int_auto", integer(0))
+  expect_equal(h5_read(file_path, "zero_len_int_auto"), numeric(0))
+  expect_equal(h5_typeof(file_path, "zero_len_int_auto"), "uint8") # Default for empty
+
+  # Test with specified dtype
+  h5_write(file_path, "zero_len_int_dtype", integer(0), dtype = "int32")
+  expect_equal(h5_read(file_path, "zero_len_int_dtype"), numeric(0))
+  expect_equal(h5_typeof(file_path, "zero_len_int_dtype"), "int32")
 })

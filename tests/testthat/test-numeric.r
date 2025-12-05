@@ -21,7 +21,7 @@ test_that("Numeric datasets are written and read correctly", {
   expect_equal(h5_typeof(file_path, "vec_num"), "float64")
   expect_equal(h5_class(file_path, "vec_num"), "numeric")
   expect_equal(h5_dim(file_path, "scalar_num"), integer(0))
-  expect_equal(h5_typeof(file_path, "special_vals"), "float64")
+  expect_equal(h5_typeof(file_path, "special_vals"), "float16")
 
   # --- 4. READ AND VERIFY DATA ---
   expect_equal(h5_read(file_path, "vec_num"), d_vec_num)
@@ -135,4 +135,55 @@ test_that("Writing numeric data outside the dtype range throws an error", {
   # Test 2: Negative value for an unsigned type
   d_negative <- c(-10, 50) # -10 is < 0 (min for uint8)
   expect_error(h5_write(file_path, "negative", d_negative, dtype = "uint8"))
+})
+
+test_that("Auto-selection of float types for data with NAs is correct", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # Test case 1: Data with NA, fits within float16 integer precision.
+  # The range [-2048, 2048] can be perfectly represented by float16.
+  d_na_float16 <- c(100, -500, NA, 2048)
+  h5_write(file_path, "na_f16", d_na_float16)
+  expect_equal(h5_typeof(file_path, "na_f16"), "float16")
+  expect_equal(h5_read(file_path, "na_f16"), d_na_float16)
+
+  # Test case 2: Data with NA, exceeds float16 but fits float32 precision.
+  # The range [-16777216, 16777216] can be represented by float32.
+  d_na_float32 <- c(100, -500, NA, 2049) # 2049 is just outside float16's range
+  h5_write(file_path, "na_f32", d_na_float32)
+  expect_equal(h5_typeof(file_path, "na_f32"), "float32")
+  expect_equal(h5_read(file_path, "na_f32"), d_na_float32)
+
+  # Test case 3: Data with NA, exceeds float32 precision, defaults to float64.
+  d_na_float64 <- c(NA, 2^24 + 1) # This value is outside float32's precise integer range
+  h5_write(file_path, "na_f64", d_na_float64)
+  expect_equal(h5_typeof(file_path, "na_f64"), "float64")
+  expect_equal(h5_read(file_path, "na_f64"), d_na_float64)
+})
+
+test_that("Writing a zero-length numeric vector works", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # Test with auto dtype
+  h5_write(file_path, "zero_len_num_auto", numeric(0))
+  expect_equal(h5_read(file_path, "zero_len_num_auto"), numeric(0))
+  expect_equal(h5_typeof(file_path, "zero_len_num_auto"), "uint8") # Default for empty
+
+  # Test with specified dtype
+  h5_write(file_path, "zero_len_num_dtype", numeric(0), dtype = "float32")
+  expect_equal(h5_read(file_path, "zero_len_num_dtype"), numeric(0))
+  expect_equal(h5_typeof(file_path, "zero_len_num_dtype"), "float32")
+})
+
+test_that("Writing a vector of only non-finite values works", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  d_all_non_finite <- c(NA, NaN, Inf, -Inf)
+  h5_write(file_path, "all_non_finite", d_all_non_finite)
+
+  expect_equal(h5_typeof(file_path, "all_non_finite"), "float16")
+  expect_equal(h5_read(file_path, "all_non_finite"), d_all_non_finite)
 })

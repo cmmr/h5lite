@@ -115,7 +115,7 @@ test_that("validate_dtype auto-selects correct integer types", {
   expect_equal(validate_dtype(c(-32768,      32767)),      "int16")
   expect_equal(validate_dtype(c(-2147483648, 2147483647)), "int32")
   expect_equal(validate_dtype(c(-(2^53 - 1), 2^53 - 1)),   "int64")
-  expect_equal(validate_dtype(c(-(2^53),     0)),          "float64") # Exceeds safe integer
+  expect_equal(validate_dtype(c(-(2^54),     0)),          "float64") # Exceeds safe integer
 
   # Test data.frame type check
   expect_equal(validate_dtype(data.frame(a = 1)), "data.frame")

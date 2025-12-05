@@ -7,6 +7,7 @@
  */
 herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int rank, hsize_t *h5_dims) {
   herr_t status = -1;
+  int must_unprotect_data = 0;
   H5I_type_t obj_type = H5Iget_type(obj_id);
 
   if (obj_type != H5I_DATASET && obj_type != H5I_ATTR) {
@@ -18,6 +19,7 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     if (TYPEOF(data) != STRSXP) error("dtype 'character' requires character data");
 
     hsize_t n = (hsize_t)XLENGTH(data);
+    
     /* Create a buffer of C-style strings from the R vector, handling NA values. */
     const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
     if (!f_buffer) error("Memory allocation failed for string buffer");
@@ -40,11 +42,27 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
 
     free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
-
-  } else { // Numeric, Logical, Opaque, Factor
+  }
+  
+  /* --- Handle Numeric, Logical, Opaque, Factor Data --- */
+  else {
     hsize_t total_elements = 1;
     if (rank > 0 && h5_dims) {
       for(int i=0; i<rank; i++) total_elements *= h5_dims[i];
+    }
+    
+    /* --- Special Handling for Integer/Logical to Double Promotion --- */
+    /* If we are writing an integer/logical vector to a float file type,
+     * we must coerce it to a REALSXP. This correctly handles NA_INTEGER -> R_NaReal.
+     */
+    if (TYPEOF(data) == INTSXP || TYPEOF(data) == LGLSXP) {
+      if (strcmp(dtype_str, "float64") == 0 ||
+          strcmp(dtype_str, "float32") == 0 ||
+          strcmp(dtype_str, "float16") == 0) {
+        
+        data = PROTECT(coerceVector(data, REALSXP));
+        must_unprotect_data = 1;
+      }
     }
 
     /* Get a direct pointer to the R object's data. */
@@ -82,44 +100,18 @@ herr_t write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int 
     void *c_buffer = malloc(total_elements * el_size);
     if (!c_buffer) {
        if (must_close_mem_type) H5Tclose(mem_type_id); // # nocov
+       if (must_unprotect_data) UNPROTECT(1); // # nocov
        error("Memory allocation failed"); // # nocov
     }
 
     /* Transpose from R's column-major to C's row-major order. */
     h5_transpose(r_data_ptr, c_buffer, rank, h5_dims, el_size, 0);
 
-    /* --- Special Handling for Integer/Logical to Double Promotion --- */
-    /* If we are writing an integer/logical vector to a float/double file type,
-     * we must manually convert NA_INTEGER to R_NaReal (double NA). A direct
-     * write with mismatched types will just cast INT_MIN to a double.
-     * This must be done AFTER transposition.
-     */
-    int promote_to_double = 0;
-    if (TYPEOF(data) == INTSXP || TYPEOF(data) == LGLSXP) {
-      if (strcmp(dtype_str, "double") == 0 || strcmp(dtype_str, "float64") == 0 ||
-          strcmp(dtype_str, "float") == 0  || strcmp(dtype_str, "float32") == 0 ||
-          strcmp(dtype_str, "float16") == 0) {
-        promote_to_double = 1;
-      }
-    }
-    if (promote_to_double) {
-      int *int_data = (int *)c_buffer;
-      double *double_buffer = (double *)malloc(total_elements * sizeof(double));
-      if (!double_buffer) { free(c_buffer); error("Memory allocation failed for double conversion buffer"); }
-
-      for(hsize_t i = 0; i < total_elements; i++) {
-        double_buffer[i] = (int_data[i] == NA_INTEGER) ? R_NaReal : (double)int_data[i];
-      }
-      
-      status = write_buffer_to_object(obj_id, H5T_NATIVE_DOUBLE, double_buffer);
-      free(double_buffer); free(c_buffer);
-      return status;
-    }
-
     status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
 
     free(c_buffer);
     if (must_close_mem_type) H5Tclose(mem_type_id);
+    if (must_unprotect_data) UNPROTECT(1);
   }
   return status;
 }

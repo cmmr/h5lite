@@ -49,7 +49,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
   
   /* Only chunk if compression is requested or we explicitly want chunking */
-  if (compress > 0 && rank > 0) {
+  if (compress > 0 && rank > 0 && XLENGTH(data) > 0) {
     
     /* Get element size (e.g., 4 bytes for int, 8 for double) */
     size_t type_size = H5Tget_size(file_type_id);

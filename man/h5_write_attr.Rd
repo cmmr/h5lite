@@ -35,19 +35,13 @@ result in an 8-bit unsigned integer (\code{uint8}) attribute.
 
 To override this for numeric data, you can specify an exact type. The input
 is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values is:
+list of supported values for numeric data is:
 \itemize{
-\item \code{"auto"}, \code{"float"}, \code{"double"}
+\item \code{"auto"}
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
-\item \code{"char"}, \code{"short"}, \code{"int"}, \code{"long"}, \code{"llong"}
-\item \code{"uchar"}, \code{"ushort"}, \code{"uint"}, \code{"ulong"}, \code{"ullong"}
 }
-
-Note: Types without a bit-width suffix (e.g., \code{"int"}, \code{"long"}) are system-
-dependent and may have different sizes on different machines. For maximum file
-portability, it is recommended to use types with explicit widths (e.g., \code{"int32"}).
 
 For non-numeric data (\code{character}, \code{complex}, \code{factor}, \code{raw}, \code{logical}), the
 storage type is determined automatically. For \code{logical} attributes, \code{h5lite}
@@ -55,8 +49,8 @@ follows the same rules as for integer data:
 \itemize{
 \item If the vector contains no \code{NA} values, it is saved using an efficient integer
 type (e.g., \code{uint8}).
-\item If the vector contains any \code{NA} values, it is automatically promoted and
-written as a \code{float64} attribute to correctly preserve \code{NA}.
+\item If the vector contains any \code{NA} values, it is automatically promoted to a
+floating-point type (\code{float16}) to correctly preserve \code{NA}.
 }
 
 \code{data.frame} objects are written as HDF5 \strong{compound attributes}, a native

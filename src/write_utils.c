@@ -227,20 +227,8 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   if (strcmp(dtype, "uint16") == 0) return H5Tcopy(H5T_STD_U16LE);
   if (strcmp(dtype, "uint32") == 0) return H5Tcopy(H5T_STD_U32LE);
   if (strcmp(dtype, "uint64") == 0) return H5Tcopy(H5T_STD_U64LE);
-  
-  /* System-dependent Native types (less portable, but sometimes needed) */
-  if (strcmp(dtype, "char")   == 0) return H5Tcopy(H5T_NATIVE_CHAR);
-  if (strcmp(dtype, "uchar")  == 0) return H5Tcopy(H5T_NATIVE_UCHAR);
-  if (strcmp(dtype, "short")  == 0) return H5Tcopy(H5T_NATIVE_SHORT);
-  if (strcmp(dtype, "ushort") == 0) return H5Tcopy(H5T_NATIVE_USHORT);
-  if (strcmp(dtype, "int")    == 0) return H5Tcopy(H5T_NATIVE_INT);
-  if (strcmp(dtype, "uint")   == 0) return H5Tcopy(H5T_NATIVE_UINT);
-  if (strcmp(dtype, "long")   == 0) return H5Tcopy(H5T_NATIVE_LONG);
-  if (strcmp(dtype, "ulong")  == 0) return H5Tcopy(H5T_NATIVE_ULONG);
-  if (strcmp(dtype, "llong")  == 0) return H5Tcopy(H5T_NATIVE_LLONG);
-  if (strcmp(dtype, "ullong") == 0) return H5Tcopy(H5T_NATIVE_ULLONG);
-  if (strcmp(dtype, "float")  == 0) return H5Tcopy(H5T_NATIVE_FLOAT);
-  if (strcmp(dtype, "double") == 0) return H5Tcopy(H5T_NATIVE_DOUBLE);
+
+  /* Complex Type */
   if (strcmp(dtype, "complex") == 0) return H5Tcomplex_create(H5T_IEEE_F64LE);
   
   /* Special Types */

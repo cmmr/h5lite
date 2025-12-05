@@ -62,25 +62,20 @@
 #'
 #' To override this behavior, you can specify an exact type. The input
 #' is case-insensitive and allows for unambiguous partial matching. The full
-#' list of supported values is:
-#' - `"auto"`, `"float"`, `"double"`
+#' list of supported values for numeric data is:
+#' - `"auto"`
 #' - `"float16"`, `"float32"`, `"float64"`
 #' - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 #' - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-#' - `"char"`, `"short"`, `"int"`, `"long"`, `"llong"`
-#' - `"uchar"`, `"ushort"`, `"uint"`, `"ulong"`, `"ullong"`
-#' 
-#' Note: Types without a bit-width suffix (e.g., `"int"`, `"long"`) are system-
-#' dependent and may have different sizes on different machines. For maximum file
-#' portability, it is recommended to use types with explicit bit-widths (e.g., `"int32"`).
+#'
 #'
 #' For non-numeric data (`character`, `complex`, `factor`, `raw`, and `logical`), the 
 #' storage type is determined automatically. For `logical` vectors, `h5lite`
 #' follows the same rules as for integer vectors:
 #' - If the vector contains no `NA` values, it is saved using an efficient integer
 #'   type (e.g., `uint8`, where `FALSE` is 0 and `TRUE` is 1).
-#' - If the vector contains any `NA` values, it is automatically promoted and
-#'   written as a `float64` dataset to correctly preserve `NA`.
+#' - If the vector contains any `NA` values, it is automatically promoted to a
+#'   floating-point type (`float16`) to correctly preserve `NA`.
 #' 
 #' @section Attribute Round-tripping:
 #' To properly round-trip an R object, it is helpful to set `attrs = TRUE`. This
@@ -266,14 +261,20 @@ validate_write_recursive <- function(data, current_path, attrs) {
 }
 
 
-#' Helper to find the smallest fitting data type for numeric data
-#' @param data The numeric or integer vector.
-#' @return A string representing the best HDF5 data type.
+#' Validates or selects the HDF5 data type for an R object.
+#'
+#' This function acts as a dispatcher. It identifies non-numeric R types that have
+#' a fixed HDF5 mapping (e.g., `character` -> `string`). For numeric, integer,
+#' and logical data, it either validates a user-provided `dtype` or automatically
+#' selects the most space-efficient type that can safely represent the data.
+#'
+#' @param data The R object to be written.
+#' @param dtype The user-provided `dtype` string (e.g., "auto", "int32").
+#' @return A string representing the validated or selected HDF5 data type.
 #' @noRd
 #' @keywords internal
 validate_dtype <- function(data, dtype = "auto") {
   
-  # First, check for non-numeric types that have a fixed mapping.
   assert_valid_object(data)
   
   if (is.null(data))       return ("null")
@@ -284,65 +285,118 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.list(data))       return ("group")
   if (is.complex(data))    return ("complex")
   
-  # For numeric data, validate the user's 'dtype' argument.
+  # For numeric/logical data, validate the user's 'dtype' argument.
   supported_dtypes <- c(
-    "auto", "double",  "float", "float16", "float32", "float64", 
-    "int8", "int16", "int32", "int64", "char", "short", "int", "long", "llong", 
-    "uint8", "uint16", "uint32", "uint64", "uchar", "ushort", "uint", "ulong", "ullong" )
+    "auto", "float16", "float32", "float64", 
+    "int8", "int16", "int32", "int64",
+    "uint8", "uint16", "uint32", "uint64")
   
   dtype <- match.arg(tolower(dtype), supported_dtypes)
 
-  # If data is empty, default to uint8.
-  if (length(data) == 0)
-    return(ifelse(dtype == "auto", "uint8", dtype))
-  
-  # --- Validation for non-finite values ---
-  # If NA/NaN/Inf are present, we must use a float type to represent them.
-  if (any(!is.finite(data))) {
-    if (dtype == "auto") {
-      if (is.logical(data)) return ("float16") # Logical with NA -> float16
-      return("double") # Default to double for safety.
-    }
-    else if (dtype %in% c("float", "double", "float16", "float32", "float64")) {
-      return(dtype)
-    }
-    else {
-      stop("Data contains NA, NaN, or Inf, which can only be stored as a ",
-          "floating-point type (e.g., 'double' or 'float64'). ",
-          "The specified dtype '", dtype, "' is not supported for these values.",
-           call. = FALSE)
-    }
-  }
+  if (dtype == "auto") select_best_dtype(data)
+  else                 sanity_check_dtype(data, dtype)
+}
 
-  # Default to double if data is non-integer
-  if (dtype == "auto" && is.double(data) && any(data %% 1 != 0)) {
-      return ("double")
+#' Automatically select the most space-efficient HDF5 data type for numeric data.
+#'
+#' This function analyzes the range and properties of numeric, integer, or logical
+#' data to choose the smallest HDF5 type that will not cause data loss.
+#'
+#' - If the data contains non-integer values, it defaults to `float64`.
+#' - If the data contains `NA`, `NaN`, or `Inf`, it selects the smallest floating-point
+#'   type (`float16`, `float32`, `float64`) that can still represent all integer
+#'   values in the data's range without loss of precision.
+#' - For finite integer data, it selects the smallest fitting signed or unsigned
+#'   integer type (e.g., `uint8`, `int16`).
+#' - It correctly handles the limitation that R's `double` type can only precisely
+#'   represent integers up to `2^53 - 1`.
+#'
+#' @param data The numeric, integer, or logical vector.
+#' @return A string representing the optimal HDF5 data type.
+#' @noRd
+select_best_dtype <- function (data) {
+
+  # If data is empty, default to uint8.
+  if (length(data) == 0) return("uint8")
+  
+  # All values are NA/NaN/Inf
+  if (!any(is.finite(data))) return ("float16")
+  
+  # Values have fractional part.
+  if (is.double(data) && any(data %% 1 != 0, na.rm = TRUE)) {
+      return ("float64")
   }
   
   # It's integer data. Find the range.
-  val_range <- range(data)
+  val_range <- range(data, na.rm = TRUE, finite = TRUE)
   min_val <- val_range[1]
   max_val <- val_range[2]
   
-  # --- Confirm user's dtype can hold the data's range ---
+  # If NA/NaN/Inf are present, use the smallest float that can encode the integer range.
+  if (any(!is.finite(data))) {
+    if      (min_val >= -2^11 && max_val <= 2^11) { return ("float16") }
+    else if (min_val >= -2^24 && max_val <= 2^24) { return ("float32") }
+    else                                          { return ("float64") }
+  }
+  
+  # R's doubles can precisely represent integers up to 2^53 - 1.
+  # This is our effective upper bound for integer checks.
 
-  # Users will be able to coerce floats to ints, losing the fractional part.
+  if (min_val >= 0) { # Unsigned integers
+    if      (max_val <= 2^8-1)  "uint8"
+    else if (max_val <= 2^16-1) "uint16"
+    else if (max_val <= 2^32-1) "uint32"
+    else if (max_val <= 2^53-1) "uint64"
+    else "float64" # Too large, store as float64
+  }
+  else { # Signed integers
+    if      (min_val >= -2^7  && max_val <= 2^7-1)  "int8"
+    else if (min_val >= -2^15 && max_val <= 2^15-1) "int16"
+    else if (min_val >= -2^31 && max_val <= 2^31-1) "int32"
+    else if (min_val >= -2^53 && max_val <= 2^53-1) "int64"
+    else "float64" # Too large, store as float64
+  }
+  
+}
 
-  if (dtype != "auto") {
+#' Sanity-checks a user-specified `dtype` against the data's range.
+#'
+#' This function verifies that the data can be safely stored in the user-requested
+#' HDF5 data type without overflow.
+#'
+#' - It checks if the minimum and maximum values of the data fit within the
+#'   range of the specified `dtype`.
+#' - It ensures that if the data contains `NA`, `NaN`, or `Inf`, the `dtype` is a
+#'   floating-point type, as integer types cannot represent these special values.
+#'
+#' @param data The R object to be written.
+#' @param dtype The user-specified HDF5 data type string (e.g., "uint8", "float32").
+#' @return The validated `dtype` string if the check passes. Throws an error otherwise.
+#' @noRd
+sanity_check_dtype <- function (data, dtype) {
+  
+  if (length(data) == 0) return(dtype)
 
-    type_ranges <- list(
-      int8    = c(-2^7,    2^7-1),  char   = c(-2^7,  2^7-1),
-      int16   = c(-2^15,   2^15-1), short  = c(-2^15, 2^15-1),
-      int32   = c(-2^31,   2^31-1), long   = c(-2^31, 2^31-1), int = c(-2^31, 2^31-1),
-      int64   = c(-2^63,   2^63-1), llong  = c(-2^63, 2^63-1),
-      uint8   = c(0,       2^8-1),  uchar  = c(0,     2^8-1),
-      uint16  = c(0,       2^16-1), ushort = c(0,     2^16-1),
-      uint32  = c(0,       2^32-1), ulong  = c(0,     2^32-1), uint = c(0, 2^32-1),
-      uint64  = c(0,       2^64-1), ullong = c(0,     2^64-1),
-      float16 = c(-65504,  65504), 
-      float32 = c(-3.4e38, 3.4e38), float  = c(-3.4e38, 3.4e38) )
+  if (any(!is.finite(data)) && !startsWith(dtype, "float"))
+    stop("Data contains NA, NaN, or Inf, which can only be stored as a ",
+        "floating-point type ('float16', 'float32' or 'float64'). ",
+        "The specified dtype '", dtype, "' is not supported for these values.",
+          call. = FALSE)
     
-    if (dtype %in% names(type_ranges)) {
+    if (any(is.finite(data)) && dtype != "float64") {
+      
+      type_ranges <- list(
+        int8    = c(-2^7,  2^7-1),  uint8  = c(0, 2^8-1),   
+        int16   = c(-2^15, 2^15-1), uint16 = c(0, 2^16-1),
+        int32   = c(-2^31, 2^31-1), uint32 = c(0, 2^32-1),  
+        int64   = c(-2^63, 2^63-1), uint64 = c(0, 2^64-1),
+        float16 = c(-65504,  65504),
+        float32 = c(-3.4e38, 3.4e38) )
+      
+      val_range <- range(data, na.rm = TRUE, finite = TRUE)
+      min_val <- val_range[1]
+      max_val <- val_range[2]
+
       range_limits <- type_ranges[[dtype]]
       if (min_val < range_limits[1] || max_val > range_limits[2]) {
         stop("The specified dtype '", dtype, "' cannot represent the data range [",
@@ -351,29 +405,6 @@ validate_dtype <- function(data, dtype = "auto") {
     }
     
     return(dtype)
-  }
-  
-  # --- Automatic dtype selection logic (for finite data) ---
-  
-  # R's doubles can precisely represent integers up to 2^53.
-  # This is our effective upper bound for integer checks.
-  max_safe_int <- 2^53 - 1
-
-  if (min_val >= 0) {
-    # Unsigned integers
-    if (max_val <= 255) "uint8"
-    else if (max_val <= 65535) "uint16"
-    else if (max_val <= 4294967295) "uint32"
-    else if (max_val <= max_safe_int) "uint64"
-    else "float64" # Too large, store as double
-  } else {
-    # Signed integers
-    if (min_val >= -128 && max_val <= 127) "int8"
-    else if (min_val >= -32768 && max_val <= 32767) "int16"
-    else if (min_val >= -2147483648 && max_val <= 2147483647) "int32"
-    else if (min_val >= -max_safe_int && max_val <= max_safe_int) "int64"
-    else "float64" # Too large, store as double
-  }
 }
 
 

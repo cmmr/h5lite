@@ -12,7 +12,7 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 \item{name}{Name of the dataset (e.g., "/data/matrix").}
 
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{complex},
-\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{data.frame}, \code{NULL}, and nested \code{list}s.}
+\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{NULL}, and nested \code{list}s.}
 
 \item{dtype}{The target HDF5 data type. See details.}
 
@@ -89,19 +89,13 @@ file size.
 
 To override this behavior, you can specify an exact type. The input
 is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values is:
+list of supported values for numeric data is:
 \itemize{
-\item \code{"auto"}, \code{"float"}, \code{"double"}
+\item \code{"auto"}
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
-\item \code{"char"}, \code{"short"}, \code{"int"}, \code{"long"}, \code{"llong"}
-\item \code{"uchar"}, \code{"ushort"}, \code{"uint"}, \code{"ulong"}, \code{"ullong"}
 }
-
-Note: Types without a bit-width suffix (e.g., \code{"int"}, \code{"long"}) are system-
-dependent and may have different sizes on different machines. For maximum file
-portability, it is recommended to use types with explicit bit-widths (e.g., \code{"int32"}).
 
 For non-numeric data (\code{character}, \code{complex}, \code{factor}, \code{raw}, and \code{logical}), the
 storage type is determined automatically. For \code{logical} vectors, \code{h5lite}
@@ -109,8 +103,8 @@ follows the same rules as for integer vectors:
 \itemize{
 \item If the vector contains no \code{NA} values, it is saved using an efficient integer
 type (e.g., \code{uint8}, where \code{FALSE} is 0 and \code{TRUE} is 1).
-\item If the vector contains any \code{NA} values, it is automatically promoted and
-written as a \code{float64} dataset to correctly preserve \code{NA}.
+\item If the vector contains any \code{NA} values, it is automatically promoted to a
+floating-point type (\code{float16}) to correctly preserve \code{NA}.
 }
 }
 

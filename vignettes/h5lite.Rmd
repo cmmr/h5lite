@@ -198,10 +198,10 @@ all.equal(my_list, read_list)
 
 ### Factors
 
-When you write an R `factor`, `h5lite` automatically saves it as a native HDF5 `enum` type, preserving both the integer values and the character labels.
+When you write an R `factor`, `h5lite` automatically saves it as a native HDF5 `enum` type, preserving both the integer values and the character labels. This is not supported for factors containing `NA` values.
 
 ```{r handle_factors}
-conditions <- as.factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))
+conditions <- factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))
 
 h5_write(file, "experiment_1/conditions", conditions)
 

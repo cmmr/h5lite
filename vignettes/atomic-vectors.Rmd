@@ -95,7 +95,7 @@ h5_typeof(file, "float_data")
 
 The HDF5 library uses the IEEE 754 standard for floating-point numbers, which has native representations for `Inf`, `-Inf`, and `NaN` (Not a Number).
 
-If a numeric or integer vector contains any non-finite value (`NA`, `NaN`, `Inf`, or `-Inf`), `h5lite` will automatically save the data using a floating-point type (`double` / `float64`) to ensure these special values are preserved perfectly. R's `NA` for numeric types (`NA_real_`) is a special type of `NaN` and is also restored correctly on read.
+If a numeric or integer vector contains any non-finite value (`NA`, `NaN`, `Inf`, or `-Inf`), `h5lite` will automatically save the data using a floating-point type to ensure these special values are preserved perfectly. R's `NA` for numeric types (`NA_real_`) is a special type of `NaN` and is also restored correctly on read.
 
 ```{r special_values}
 # A vector containing all special numeric values
@@ -137,7 +137,7 @@ all.equal(char_na, h5_read(file, "char_na"))
 Since HDF5 has no native boolean type, `logical` vectors are handled similarly to integer vectors to ensure consistent `NA` preservation.
 
 *   If a logical vector contains **no `NA` values**, it is stored efficiently as an 8-bit unsigned integer (`uint8`), where `FALSE` is 0 and `TRUE` is 1.
-*   If a logical vector contains **any `NA` values**, it is automatically promoted and written as a `float64` dataset to correctly preserve `NA`. This is the same behavior as for integer vectors containing `NA`.
+*   If a logical vector contains **any `NA` values**, it is automatically promoted and written as a `float16` dataset to correctly preserve `NA`.
 
 This ensures that missing values in logical vectors are handled consistently with other numeric types.
 
@@ -145,13 +145,13 @@ This ensures that missing values in logical vectors are handled consistently wit
 # A logical vector with NA
 logi_na <- c(TRUE, NA, FALSE)
 
-# The presence of NA forces the dtype to float64
+# The presence of NA forces the dtype to float16
 h5_write(file, "logi_na", logi_na)
 h5_typeof(file, "logi_na")
 
 # Reading it back restores the NA correctly
 # Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.
-all.equal(logi_na, h5_read(file, "logi_na"))
+all.equal(logi_na, as.logical(h5_read(file, "logi_na")))
 ```
 
 ### Factor Vectors

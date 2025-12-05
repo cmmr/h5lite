@@ -102,8 +102,6 @@ test_that("Internal helper map_hdf5_type_to_r_class works", {
   expect_equal(map_fun("float16"), "numeric")
   expect_equal(map_fun("float32"), "numeric")
   expect_equal(map_fun("float64"), "numeric")
-  expect_equal(map_fun("int"), "numeric")
-  expect_equal(map_fun("float"), "numeric")
   
   # Test other supported types
   expect_equal(map_fun("string"), "character")
