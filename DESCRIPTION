@@ -17,3 +17,4 @@ Config/Needs/website: rmarkdown
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
+Remotes: github::cmmr/hdf5lib
