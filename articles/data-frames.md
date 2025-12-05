@@ -47,7 +47,7 @@ a `compound` HDF5 type.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpYuPIUj/file1c30101d1d4f.h5
+#> Listing contents of: /tmp/RtmpfL6OFQ/file1c95519a3d97.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
