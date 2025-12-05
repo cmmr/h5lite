@@ -124,7 +124,7 @@ file.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpNu7BqS/file1ccfdce0104.h5
+#> Listing contents of: /tmp/Rtmppw3M9R/file1cd54ebdb0ed.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -267,10 +267,11 @@ all.equal(my_list, read_list)
 
 When you write an R `factor`, `h5lite` automatically saves it as a
 native HDF5 `enum` type, preserving both the integer values and the
-character labels.
+character labels. This is not supported for factors containing `NA`
+values.
 
 ``` r
-conditions <- as.factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))
+conditions <- factor(sample(c("control", "treatment_A", "treatment_B"), 12, replace = TRUE))
 
 h5_write(file, "experiment_1/conditions", conditions)
 

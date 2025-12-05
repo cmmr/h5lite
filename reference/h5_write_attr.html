@@ -89,21 +89,16 @@ represent the full range of values. For example, writing <code>1:100</code> will
 result in an 8-bit unsigned integer (<code>uint8</code>) attribute.</p>
 <p>To override this for numeric data, you can specify an exact type. The input
 is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</code>, <code>"double"</code></p></li>
+list of supported values for numeric data is:</p><ul><li><p><code>"auto"</code></p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
-<li><p><code>"char"</code>, <code>"short"</code>, <code>"int"</code>, <code>"long"</code>, <code>"llong"</code></p></li>
-<li><p><code>"uchar"</code>, <code>"ushort"</code>, <code>"uint"</code>, <code>"ulong"</code>, <code>"ullong"</code></p></li>
-</ul><p>Note: Types without a bit-width suffix (e.g., <code>"int"</code>, <code>"long"</code>) are system-
-dependent and may have different sizes on different machines. For maximum file
-portability, it is recommended to use types with explicit widths (e.g., <code>"int32"</code>).</p>
-<p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the
+</ul><p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, <code>logical</code>), the
 storage type is determined automatically. For <code>logical</code> attributes, <code>h5lite</code>
 follows the same rules as for integer data:</p><ul><li><p>If the vector contains no <code>NA</code> values, it is saved using an efficient integer
 type (e.g., <code>uint8</code>).</p></li>
-<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted and
-written as a <code>float64</code> attribute to correctly preserve <code>NA</code>.</p></li>
+<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted to a
+floating-point type (<code>float16</code>) to correctly preserve <code>NA</code>.</p></li>
 </ul><p><code>data.frame</code> objects are written as HDF5 <strong>compound attributes</strong>, a native
 table-like structure.</p>
 <p><code>NULL</code> objects are written as HDF5 <strong>null attributes</strong>, which contain no data

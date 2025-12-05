@@ -193,7 +193,7 @@ and types. This is often the most convenient way to quickly inspect a
 file.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpNu7BqS/file1ccfdce0104.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/Rtmppw3M9R/file1cd54ebdb0ed.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -334,9 +334,10 @@ types.</p>
 </h3>
 <p>When you write an R <code>factor</code>, <code>h5lite</code>
 automatically saves it as a native HDF5 <code>enum</code> type,
-preserving both the integer values and the character labels.</p>
+preserving both the integer values and the character labels. This is not
+supported for factors containing <code>NA</code> values.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span>, <span class="va">conditions</span><span class="op">)</span></span>
 <span></span>

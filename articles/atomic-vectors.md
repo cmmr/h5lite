@@ -48,7 +48,7 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpX9XtIr/file1beb501dacb6.h5
+#> Listing contents of: /tmp/RtmpD5zXdb/file1bf451d8efcd.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -125,10 +125,9 @@ Number).
 
 If a numeric or integer vector contains any non-finite value (`NA`,
 `NaN`, `Inf`, or `-Inf`), `h5lite` will automatically save the data
-using a floating-point type (`double` / `float64`) to ensure these
-special values are preserved perfectly. R’s `NA` for numeric types
-(`NA_real_`) is a special type of `NaN` and is also restored correctly
-on read.
+using a floating-point type to ensure these special values are preserved
+perfectly. R’s `NA` for numeric types (`NA_real_`) is a special type of
+`NaN` and is also restored correctly on read.
 
 ``` r
 # A vector containing all special numeric values
@@ -137,7 +136,7 @@ special_vals <- c(1, Inf, -Inf, NaN, NA, -1)
 # The presence of non-finite values forces the dtype to float64
 h5_write(file, "special_vals", special_vals)
 h5_typeof(file, "special_vals")
-#> [1] "float64"
+#> [1] "float16"
 
 # Reading the data back restores the values perfectly
 read_vals <- h5_read(file, "special_vals")
@@ -185,8 +184,7 @@ similarly to integer vectors to ensure consistent `NA` preservation.
   efficiently as an 8-bit unsigned integer (`uint8`), where `FALSE` is 0
   and `TRUE` is 1.
 - If a logical vector contains **any `NA` values**, it is automatically
-  promoted and written as a `float64` dataset to correctly preserve
-  `NA`. This is the same behavior as for integer vectors containing
+  promoted and written as a `float16` dataset to correctly preserve
   `NA`.
 
 This ensures that missing values in logical vectors are handled
@@ -196,16 +194,15 @@ consistently with other numeric types.
 # A logical vector with NA
 logi_na <- c(TRUE, NA, FALSE)
 
-# The presence of NA forces the dtype to float64
+# The presence of NA forces the dtype to float16
 h5_write(file, "logi_na", logi_na)
 h5_typeof(file, "logi_na")
 #> [1] "float16"
 
 # Reading it back restores the NA correctly
 # Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.
-all.equal(logi_na, h5_read(file, "logi_na"))
-#> [1] "Modes: logical, numeric"              
-#> [2] "target is logical, current is numeric"
+all.equal(logi_na, as.logical(h5_read(file, "logi_na")))
+#> [1] TRUE
 ```
 
 ### Factor Vectors

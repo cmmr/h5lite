@@ -112,7 +112,7 @@ identifies it as a <code>data.frame</code> backed by a
 <code>compound</code> HDF5 type.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpJZWH9j/file1c5e6ec9aa61.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpOLtmuK/file1c6521bf2392.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -141,8 +141,8 @@ are two important conversions to note:</p>
 <li>
 <strong><code>integer</code> -&gt; <code>numeric</code></strong>:
 All integer columns (<code>trial</code> in our example) are read back as
-<code>numeric</code> (double) vectors. This is a safety measure to
-prevent integer overflow.</li>
+<code>numeric</code> (double-precision) vectors. This is a safety
+measure to prevent integer overflow.</li>
 <li>
 <strong><code>logical</code> -&gt; <code>numeric</code></strong>:
 <code>logical</code> columns (<code>pass_qc</code>) are stored as 8-bit

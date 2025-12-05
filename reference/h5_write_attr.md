@@ -47,24 +47,15 @@ result in an 8-bit unsigned integer (`uint8`) attribute.
 
 To override this for numeric data, you can specify an exact type. The
 input is case-insensitive and allows for unambiguous partial matching.
-The full list of supported values is:
+The full list of supported values for numeric data is:
 
-- `"auto"`, `"float"`, `"double"`
+- `"auto"`
 
 - `"float16"`, `"float32"`, `"float64"`
 
 - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 
 - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-
-- `"char"`, `"short"`, `"int"`, `"long"`, `"llong"`
-
-- `"uchar"`, `"ushort"`, `"uint"`, `"ulong"`, `"ullong"`
-
-Note: Types without a bit-width suffix (e.g., `"int"`, `"long"`) are
-system- dependent and may have different sizes on different machines.
-For maximum file portability, it is recommended to use types with
-explicit widths (e.g., `"int32"`).
 
 For non-numeric data (`character`, `complex`, `factor`, `raw`,
 `logical`), the storage type is determined automatically. For `logical`
@@ -74,7 +65,7 @@ attributes, `h5lite` follows the same rules as for integer data:
   integer type (e.g., `uint8`).
 
 - If the vector contains any `NA` values, it is automatically promoted
-  and written as a `float64` attribute to correctly preserve `NA`.
+  to a floating-point type (`float16`) to correctly preserve `NA`.
 
 `data.frame` objects are written as HDF5 **compound attributes**, a
 native table-like structure.

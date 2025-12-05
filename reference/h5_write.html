@@ -70,7 +70,7 @@ and nested <code>list</code>s.</p>
 
 <dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
 <dd><p>The R object to write. Supported: <code>numeric</code>, <code>integer</code>, <code>complex</code>,
-<code>logical</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>data.frame</code>, <code>NULL</code>, and nested <code>list</code>s.</p></dd>
+<code>logical</code>, <code>character</code>, <code>factor</code>, <code>raw</code>, <code>matrix</code>, <code>data.frame</code>, <code>NULL</code>, and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-dtype">dtype<a class="anchor" aria-label="anchor" href="#arg-dtype"></a></dt>
@@ -152,21 +152,16 @@ result in an 8-bit unsigned integer (<code>uint8</code>) dataset, which helps mi
 file size.</p>
 <p>To override this behavior, you can specify an exact type. The input
 is case-insensitive and allows for unambiguous partial matching. The full
-list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"float"</code>, <code>"double"</code></p></li>
+list of supported values for numeric data is:</p><ul><li><p><code>"auto"</code></p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
-<li><p><code>"char"</code>, <code>"short"</code>, <code>"int"</code>, <code>"long"</code>, <code>"llong"</code></p></li>
-<li><p><code>"uchar"</code>, <code>"ushort"</code>, <code>"uint"</code>, <code>"ulong"</code>, <code>"ullong"</code></p></li>
-</ul><p>Note: Types without a bit-width suffix (e.g., <code>"int"</code>, <code>"long"</code>) are system-
-dependent and may have different sizes on different machines. For maximum file
-portability, it is recommended to use types with explicit bit-widths (e.g., <code>"int32"</code>).</p>
-<p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, and <code>logical</code>), the
+</ul><p>For non-numeric data (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>, and <code>logical</code>), the
 storage type is determined automatically. For <code>logical</code> vectors, <code>h5lite</code>
 follows the same rules as for integer vectors:</p><ul><li><p>If the vector contains no <code>NA</code> values, it is saved using an efficient integer
 type (e.g., <code>uint8</code>, where <code>FALSE</code> is 0 and <code>TRUE</code> is 1).</p></li>
-<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted and
-written as a <code>float64</code> dataset to correctly preserve <code>NA</code>.</p></li>
+<li><p>If the vector contains any <code>NA</code> values, it is automatically promoted to a
+floating-point type (<code>float16</code>) to correctly preserve <code>NA</code>.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="attribute-round-tripping">Attribute Round-tripping<a class="anchor" aria-label="anchor" href="#attribute-round-tripping"></a></h2>

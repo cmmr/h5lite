@@ -47,7 +47,7 @@ a `compound` HDF5 type.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpJZWH9j/file1c5e6ec9aa61.h5
+#> Listing contents of: /tmp/RtmpOLtmuK/file1c6521bf2392.h5
 #> Root group: /
 #> ----------------------------------------------------------------
 #> Type            Name
@@ -79,8 +79,8 @@ str(read_df)
 important conversions to note:
 
 1.  **`integer` -\> `numeric`**: All integer columns (`trial` in our
-    example) are read back as `numeric` (double) vectors. This is a
-    safety measure to prevent integer overflow.
+    example) are read back as `numeric` (double-precision) vectors. This
+    is a safety measure to prevent integer overflow.
 2.  **`logical` -\> `numeric`**: `logical` columns (`pass_qc`) are
     stored as 8-bit integers (0/1) and are also read back as `numeric`.
 

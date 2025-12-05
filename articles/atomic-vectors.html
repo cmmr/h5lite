@@ -111,7 +111,7 @@ and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "trial_ids"    "sample_names" "qc_pass"</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/RtmpX9XtIr/file1beb501dacb6.h5</span></span>
+<span><span class="co">#&gt; Listing contents of: /tmp/RtmpD5zXdb/file1bf451d8efcd.h5</span></span>
 <span><span class="co">#&gt; Root group: /</span></span>
 <span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
 <span><span class="co">#&gt; Type            Name</span></span>
@@ -182,10 +182,10 @@ numbers, which has native representations for <code>Inf</code>,
 <p>If a numeric or integer vector contains any non-finite value
 (<code>NA</code>, <code>NaN</code>, <code>Inf</code>, or
 <code>-Inf</code>), <code>h5lite</code> will automatically save the data
-using a floating-point type (<code>double</code> / <code>float64</code>)
-to ensure these special values are preserved perfectly. R’s
-<code>NA</code> for numeric types (<code>NA_real_</code>) is a special
-type of <code>NaN</code> and is also restored correctly on read.</p>
+using a floating-point type to ensure these special values are preserved
+perfectly. R’s <code>NA</code> for numeric types (<code>NA_real_</code>)
+is a special type of <code>NaN</code> and is also restored correctly on
+read.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># A vector containing all special numeric values</span></span>
 <span><span class="va">special_vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="cn">Inf</span>, <span class="op">-</span><span class="cn">Inf</span>, <span class="cn">NaN</span>, <span class="cn">NA</span>, <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
@@ -193,7 +193,7 @@ type of <code>NaN</code> and is also restored correctly on read.</p>
 <span><span class="co"># The presence of non-finite values forces the dtype to float64</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span>, <span class="va">special_vals</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "float64"</span></span>
+<span><span class="co">#&gt; [1] "float16"</span></span>
 <span></span>
 <span><span class="co"># Reading the data back restores the values perfectly</span></span>
 <span><span class="va">read_vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span><span class="op">)</span></span>
@@ -242,9 +242,7 @@ values</strong>, it is stored efficiently as an 8-bit unsigned integer
 <code>TRUE</code> is 1.</li>
 <li>If a logical vector contains <strong>any <code>NA</code>
 values</strong>, it is automatically promoted and written as a
-<code>float64</code> dataset to correctly preserve <code>NA</code>. This
-is the same behavior as for integer vectors containing
-<code>NA</code>.</li>
+<code>float16</code> dataset to correctly preserve <code>NA</code>.</li>
 </ul>
 <p>This ensures that missing values in logical vectors are handled
 consistently with other numeric types.</p>
@@ -252,16 +250,15 @@ consistently with other numeric types.</p>
 <code class="sourceCode R"><span><span class="co"># A logical vector with NA</span></span>
 <span><span class="va">logi_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">NA</span>, <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># The presence of NA forces the dtype to float64</span></span>
+<span><span class="co"># The presence of NA forces the dtype to float16</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span>, <span class="va">logi_na</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "float16"</span></span>
 <span></span>
 <span><span class="co"># Reading it back restores the NA correctly</span></span>
 <span><span class="co"># Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">logi_na</span>, <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Modes: logical, numeric"              </span></span>
-<span><span class="co">#&gt; [2] "target is logical, current is numeric"</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">logi_na</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="factor-vectors">Factor Vectors<a class="anchor" aria-label="anchor" href="#factor-vectors"></a>

@@ -23,8 +23,8 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
 - data:
 
   The R object to write. Supported: `numeric`, `integer`, `complex`,
-  `logical`, `character`, `factor`, `raw`, `data.frame`, `NULL`, and
-  nested `list`s.
+  `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`,
+  `NULL`, and nested `list`s.
 
 - dtype:
 
@@ -105,24 +105,15 @@ minimize file size.
 
 To override this behavior, you can specify an exact type. The input is
 case-insensitive and allows for unambiguous partial matching. The full
-list of supported values is:
+list of supported values for numeric data is:
 
-- `"auto"`, `"float"`, `"double"`
+- `"auto"`
 
 - `"float16"`, `"float32"`, `"float64"`
 
 - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 
 - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-
-- `"char"`, `"short"`, `"int"`, `"long"`, `"llong"`
-
-- `"uchar"`, `"ushort"`, `"uint"`, `"ulong"`, `"ullong"`
-
-Note: Types without a bit-width suffix (e.g., `"int"`, `"long"`) are
-system- dependent and may have different sizes on different machines.
-For maximum file portability, it is recommended to use types with
-explicit bit-widths (e.g., `"int32"`).
 
 For non-numeric data (`character`, `complex`, `factor`, `raw`, and
 `logical`), the storage type is determined automatically. For `logical`
@@ -132,7 +123,7 @@ vectors, `h5lite` follows the same rules as for integer vectors:
   integer type (e.g., `uint8`, where `FALSE` is 0 and `TRUE` is 1).
 
 - If the vector contains any `NA` values, it is automatically promoted
-  and written as a `float64` dataset to correctly preserve `NA`.
+  to a floating-point type (`float16`) to correctly preserve `NA`.
 
 ## Attribute Round-tripping
 
