@@ -7,3 +7,5 @@
 ^src/.*\.o$
 ^src/.*\.dll$
 ^man/figures/logo_fullsize.png$
+^.*\.Rproj$
+^rhub_check\.r$
