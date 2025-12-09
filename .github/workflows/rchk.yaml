@@ -48,8 +48,8 @@ jobs:
           # 5. Run the actual check
           #    IMPORTANT: We must switch back to the R source root for the check script to work
           setwd(r_source_root)
-          cmd_check <- paste("/rchk/scripts/check_package.sh", pkg_name)
-          if (system(cmd_check) != 0) stop("check_package.sh failed for rchk")
+          cmd_check <- paste("/bin/bash /container.sh", pkg_name)
+          if (system(cmd_check) != 0) stop("container.sh failed for rchk")
 
           # 6. Verify Results
           #    The rchk tool writes report files to:
