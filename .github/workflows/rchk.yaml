@@ -19,53 +19,39 @@ jobs:
       - name: Create Check Script
         run: |
           mkdir -p packages
-          cat <<EOF > packages/check.R
-          # 0. Capture the container's starting directory (the R source root)
+          cat <<EOF > inst/check.r
+
           r_source_root <- getwd()
-
-          # 1. Setup a local library directory in the mounted volume
-          lib_dir <- "/rchk/packages/library"
-          dir.create(lib_dir, recursive = TRUE, showWarnings = FALSE)
-          .libPaths(c(lib_dir, .libPaths()))
-
-          # 2. Install remotes
-          install.packages("remotes", repos = "https://cloud.r-project.org", lib = lib_dir)
-
-          # 3. Define source directory (mapped from host)
-          pkg_src <- "/rchk/source"
+          setwd("/rchk/packages")
           
-          # 4. Install dependencies
+          # 1. Install dependencies
           #    We force --no-clean to preserve bitcode for static libraries like hdf5lib
+          install.packages("remotes", repos = "https://cloud.r-project.org")
           remotes::install_deps(
-            pkg_src, 
+            "/rchk/source", 
             dependencies = c("Depends", "Imports", "LinkingTo"), 
             repos = "https://cloud.r-project.org",
-            lib = lib_dir,
-            INSTALL_opts = c("--no-clean", "--no-byte-compile")
-          )
+            INSTALL_opts = c("--no-clean", "--no-byte-compile") )
 
-          # 5. Build the package tarball
-          #    We switch to /rchk/packages to ensure we have write permissions for the tarball
-          setwd("/rchk/packages")
-          cmd_build <- sprintf("R CMD build --no-manual --no-build-vignettes '%s'", pkg_src)
+          # 2. Build the package tarball (in /rchk/packages)
+          cmd_build <- "R CMD build --no-manual --no-build-vignettes '/rchk/source'"
           if (system(cmd_build) != 0) stop("Failed to build package tarball")
           
-          #    Identify the generated tarball
+          # 3. Identify the generated tarball
           pkg_tar <- list.files(pattern = "\\\\.tar\\\\.gz$")[1]
           pkg_name <- gsub("_.*", "", pkg_tar)
 
-          # 6. Install the package libs for rchk analysis
+          # 4. Install the package libs for rchk analysis
           source("/rchk/scripts/utils.r")
           install_package_libs(pkg_tar, target = "/rchk/packages/libsonly")
 
-          # 7. Run the actual check
+          # 5. Run the actual check
           #    IMPORTANT: We must switch back to the R source root for the check script to work
           setwd(r_source_root)
-          
           cmd_check <- paste("/rchk/scripts/check_package.sh", pkg_name)
-          if (system(cmd_check) != 0) quit(status = 1)
+          if (system(cmd_check) != 0) stop("check_package.sh failed for rchk")
 
-          # 8. Verify Results
+          # 6. Verify Results
           #    The rchk tool writes report files to:
           #    /rchk/packages/libsonly/<pkg>/libs/<pkg>.so.{maacheck,bcheck}
           
@@ -105,6 +91,6 @@ jobs:
           docker pull kalibera/rchk:latest
           docker run --rm \
             -v "$PWD:/rchk/source" \
-            -v "$PWD/packages:/rchk/packages" \
+            --entrypoint /bin/bash \
             kalibera/rchk:latest \
-            R -f /rchk/packages/check.R
+            R -f /rchk/source/inst/check.R
