@@ -122,8 +122,9 @@ jobs:
           errors <- character(0)
 
           # 1. Check bcheck (using custom logic)
+          cat("Looking for bcheck file at ", bcheck_file, "\n")
           if (file.exists(bcheck_file)) {
-            cat("Reading bcheck file at ", bcheck_file, "\n")
+            cat("Reading bcheck file\n")
             b_lines <- readLines(bcheck_file)
             b_lines <- b_lines[!grepl("too many states", b_lines)]
             b_lines <- b_lines[!grepl("^Analyzed [0-9]+ functions", b_lines)]
@@ -131,8 +132,9 @@ jobs:
           }
 
           # 2. Check maacheck (missing in standard rhub check)
+          cat("Looking for maacheck file at ", maacheck_file, "\n")
           if (file.exists(maacheck_file)) {
-            cat("Reading maacheck file at ", maacheck_file, "\n")
+            cat("Reading maacheck file\n")
             m_lines <- readLines(maacheck_file)
             errors  <- c(errors, m_lines)
           }
