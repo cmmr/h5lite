@@ -20,6 +20,9 @@ jobs:
         run: |
           mkdir -p packages
           cat <<EOF > packages/check.R
+          # 0. Capture the container's starting directory (the R source root)
+          r_source_root <- getwd()
+
           # 1. Setup a local library directory in the mounted volume
           lib_dir <- "/rchk/packages/library"
           dir.create(lib_dir, recursive = TRUE, showWarnings = FALSE)
@@ -42,7 +45,7 @@ jobs:
           )
 
           # 5. Build the package tarball
-          #    We build into /rchk/packages to ensure we have write permissions
+          #    We switch to /rchk/packages to ensure we have write permissions for the tarball
           setwd("/rchk/packages")
           cmd_build <- sprintf("R CMD build --no-manual --no-build-vignettes '%s'", pkg_src)
           if (system(cmd_build) != 0) stop("Failed to build package tarball")
@@ -56,6 +59,9 @@ jobs:
           install_package_libs(pkg_tar, target = "/rchk/packages/libsonly")
 
           # 7. Run the actual check
+          #    IMPORTANT: We must switch back to the R source root for the check script to work
+          setwd(r_source_root)
+          
           cmd_check <- paste("/rchk/scripts/check_package.sh", pkg_name)
           if (system(cmd_check) != 0) quit(status = 1)
 
