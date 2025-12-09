@@ -18,7 +18,7 @@ jobs:
 
       - name: Create Check Script
         run: |
-          mkdir -p packages
+          mkdir -p inst
           cat <<EOF > inst/check.r
 
           r_source_root <- getwd()
