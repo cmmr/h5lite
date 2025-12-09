@@ -55,6 +55,12 @@
 #' HDF5 files containing complex numbers written by `h5lite` can only be read
 #' by other HDF5 tools that support HDF5 version 2.0.0 or later.
 #' 
+#' @section Writing Date-Time Objects:
+#' `POSIXt` objects are automatically converted to character strings in
+#' ISO 8601 format (`YYYY-MM-DDTHH:MM:SSZ`). This ensures that timestamps are
+#' stored in a human-readable and unambiguous way. This conversion applies to
+#' standalone `POSIXt` objects, as well as to columns within a `data.frame`.
+#' 
 #' @section Data Type Selection (`dtype`):
 #' The `dtype` argument controls the on-disk storage type and only applies to
 #' `integer`, `numeric`, and `logical` vectors. For all other data types
@@ -138,6 +144,11 @@ h5_write <- function(file, name, data,
                      compress = TRUE,
                      attrs = FALSE) {
   
+  # Automatically convert POSIXt to ISO 8601 character strings for clarity.
+  if (inherits(data, "POSIXt")) {
+    data <- format(data, format = "%Y-%m-%dT%H:%M:%OSZ")
+  }
+  
   # If data is a list (but not a data.frame), handle it as a group structure.
   if (is_list_group(data)) {
     
@@ -170,6 +181,13 @@ h5_write <- function(file, name, data,
       # HDF5 compound types must have at least one member.
       if (ncol(data) == 0) {
         stop("Cannot write a data.frame with zero columns to HDF5.", call. = FALSE)
+      }
+      
+      # Automatically convert POSIXt columns to ISO 8601 character strings.
+      for (j in seq_along(data)) {
+        if (inherits(data[[j]], "POSIXt")) {
+          data[[j]] <- format(data[[j]], format = "%Y-%m-%dT%H:%M:%OSZ")
+        }
       }
       
       # Get the best dtype for each column and call the compound writer.
@@ -288,6 +306,10 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.character(data))  return ("character")
   if (is.list(data))       return ("group")
   if (is.complex(data))    return ("complex")
+  
+  # POSIXt objects are numeric but should be treated as standard doubles
+  # without special integer type selection.
+  if (inherits(data, "POSIXt")) return ("float64")
   
   # For numeric/logical data, validate the user's 'dtype' argument.
   supported_dtypes <- c(

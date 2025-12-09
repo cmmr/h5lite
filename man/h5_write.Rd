@@ -81,6 +81,14 @@ HDF5 files containing complex numbers written by \code{h5lite} can only be read
 by other HDF5 tools that support HDF5 version 2.0.0 or later.
 }
 
+\section{Writing Date-Time Objects}{
+
+\code{POSIXt} objects are automatically converted to character strings in
+ISO 8601 format (\code{YYYY-MM-DDTHH:MM:SSZ}). This ensures that timestamps are
+stored in a human-readable and unambiguous way. This conversion applies to
+standalone \code{POSIXt} objects, as well as to columns within a \code{data.frame}.
+}
+
 \section{Data Type Selection (\code{dtype})}{
 
 The \code{dtype} argument controls the on-disk storage type and only applies to

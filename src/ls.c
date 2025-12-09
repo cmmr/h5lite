@@ -34,7 +34,7 @@ extern SEXP h5_type_to_rstr(hid_t type_id);
 static void format_type_and_dims(hid_t type_id, hid_t space_id, char *buffer, size_t buf_len) {
   /* Ensure buffer starts empty */
   if (buf_len > 0) buffer[0] = '\0';
-  else return;
+  else return; // # nocov
   
   /* 1. Get Type Name (e.g., "int32") */
   SEXP type_sexp = h5_type_to_rstr(type_id);
@@ -71,8 +71,8 @@ static void format_type_and_dims(hid_t type_id, hid_t space_id, char *buffer, si
     if (current_len < buf_len - 1) {
       strncat(buffer, ">", buf_len - current_len - 1);
     } else {
-      buffer[buf_len - 2] = '>';
-      buffer[buf_len - 1] = '\0';
+      buffer[buf_len - 2] = '>'; // # nocov
+      buffer[buf_len - 1] = '\0'; // # nocov
     }
   }
   
@@ -173,9 +173,9 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) 
     hid_t oid = H5Oopen(loc_id, name, H5P_DEFAULT);
     if (oid < 0) {
       /* Could not open (e.g. broken link), print basic info */
-      Rprintf("%s%s %s " COL_SUBTLE "<Error>" COL_RESET "\n", 
-              prefix, (is_last ? conn_last : conn_norm), name);
-      continue; 
+      Rprintf("%s%s %s " COL_SUBTLE "<Error>" COL_RESET "\n",  // # nocov
+              prefix, (is_last ? conn_last : conn_norm), name); // # nocov
+      continue;  // # nocov
     }
     
     /* Determine Object Info */
@@ -194,7 +194,7 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) 
       H5Sclose(dspace);
       H5Tclose(dtype);
     } else {
-      snprintf(type_str, sizeof(type_str), "<NamedType>");
+      snprintf(type_str, sizeof(type_str), "<NamedType>"); // # nocov
     }
     
     /* Print current node 

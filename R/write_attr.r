@@ -18,6 +18,7 @@
 #' @inheritSection h5_write Writing NULL
 #' @inheritSection h5_write Writing Data Frames
 #' @inheritSection h5_write Writing Complex Numbers
+#' @inheritSection h5_write Writing Date-Time Objects
 #' @inheritSection h5_write Data Type Selection (`dtype`)
 #'
 #' @return Invisibly returns \code{NULL}. This function is called for its side effects.
@@ -42,6 +43,11 @@
 #' unlink(file)
 h5_write_attr <- function(file, name, attribute, data, dtype = "auto") {
   
+  # Automatically convert POSIXt to ISO 8601 character strings for clarity.
+  if (inherits(data, "POSIXt")) {
+    data <- format(data, format = "%Y-%m-%dT%H:%M:%OSZ")
+  }
+  
   file <- path.expand(file)
   dims <- validate_dims(data)
   
@@ -56,6 +62,14 @@ h5_write_attr <- function(file, name, attribute, data, dtype = "auto") {
     if (ncol(data) == 0) {
       stop("Cannot write a data.frame with zero columns as an HDF5 attribute.", call. = FALSE)
     }
+    
+    # Automatically convert POSIXt columns to ISO 8601 character strings.
+    for (j in seq_along(data)) {
+      if (inherits(data[[j]], "POSIXt")) {
+        data[[j]] <- format(data[[j]], format = "%Y-%m-%dT%H:%M:%OSZ")
+      }
+    }
+    
     dtypes <- sapply(data, validate_dtype)
     .Call("C_h5_write_attribute", file, name, attribute, data, dtypes, NULL, PACKAGE = "h5lite")
   } else {
