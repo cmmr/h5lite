@@ -35,7 +35,7 @@ jobs:
           docker run --rm \
             -v "$PWD/packages:/rchk/packages" \
             kalibera/rchk:latest \
-            "/rchk/packages/${{ env.PKG_TAR }}"
+            R -e "install.packages('hdf5lib', repos='https://cloud.r-project.org', INSTALL_opts='--no-clean'); source('/rchk/scripts/utils.r'); install_package_libs('/rchk/packages/${{ env.PKG_TAR }}', target='/rchk/packages/libsonly'); system('/rchk/scripts/check_package.sh h5lite')"
 
       - name: Verify Results
         shell: Rscript {0}
