@@ -86,7 +86,7 @@ h$pwd()
 h$write("sensor_a", rnorm(10))
 
 # Let's see what's in the file
-h$ls(recursive = TRUE)
+h$str("/")
 
 # We can navigate up with ".."
 h$cd("..")

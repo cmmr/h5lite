@@ -48,7 +48,7 @@
 #' }
 #'
 #' \subsection{Navigation (`$cd()`, `$pwd()`)}{
-#'   The handle maintains an internal working directory (`_wd`) to simplify
+#'   The handle maintains an internal working directory to simplify
 #'   path management.
 #'   \itemize{
 #'     \item{`h5$cd(group)`: Changes the handle's internal working directory.

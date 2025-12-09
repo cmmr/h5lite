@@ -34,7 +34,7 @@ jobs:
           docker pull kalibera/rchk:latest
           docker run --rm \
             -v "$PWD/packages:/rchk/packages" \
-            -e LLVM_LINK_NAME=llvm-link-14 \
+            -e LLVM_COMPILER_PATH=/usr/lib/llvm-14/bin \
             kalibera/rchk:latest \
             "/rchk/packages/${{ env.PKG_TAR }}"
 
