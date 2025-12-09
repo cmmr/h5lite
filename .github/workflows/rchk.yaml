@@ -34,6 +34,7 @@ jobs:
           docker pull kalibera/rchk:latest
           docker run --rm \
             -v "$PWD/packages:/rchk/packages" \
+            -e LLVM_LINK_NAME=llvm-link-14 \
             kalibera/rchk:latest \
             "/rchk/packages/${{ env.PKG_TAR }}"
 
@@ -45,10 +46,11 @@ jobs:
           
           pkg           <- read.dcf("DESCRIPTION")[,"Package"]
           libs_dir      <- file.path("packages", "libsonly", pkg, "libs")
-          maacheck_file <- file.path(libs_dir, paste0(pkg, ".so.maacheck"))
           bcheck_file   <- file.path(libs_dir, paste0(pkg, ".so.bcheck"))
+          maacheck_file <- file.path(libs_dir, paste0(pkg, ".so.maacheck"))
           
           stopifnot(file.exists(bcheck_file))
+          stopifnot(file.exists(maacheck_file))
 
           # Ignore "too many states" warnings from bcheck
           # and the final "Analyzed 104 functions" summary line
@@ -57,8 +59,7 @@ jobs:
           errors <- errors[!grepl("^Analyzed [0-9]+ functions", errors)]
 
           # Anything in maacheck log is a failure
-          if (file.exists(maacheck_file))
-            errors <- c(errors, readLines(maacheck_file))
+          errors <- c(errors, readLines(maacheck_file))
           
           # Remove empty lines
           errors <- errors[nzchar(errors)]
