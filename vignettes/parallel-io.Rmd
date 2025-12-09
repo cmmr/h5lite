@@ -1,8 +1,8 @@
 ---
-title: "Using h5lite with Parallel Processing"
+title: "Parallel Processing"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using h5lite with Parallel Processing}
+  %\VignetteIndexEntry{Parallel Processing}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

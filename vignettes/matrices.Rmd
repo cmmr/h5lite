@@ -1,8 +1,8 @@
 ---
-title: "Working with Matrices and Arrays"
+title: "Matrices and Arrays"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Working with Matrices and Arrays}
+  %\VignetteIndexEntry{Matrices and Arrays}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

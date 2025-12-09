@@ -74,6 +74,8 @@ h5_ls_attr <- function(file, name) {
 #' @param file Path to the HDF5 file.
 #' @param name The name of the group or dataset to display. Defaults to the root
 #'   group "/".
+#' @param attrs Set to `FALSE` to only groups and datasets. The default (`TRUE`)
+#'   shows attributes as well.
 #' @return This function is called for its side-effect of printing to the
 #'   console and returns \code{NULL} invisibly.
 #' @seealso [h5_ls()], [h5_ls_attr()]
@@ -90,11 +92,11 @@ h5_ls_attr <- function(file, name) {
 #' h5_str(file)
 #'
 #' unlink(file)
-h5_str <- function(file, name = "/") {
+h5_str <- function(file, name = "/", attrs = TRUE) {
   file <- path.expand(file)
   if (!file.exists(file)) stop("File does not exist: ", file)
   
   # Call the C function that recursively visits objects and prints a summary.
-  .Call("C_h5_str", file, name, PACKAGE = "h5lite")
+  .Call("C_h5_str", file, name, isTRUE(attrs), PACKAGE = "h5lite")
   invisible(NULL)
 }

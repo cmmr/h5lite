@@ -1,146 +1,245 @@
 #include "h5lite.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /* Use the type helper defined in info.c */
 extern SEXP h5_type_to_rstr(hid_t type_id);
 
-/*
- * Formats HDF5 dataspace dimensions into a string like "[100,50]".
- * Returns an empty string for scalars or on error.
- * @param space_id The HDF5 dataspace ID.
- * @param buffer The character buffer to write the formatted string into.
- * @param buf_len The size of the buffer.
- */
-static void format_dims_bracket(hid_t space_id, char *buffer, size_t buf_len) {
-  int ndims = H5Sget_simple_extent_ndims(space_id);
-  
-  if (ndims <= 0) {
-    buffer[0] = '\0';
-    return;
-  }
-  
-  /* Cap dimensions to prevent buffer overflow on extreme cases */
-  hsize_t dims[32];
-  if (ndims > 32) ndims = 32; 
-  
-  H5Sget_simple_extent_dims(space_id, dims, NULL);
-  
-  buffer[0] = '[';
-  buffer[1] = '\0';
-  
-  char temp[64];
-  for (int i = 0; i < ndims; i++) {
-    snprintf(temp, sizeof(temp), "%llu", (unsigned long long)dims[i]);
-    strncat(buffer, temp, buf_len - strlen(buffer) - 1);
-    if (i < ndims - 1) {
-      strncat(buffer, ",", buf_len - strlen(buffer) - 1);
-    }
-  }
-  strncat(buffer, "]", buf_len - strlen(buffer) - 1);
-}
+/* --- COLOR & FORMATTING DEFINITIONS --- */
 
-/* --- SUMMARY/PRINT HELPERS --- */
+/* ANSI Color Codes
+ * \033[90m = Bright Black (Dark Grey) - nice for "subtle" info
+ * \033[3m  = Italic
+ * \033[0m  = Reset to default
+ */
+#define COL_SUBTLE "\033[90m"
+#define COL_ITALIC "\033[3m"
+#define COL_RESET  "\033[0m"
+
+/* --- FORMATTING HELPERS --- */
 
 /*
- * H5Aiterate callback function for printing a summary of a single attribute.
- * Used by C_h5_str.
- * @param op_data A void pointer to the name (path) of the parent object.
+ * Constructs the type string based on HDF5 type and dataspace.
+ * Format examples:
+ * "<float64 scalar>"   (Scalar)
+ * "<int32 x 10>"       (1D Array)
+ * "<double x 10 x 5>"  (2D Array)
+ * * @param obj_id   ID of the object (Dataset or Attribute)
+ * @param type_id  ID of the datatype (caller must open/get this)
+ * @param space_id ID of the dataspace (caller must open/get this)
+ * @param buffer   Buffer to write the string into
+ * @param buf_len  Size of buffer
  */
-static herr_t op_print_attr_cb(hid_t loc_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data) {
-  const char *parent_name = (const char *)op_data;
+static void format_type_and_dims(hid_t type_id, hid_t space_id, char *buffer, size_t buf_len) {
+  /* Ensure buffer starts empty */
+  if (buf_len > 0) buffer[0] = '\0';
+  else return;
   
-  hid_t attr_id = H5Aopen(loc_id, attr_name, H5P_DEFAULT);
-  if (attr_id < 0) return 0;
-  
-  /* 1. Get Dimensions (e.g., "[10]" or "") */
-  char dim_str[128] = "";
-  hid_t space_id = H5Aget_space(attr_id);
-  format_dims_bracket(space_id, dim_str, sizeof(dim_str));
-  H5Sclose(space_id);
-  
-  /* 2. Get Type Name (e.g., "int32") */
-  hid_t type_id = H5Aget_type(attr_id);
+  /* 1. Get Type Name (e.g., "int32") */
   SEXP type_sexp = h5_type_to_rstr(type_id);
-  PROTECT(type_sexp); // Protect before potential allocation in Rprintf/snprintf
+  PROTECT(type_sexp); 
   const char *type_base = CHAR(STRING_ELT(type_sexp, 0));
   
-  /* 3. Construct Composite Type String: "int32[10]" */
-  char full_type[256];
-  snprintf(full_type, sizeof(full_type), "%s%s", type_base, dim_str);
+  /* 2. Get Dimensions */
+  int ndims = H5Sget_simple_extent_ndims(space_id);
   
-  /* 4. Print the formatted line. */
-  Rprintf("%-12s %s @%s\n", full_type, parent_name, attr_name);
-  
-  UNPROTECT(1); // type_sexp
-  H5Tclose(type_id);
-  H5Aclose(attr_id);
-  return 0;
-}
-
-/*
- * H5Ovisit callback function for printing a summary of a single object (group or dataset).
- * Used by C_h5_str.
- */
-static herr_t op_print_cb(hid_t root_id, const char *name, const H5O_info_t *info, void *op_data) {
-  /* Skip visiting the root node itself to avoid printing "." in the output. */
-  if (strcmp(name, ".") == 0 || strlen(name) == 0) return 0;
-  
-  char full_type[256] = "Unknown";
-  char dim_str[128] = "";
-  
-  /* --- Determine "Type" String --- */
-  if (info->type == H5O_TYPE_GROUP) {
-    snprintf(full_type, sizeof(full_type), "Group");
-  } 
-  else if (info->type == H5O_TYPE_DATASET) {
-    hid_t dset_id = H5Dopen2(root_id, name, H5P_DEFAULT);
-    if (dset_id >= 0) {
-      /* Get Dims: "[10,10]" */
-      hid_t space_id = H5Dget_space(dset_id);
-      format_dims_bracket(space_id, dim_str, sizeof(dim_str));
-      H5Sclose(space_id);
+  if (ndims == 0) {
+    /* Scalar Case: "<type scalar>" */
+    snprintf(buffer, buf_len, "<%s scalar>", type_base);
+  } else {
+    /* Array Case: "<type x dim1 x ...>" */
+    snprintf(buffer, buf_len, "<%s", type_base);
+    
+    hsize_t dims[32];
+    if (ndims > 32) ndims = 32; /* Cap for display safety */
+    H5Sget_simple_extent_dims(space_id, dims, NULL);
+    
+    char tmp[64];
+    for(int i = 0; i < ndims; i++) {
+      snprintf(tmp, sizeof(tmp), " x %llu", (unsigned long long)dims[i]);
       
-      /* Get Type: "float64" */
-      hid_t type_id = H5Dget_type(dset_id);
-      SEXP type_sexp = h5_type_to_rstr(type_id);
-      PROTECT(type_sexp);
-      const char *type_base = CHAR(STRING_ELT(type_sexp, 0));
-      
-      /* Combine: "float64[10,10]" */
-      snprintf(full_type, sizeof(full_type), "%s%s", type_base, dim_str);
-      
-      UNPROTECT(1);
-      H5Tclose(type_id);
-      H5Dclose(dset_id);
+      /* Safe concatenation: ensure we don't write past buf_len */
+      size_t current_len = strlen(buffer);
+      if (current_len < buf_len - 1) {
+        strncat(buffer, tmp, buf_len - current_len - 1);
+      }
     }
-  } 
-  else if (info->type == H5O_TYPE_NAMED_DATATYPE) { // # nocov
-    snprintf(full_type, sizeof(full_type), "NamedType"); // # nocov
-  } // # nocov
-  
-  /* --- Print Object Line --- */
-  /* Format: Type Name */
-  Rprintf("%-12s %s\n", full_type, name);
-  
-  /* --- List Attributes --- */
-  /* Open object to iterate attributes. Pass 'name' as op_data so we can print "name@attr" */
-  hid_t oid = H5Oopen(root_id, name, H5P_DEFAULT);
-  if (oid >= 0) {
-    H5Aiterate2(oid, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_print_attr_cb, (void*)name);
-    H5Oclose(oid);
+    
+    /* Close string: ">" */
+    size_t current_len = strlen(buffer);
+    if (current_len < buf_len - 1) {
+      strncat(buffer, ">", buf_len - current_len - 1);
+    } else {
+      buffer[buf_len - 2] = '>';
+      buffer[buf_len - 1] = '\0';
+    }
   }
   
-  return 0;
+  UNPROTECT(1); // type_sexp
+}
+
+/* --- RECURSIVE PRINTING LOGIC --- */
+
+/*
+ * Recursively lists contents of a group/object with UTF-8 tree formatting.
+ * * @param loc_id The ID of the current group being scanned.
+ * @param prefix The current ASCII prefix string.
+ * @param show_attrs Boolean (1 or 0) indicating whether to list attributes.
+ */
+static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) {
+  /* * HDF5 1.12+ signature for H5Oget_info requires 3 arguments. */
+  unsigned fields = H5O_INFO_BASIC;
+  if (show_attrs) fields |= H5O_INFO_NUM_ATTRS;
+  
+  H5O_info_t oinfo;
+  if(H5Oget_info(loc_id, &oinfo, fields) < 0) return;
+  
+  hsize_t n_attrs = 0;
+  if (show_attrs) {
+    n_attrs = oinfo.num_attrs;
+  }
+  
+  /* Get number of links (children objects) if this is a group */
+  hsize_t n_links = 0;
+  if (oinfo.type == H5O_TYPE_GROUP) {
+    H5G_info_t ginfo;
+    if(H5Gget_info(loc_id, &ginfo) >= 0) {
+      n_links = ginfo.nlinks;
+    }
+  }
+  
+  hsize_t total_items = n_attrs + n_links;
+  if (total_items == 0) return;
+  
+  /* * Tree Connectors (UTF-8 Box Drawing Characters)
+   * We use Hex codes to avoid source file encoding issues.
+   * Visual Width: 4 chars
+   *
+   * conn_norm: "├──"  (\xE2\x94\x9C + 2x \xE2\x94\x80)
+   * conn_last: "└──"  (\xE2\x94\x94 + 2x \xE2\x94\x80)
+   * pref_norm: "│  "  (\xE2\x94\x82 + 2 spaces)
+   * pref_last: "   "  (3 spaces)
+   */
+  
+  const char *conn_norm = "\xE2\x94\x9C\xE2\x94\x80\xE2\x94\x80";
+  const char *conn_last = "\xE2\x94\x94\xE2\x94\x80\xE2\x94\x80";
+  const char *pref_norm = "\xE2\x94\x82   ";
+  const char *pref_last = "    ";
+  
+  /* Iterate over Attributes first (only if requested) */
+  if (show_attrs) {
+    for (hsize_t i = 0; i < n_attrs; i++) {
+      int is_last = (i == total_items - 1); 
+      
+      /* Open Attribute */
+      hid_t attr_id = H5Aopen_by_idx(loc_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, H5P_DEFAULT, H5P_DEFAULT);
+      if (attr_id < 0) continue;
+      
+      /* Get Name */
+      char attr_name[256];
+      H5Aget_name(attr_id, sizeof(attr_name), attr_name);
+      
+      /* Get Type Info */
+      hid_t atype = H5Aget_type(attr_id);
+      hid_t aspace = H5Aget_space(attr_id);
+      char type_str[256];
+      format_type_and_dims(atype, aspace, type_str, sizeof(type_str));
+      H5Sclose(aspace);
+      H5Tclose(atype);
+      H5Aclose(attr_id);
+      
+      /* Print: 
+       * Structure: prefix + connector + " " + @ + ITALIC(name) + " " + SUBTLE(type) 
+       */
+      Rprintf("%s%s @%s%s%s %s%s%s\n", 
+              prefix, 
+              (is_last ? conn_last : conn_norm), 
+              COL_ITALIC, attr_name, COL_RESET, 
+              COL_SUBTLE, type_str, COL_RESET);
+    }
+  }
+  
+  /* Iterate over Links (children) second */
+  for (hsize_t i = 0; i < n_links; i++) {
+    hsize_t global_idx = n_attrs + i;
+    int is_last = (global_idx == total_items - 1);
+    
+    /* Get Link Name */
+    char name[256];
+    if(H5Lget_name_by_idx(loc_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name, sizeof(name), H5P_DEFAULT) < 0) continue;
+    
+    /* Open Object to inspect type/recurse */
+    hid_t oid = H5Oopen(loc_id, name, H5P_DEFAULT);
+    if (oid < 0) {
+      /* Could not open (e.g. broken link), print basic info */
+      Rprintf("%s%s %s " COL_SUBTLE "<Error>" COL_RESET "\n", 
+              prefix, (is_last ? conn_last : conn_norm), name);
+      continue; 
+    }
+    
+    /* Determine Object Info */
+    H5O_info_t child_info;
+    H5Oget_info(oid, &child_info, H5O_INFO_BASIC);
+    
+    char type_str[256] = ""; // Start empty
+    int is_group = (child_info.type == H5O_TYPE_GROUP);
+    
+    if (is_group) {
+      /* Group: Leave type_str empty */
+    } else if (child_info.type == H5O_TYPE_DATASET) {
+      hid_t dtype = H5Dget_type(oid);
+      hid_t dspace = H5Dget_space(oid);
+      format_type_and_dims(dtype, dspace, type_str, sizeof(type_str));
+      H5Sclose(dspace);
+      H5Tclose(dtype);
+    } else {
+      snprintf(type_str, sizeof(type_str), "<NamedType>");
+    }
+    
+    /* Print current node 
+     * If Group: Just print Name
+     * If Dataset: Print Name + Subtle Type Info
+     */
+    if (is_group) {
+      Rprintf("%s%s %s\n", 
+              prefix, 
+              (is_last ? conn_last : conn_norm), 
+              name);
+    } else {
+      Rprintf("%s%s %s " COL_SUBTLE "%s" COL_RESET "\n", 
+              prefix, 
+              (is_last ? conn_last : conn_norm), 
+              name, type_str);
+    }
+    
+    /* Recurse if Group */
+    if (is_group) {
+      /* Create new prefix */
+      /* If this node was last, children get empty space, else vertical pipe */
+      char new_prefix[1024]; 
+      
+      /* Safety: Ensure we don't overflow the prefix stack buffer */
+      snprintf(new_prefix, sizeof(new_prefix), "%s%s", prefix, (is_last ? pref_last : pref_norm));
+      
+      h5_list_recursive(oid, new_prefix, show_attrs);
+    }
+    
+    H5Oclose(oid);
+  }
 }
 
 /*
  * C implementation of h5_str().
- * Prints a recursive summary of an HDF5 object and its children to the console.
+ * Prints a tree-structured recursive summary of an HDF5 object.
+ * * @param filename   HDF5 file path
+ * @param group_name Root group to start listing from
+ * @param attrs      Logical TRUE to list attributes, FALSE to hide them.
  */
-SEXP C_h5_str(SEXP filename, SEXP group_name) {
+SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *gname = CHAR(STRING_ELT(group_name, 0));
+  int show_attrs = LOGICAL(attrs)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -151,26 +250,21 @@ SEXP C_h5_str(SEXP filename, SEXP group_name) {
     error("Failed to open group/object: %s", gname); // # nocov
   }
   
-  /* Print Header */
-  Rprintf("Listing contents of: %s\n", fname);
-  Rprintf("Root group: %s\n", gname);
-  Rprintf("----------------------------------------------------------------\n");
-  Rprintf("%-15s %s\n", "Type", "Name");
-  Rprintf("----------------------------------------------------------------\n");
+  /* Print Header (Directory Style) */
+  /* Just the name, no bold */
+  Rprintf("%s\n", gname);
   
-  /* Recursively visit all objects */
-  herr_t status = H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_print_cb, NULL, H5O_INFO_BASIC);
+  /* Start Recursion with empty prefix */
+  h5_list_recursive(group_id, "", show_attrs);
   
   H5Oclose(group_id);
   H5Fclose(file_id);
   
-  if (status < 0) {
-    error("Error occurred during HDF5 traversal of group '%s'", gname); // # nocov
-  }
-
   return R_NilValue;
 }
 
+
+/* --- DATA COLLECTION HELPERS (Unchanged for h5_ls) --- */
 
 /*
  * A struct to pass data between the main 'ls' function and the HDF5 callback functions.
@@ -332,6 +426,7 @@ SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
   
   /* Get the number of attributes on the object. */
   H5O_info_t oinfo;
+  /* Updated to 3-arg signature for HDF5 1.12+ */
   herr_t status = H5Oget_info(obj_id, &oinfo, H5O_INFO_NUM_ATTRS);
   if (status < 0) {
     H5Oclose(obj_id); H5Fclose(file_id); // # nocov

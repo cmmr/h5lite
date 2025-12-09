@@ -32,6 +32,7 @@ The following vignettes provide detailed examples and explanations for common ta
 \item \code{vignette("data-frames")}: Details on writing \code{data.frame} objects.
 \item \code{vignette("data-organization")}: How to organize data using groups and lists.
 \item \code{vignette("attributes-in-depth")}: A deep dive into using attributes.
+\item \code{vignette("oo-interface")}: Guide to the object-oriented \code{h5_open()} interface.
 \item \code{vignette("parallel-io")}: Guide for using h5lite in parallel environments.
 }
 }

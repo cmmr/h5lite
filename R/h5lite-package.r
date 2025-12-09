@@ -24,6 +24,7 @@
 #'   \item `vignette("data-frames")`: Details on writing `data.frame` objects.
 #'   \item `vignette("data-organization")`: How to organize data using groups and lists.
 #'   \item `vignette("attributes-in-depth")`: A deep dive into using attributes.
+#'   \item `vignette("oo-interface")`: Guide to the object-oriented `h5_open()` interface.
 #'   \item `vignette("parallel-io")`: Guide for using h5lite in parallel environments.
 #' }
 #'

@@ -4,13 +4,16 @@
 \alias{h5_str}
 \title{Display the Structure of an HDF5 Object}
 \usage{
-h5_str(file, name = "/")
+h5_str(file, name = "/", attrs = TRUE)
 }
 \arguments{
 \item{file}{Path to the HDF5 file.}
 
 \item{name}{The name of the group or dataset to display. Defaults to the root
 group "/".}
+
+\item{attrs}{Set to \code{FALSE} to only groups and datasets. The default (\code{TRUE})
+shows attributes as well.}
 }
 \value{
 This function is called for its side-effect of printing to the

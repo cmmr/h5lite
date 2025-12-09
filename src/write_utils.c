@@ -1,13 +1,13 @@
 #include "h5lite.h"
+#include <stdio.h> // For fopen, fclose
 
 /*
  * Opens an HDF5 file with read-write access.
- * If the file does not exist or is not a valid HDF5 file, it creates a new one,
- * truncating any existing content.
+ * If the file does not exist, it creates a new one.
+ * If the file exists but is not a valid HDF5 file, it throws an error.
  */
 hid_t open_or_create_file(const char *fname) {
   hid_t file_id = -1;
-  
   /* Suppress HDF5's auto error printing for H5Fis_hdf5
    * It will (correctly) error if the file doesn't exist,
    * but we don't want to show that to the user.
@@ -24,14 +24,24 @@ hid_t open_or_create_file(const char *fname) {
   /* Restore error handler */
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
-  /* Open the file if it's a valid HDF5 file, otherwise create a new one. */
   if (is_hdf5 > 0) {
+    /* File exists and is a valid HDF5 file, open it. */
     file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   } else {
-    /* File doesn't exist or isn't HDF5, create/truncate it */
-    file_id = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    /* File is not a valid HDF5 file. Check if it exists at all. */
+    FILE *fp = fopen(fname, "r");
+    if (fp != NULL) {
+      /* File exists but is not HDF5. This is an error. */
+      fclose(fp);
+      error("File exists but is not a valid HDF5 file: %s", fname);
+    } else {
+      /* File does not exist, so create it. */
+      file_id = H5Fcreate(fname, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+    }
   }
+  
   if (file_id < 0) error("Failed to open or create file: %s", fname);
+  
   return file_id;
 }
 

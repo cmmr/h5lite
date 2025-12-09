@@ -1,8 +1,8 @@
 ---
-title: "Working with Atomic Vectors"
+title: "Atomic Vectors"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Working with Atomic Vectors}
+  %\VignetteIndexEntry{Atomic Vectors}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

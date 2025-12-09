@@ -106,3 +106,21 @@ test_that("Info, existence, and type checking functions work correctly", {
   expect_output(h5_str(file_path, "/g1"))
   expect_output(h5_str(file_path, "/g1/d1.1"))
 })
+
+test_that("h5_exists and write operations handle non-HDF5 files correctly", {
+  # Create a plain text file
+  text_file <- tempfile(fileext = ".txt")
+  on.exit(unlink(text_file), add = TRUE)
+  writeLines("This is not an HDF5 file.", text_file)
+
+  # 1. h5_exists should return FALSE for a non-HDF5 file
+  expect_false(h5_exists(text_file))
+  expect_false(h5_exists(text_file, "/"))
+  expect_false(h5_exists(text_file, "any_object"))
+
+  # 2. Attempting to write to a non-HDF5 file should throw an error
+  expect_error(
+    h5_write(text_file, "dset", 1:10),
+    "File exists but is not a valid HDF5 file"
+  )
+})

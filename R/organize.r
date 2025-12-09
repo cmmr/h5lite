@@ -41,6 +41,14 @@ h5_create_group <- function(file, name) {
 #' a file before writing data to it.
 #'
 #' @param file Path to the HDF5 file to be created.
+#'
+#' @section File Handling:
+#' - If `file` does not exist, it will be created as a new, empty HDF5 file.
+#' - If `file` already exists and is a valid HDF5 file, this function does
+#'   nothing and returns successfully.
+#' - If `file` exists but is **not** a valid HDF5 file (e.g., a text file),
+#'   an error will be thrown and the file will not be modified.
+#'
 #' @return Invisibly returns `NULL`. This function is called for its side
 #'   effects.
 #' @seealso [h5_create_group()], [h5_write()]
@@ -60,7 +68,6 @@ h5_create_group <- function(file, name) {
 #' # Clean up
 #' unlink(file)
 h5_create_file <- function(file) {
-  file <- path.expand(file)
   # Creating a file is equivalent to creating the root group '/'.
   h5_create_group(file = file, name = "/")
 }

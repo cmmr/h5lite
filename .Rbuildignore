@@ -9,3 +9,4 @@
 ^man/figures/logo_fullsize.png$
 ^.*\.Rproj$
 ^rhub_check\.r$
+^\.Rproj\.user$

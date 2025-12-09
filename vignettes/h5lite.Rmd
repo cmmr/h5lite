@@ -2,7 +2,7 @@
 title: "Get Started with h5lite"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting Started with h5lite}
+  %\VignetteIndexEntry{Get Started with h5lite}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -1,7 +1,7 @@
 Package: h5lite
 Title: Simplified 'HDF5' Interface
 Version: 2.0.0.0
-Authors@R: 
+Authors@R:
     person("Daniel P.", "Smith", , "dansmith01@gmail.com", role = c("aut", "cre"))
 Description: Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
 URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/

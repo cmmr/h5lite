@@ -28,6 +28,17 @@ the file if it does not exist.
 It is provided as a convenience for users who prefer to explicitly create
 a file before writing data to it.
 }
+\section{File Handling}{
+
+\itemize{
+\item If \code{file} does not exist, it will be created as a new, empty HDF5 file.
+\item If \code{file} already exists and is a valid HDF5 file, this function does
+nothing and returns successfully.
+\item If \code{file} exists but is \strong{not} a valid HDF5 file (e.g., a text file),
+an error will be thrown and the file will not be modified.
+}
+}
+
 \examples{
 file <- tempfile(fileext = ".h5")
 

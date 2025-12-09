@@ -43,7 +43,7 @@ hid_t get_file_type(const char *dtype, SEXP data);
 void* get_R_data_ptr(SEXP data);
 
 /* --- ls.c --- */
-SEXP C_h5_str(SEXP filename, SEXP obj_name);
+SEXP C_h5_str(SEXP filename, SEXP obj_name, SEXP attrs);
 SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names);
 SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name);
 
