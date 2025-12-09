@@ -16,47 +16,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # We need R to build the source package tarball
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: 'release'
-
-      - name: Build Package
-        run: |
-          R CMD build --no-manual --no-build-vignettes .
-          mkdir packages
-          PKG_TAR=$(ls -1 *.tar.gz | head -n 1)
-          mv "$PKG_TAR" packages/
-          echo "PKG_TAR=$PKG_TAR" >> $GITHUB_ENV
-
       - name: Create Check Script
         run: |
+          mkdir -p packages
           cat <<EOF > packages/check.R
-          # 0. Setup a local library directory we can write to
-          #    (We use /rchk/packages because it is mounted from the host and writable)
+          # 1. Setup a local library directory in the mounted volume
           lib_dir <- "/rchk/packages/library"
-          dir.create(lib_dir, showWarnings = FALSE)
+          dir.create(lib_dir, recursive = TRUE, showWarnings = FALSE)
           .libPaths(c(lib_dir, .libPaths()))
 
-          # 1. Install remotes into our local library
+          # 2. Install remotes
           install.packages("remotes", repos = "https://cloud.r-project.org", lib = lib_dir)
 
-          # 2. Identify the package tarball
-          pkg_tar_name <- Sys.getenv("PKG_TAR")
-          if (pkg_tar_name == "") {
-            pkg_tar_name <- list.files("/rchk/packages", pattern = "\\\\.tar\\\\.gz$", full.names = FALSE)[1]
-          }
-          pkg_tar_path <- file.path("/rchk/packages", pkg_tar_name)
+          # 3. Define source directory (mapped from host)
+          pkg_src <- "/rchk/source"
           
-          # Extract source to a temp dir so remotes can read DESCRIPTION
-          tmp_dir <- tempfile()
-          dir.create(tmp_dir)
-          untar(pkg_tar_path, exdir = tmp_dir)
-          pkg_src <- list.files(tmp_dir, full.names = TRUE)[1]
-          pkg_name <- basename(pkg_src)
-
-          # 3. Install dependencies with --no-clean
-          #    This ensures build artifacts (bitcode) for dependencies like hdf5lib persist.
+          # 4. Install dependencies
+          #    We force --no-clean to preserve bitcode for static libraries like hdf5lib
           remotes::install_deps(
             pkg_src, 
             dependencies = c("Depends", "Imports", "LinkingTo"), 
@@ -65,55 +41,64 @@ jobs:
             INSTALL_opts = c("--no-clean", "--no-byte-compile")
           )
 
-          # 4. Install the target package libs for rchk analysis
-          #    (The internal script handles its own install location)
+          # 5. Build the package tarball
+          #    We build into /rchk/packages to ensure we have write permissions
+          setwd("/rchk/packages")
+          cmd_build <- sprintf("R CMD build --no-manual --no-build-vignettes '%s'", pkg_src)
+          if (system(cmd_build) != 0) stop("Failed to build package tarball")
+          
+          #    Identify the generated tarball
+          pkg_tar <- list.files(pattern = "\\\\.tar\\\\.gz$")[1]
+          pkg_name <- gsub("_.*", "", pkg_tar)
+
+          # 6. Install the package libs for rchk analysis
           source("/rchk/scripts/utils.r")
-          install_package_libs(pkg_tar_path, target = "/rchk/packages/libsonly")
+          install_package_libs(pkg_tar, target = "/rchk/packages/libsonly")
 
-          # 5. Run the actual check
-          cmd <- paste("/rchk/scripts/check_package.sh", pkg_name)
-          status <- system(cmd)
+          # 7. Run the actual check
+          cmd_check <- paste("/rchk/scripts/check_package.sh", pkg_name)
+          if (system(cmd_check) != 0) quit(status = 1)
 
-          if (status != 0) quit(status = status)
+          # 8. Verify Results
+          #    The rchk tool writes report files to:
+          #    /rchk/packages/libsonly/<pkg>/libs/<pkg>.so.{maacheck,bcheck}
+          
+          libs_dir      <- file.path("/rchk/packages", "libsonly", pkg_name, "libs")
+          maacheck_file <- file.path(libs_dir, paste0(pkg_name, ".so.maacheck"))
+          bcheck_file   <- file.path(libs_dir, paste0(pkg_name, ".so.bcheck"))
+          
+          if (!file.exists(maacheck_file) || !file.exists(bcheck_file)) {
+             stop("Check files not found. The rchk run likely failed.")
+          }
+
+          # Process bcheck errors
+          # Ignore "too many states" warnings and the summary line
+          b_errors <- readLines(bcheck_file)
+          b_errors <- b_errors[!grepl("too many states", b_errors)]
+          b_errors <- b_errors[!grepl("^Analyzed [0-9]+ functions", b_errors)]
+
+          # Process maacheck errors (anything here is a failure)
+          m_errors <- readLines(maacheck_file)
+          
+          # Combine and filter empty lines
+          all_errors <- c(b_errors, m_errors)
+          all_errors <- all_errors[nzchar(all_errors)]
+          
+          if (length(all_errors) > 0) {
+            cat("\n\nFAILURE: rchk found errors:\n")
+            cat(paste(all_errors, collapse = "\n"), "\n")
+            quit(status = 1)
+          } else {
+            cat("\nSUCCESS: No memory protection errors found by rchk.\n")
+            quit(status = 0)
+          }
           EOF
 
       - name: Run rchk
         run: |
           docker pull kalibera/rchk:latest
           docker run --rm \
+            -v "$PWD:/rchk/source" \
             -v "$PWD/packages:/rchk/packages" \
-            -e PKG_TAR="${{ env.PKG_TAR }}" \
             kalibera/rchk:latest \
             R -f /rchk/packages/check.R
-
-      - name: Verify Results
-        shell: Rscript {0}
-        run: |
-          # The rchk tool writes report files to:
-          # packages/libsonly/<pkg>/libs/<pkg>.so.{maacheck,bcheck}
-          
-          pkg           <- read.dcf("DESCRIPTION")[,"Package"]
-          libs_dir      <- file.path("packages", "libsonly", pkg, "libs")
-          maacheck_file <- file.path(libs_dir, paste0(pkg, ".so.maacheck"))
-          bcheck_file   <- file.path(libs_dir, paste0(pkg, ".so.bcheck"))
-          
-          stopifnot(file.exists(maacheck_file))
-          stopifnot(file.exists(bcheck_file))
-
-          # Ignore "too many states" warnings from bcheck
-          # and the final "Analyzed 104 functions" summary line
-          errors <- readLines(bcheck_file)
-          errors <- errors[!grepl("too many states", errors)]
-          errors <- errors[!grepl("^Analyzed [0-9]+ functions", errors)]
-
-          # Anything in maacheck log is a failure
-          errors <- c(errors, readLines(maacheck_file))
-          
-          # Remove empty lines
-          errors <- errors[nzchar(errors)]
-          
-          if (length(errors) > 0) {
-            stop("rchk failed! Errors detected in analysis logs:\n", paste(errors, collapse = "\n"))
-          } else {
-            cat("\nSUCCESS: No memory protection errors found by rchk.\n")
-          }
