@@ -7,7 +7,7 @@ dimensions, and attributes.
 ## Usage
 
 ``` r
-h5_str(file, name = "/")
+h5_str(file, name = "/", attrs = TRUE)
 ```
 
 ## Arguments
@@ -20,6 +20,11 @@ h5_str(file, name = "/")
 
   The name of the group or dataset to display. Defaults to the root
   group "/".
+
+- attrs:
+
+  Set to `FALSE` to only groups and datasets. The default (`TRUE`) shows
+  attributes as well.
 
 ## Value
 
@@ -53,16 +58,11 @@ h5_write_attr(file, "/data/matrix", "title", "my matrix")
 
 # Display the structure of the entire file
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp2J9RxO/file19b720098122.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> Group        config
-#> float64      config/version
-#> Group        data
-#> uint8[2,2]   data/matrix
-#> string[1]    data/matrix @title
+#> /
+#> ├── config
+#> │   └── version <float64 scalar>
+#> └── data
+#>     └── matrix <uint8 x 2 x 2>
 
 unlink(file)
 ```

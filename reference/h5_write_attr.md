@@ -65,6 +65,14 @@ datatype class, which was introduced in HDF5 version 2.0.0. As a result,
 HDF5 files containing complex numbers written by `h5lite` can only be
 read by other HDF5 tools that support HDF5 version 2.0.0 or later.
 
+## Writing Date-Time Objects
+
+`POSIXt` objects are automatically converted to character strings in ISO
+8601 format (`YYYY-MM-DDTHH:MM:SSZ`). This ensures that timestamps are
+stored in a human-readable and unambiguous way. This conversion applies
+to standalone `POSIXt` objects, as well as to columns within a
+`data.frame`.
+
 ## Data Type Selection (`dtype`)
 
 The `dtype` argument controls the on-disk storage type and only applies

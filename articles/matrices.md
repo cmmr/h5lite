@@ -1,4 +1,4 @@
-# Working with Matrices and Arrays
+# Matrices and Arrays
 
 ``` r
 library(h5lite)

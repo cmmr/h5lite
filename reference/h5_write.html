@@ -23,12 +23,13 @@ and nested lists."><meta property="og:image" content="https://cmmr.github.io/h5l
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Working with Atomic Vectors</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -143,6 +144,15 @@ native HDF5 table-like structure that is highly efficient and portable.</p>
 datatype class, which was introduced in HDF5 version 2.0.0. As a result,
 HDF5 files containing complex numbers written by <code>h5lite</code> can only be read
 by other HDF5 tools that support HDF5 version 2.0.0 or later.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="writing-date-time-objects">Writing Date-Time Objects<a class="anchor" aria-label="anchor" href="#writing-date-time-objects"></a></h2>
+
+
+<p><code>POSIXt</code> objects are automatically converted to character strings in
+ISO 8601 format (<code>YYYY-MM-DDTHH:MM:SSZ</code>). This ensures that timestamps are
+stored in a human-readable and unambiguous way. This conversion applies to
+standalone <code>POSIXt</code> objects, as well as to columns within a <code>data.frame</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="data-type-selection-dtype-">Data Type Selection (<code>dtype</code>)<a class="anchor" aria-label="anchor" href="#data-type-selection-dtype-"></a></h2>

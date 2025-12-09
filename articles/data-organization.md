@@ -59,18 +59,14 @@ the hierarchy that was created.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/RtmpKcZIE3/file1c5b2f2ee1c1.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> Group        session_1
-#> string[1]    session_1 @info
-#> Group        session_1/metadata
-#> string[1]    session_1/metadata/user
-#> float64[1]   session_1/metadata/version
-#> string[1]    session_1/metadata/timestamp
-#> float64[10,10] session_1/raw_data
+#> /
+#> └── session_1
+#>     ├── @info <string x 1>
+#>     ├── metadata
+#>     │   ├── user <string x 1>
+#>     │   ├── version <float64 x 1>
+#>     │   └── timestamp <string x 1>
+#>     └── raw_data <float64 x 10 x 10>
 ```
 
 ## Recursive Reading of Groups
@@ -154,21 +150,17 @@ a fast metadata operation that does not rewrite any data.
 h5_move(file, from = "session_1", to = "/archive/2024/run_01/data")
 
 h5_str(file)
-#> Listing contents of: /tmp/RtmpKcZIE3/file1c5b2f2ee1c1.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> Group        archive
-#> Group        archive/2024
-#> Group        archive/2024/run_01
-#> Group        archive/2024/run_01/data
-#> string[1]    archive/2024/run_01/data @info
-#> Group        archive/2024/run_01/data/metadata
-#> string[1]    archive/2024/run_01/data/metadata/user
-#> float64[1]   archive/2024/run_01/data/metadata/version
-#> string[1]    archive/2024/run_01/data/metadata/timestamp
-#> float64[10,10] archive/2024/run_01/data/raw_data
+#> /
+#> └── archive
+#>     └── 2024
+#>         └── run_01
+#>             └── data
+#>                 ├── @info <string x 1>
+#>                 ├── metadata
+#>                 │   ├── user <string x 1>
+#>                 │   ├── version <float64 x 1>
+#>                 │   └── timestamp <string x 1>
+#>                 └── raw_data <float64 x 10 x 10>
 ```
 
 ### Deleting Objects

@@ -124,15 +124,11 @@ file.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/Rtmphav3cc/file1c937b9f7291.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> Group        experiment_1
-#> float64[3,4] experiment_1/sensor_readings
-#> int32[12]    experiment_1/trial_ids
-#> string       experiment_1/run_id
+#> /
+#> └── experiment_1
+#>     ├── sensor_readings <float64 x 3 x 4>
+#>     ├── trial_ids <int32 x 12>
+#>     └── run_id <string scalar>
 ```
 
 ### Checking Dimensions and Types

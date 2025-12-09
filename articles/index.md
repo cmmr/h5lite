@@ -2,7 +2,7 @@
 
 ### All vignettes
 
-- [Working with Atomic
+- [Atomic
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
 - [Attributes
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
@@ -12,7 +12,9 @@
   Organization](https://cmmr.github.io/h5lite/articles/data-organization.md):
 - [Get Started with
   h5lite](https://cmmr.github.io/h5lite/articles/h5lite.md):
-- [Working with Matrices and
+- [Matrices and
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.md):
-- [Using h5lite with Parallel
+- [Object-Oriented
+  Interface](https://cmmr.github.io/h5lite/articles/oo-interface.md):
+- [Parallel
   Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):

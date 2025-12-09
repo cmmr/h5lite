@@ -36,12 +36,13 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Working with Atomic Vectors</a></li>
+<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -193,15 +194,11 @@ and types. This is often the most convenient way to quickly inspect a
 file.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/Rtmphav3cc/file1c937b9f7291.h5</span></span>
-<span><span class="co">#&gt; Root group: /</span></span>
-<span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
-<span><span class="co">#&gt; Type            Name</span></span>
-<span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
-<span><span class="co">#&gt; Group        experiment_1</span></span>
-<span><span class="co">#&gt; float64[3,4] experiment_1/sensor_readings</span></span>
-<span><span class="co">#&gt; int32[12]    experiment_1/trial_ids</span></span>
-<span><span class="co">#&gt; string       experiment_1/run_id</span></span></code></pre></div>
+<span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; └── experiment_1</span></span>
+<span><span class="co">#&gt;     ├── sensor_readings <span style="color: #555555;">&lt;float64 x 3 x 4&gt;</span></span></span>
+<span><span class="co">#&gt;     ├── trial_ids <span style="color: #555555;">&lt;int32 x 12&gt;</span></span></span>
+<span><span class="co">#&gt;     └── run_id <span style="color: #555555;">&lt;string scalar&gt;</span></span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="checking-dimensions-and-types">Checking Dimensions and Types<a class="anchor" aria-label="anchor" href="#checking-dimensions-and-types"></a>

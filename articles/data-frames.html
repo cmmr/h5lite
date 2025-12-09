@@ -36,12 +36,13 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Working with Atomic Vectors</a></li>
+<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
   </ul>
 </li>
       </ul>
@@ -112,12 +113,8 @@ identifies it as a <code>data.frame</code> backed by a
 <code>compound</code> HDF5 type.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Listing contents of: /tmp/Rtmp1JgK2p/file1c222cdad10.h5</span></span>
-<span><span class="co">#&gt; Root group: /</span></span>
-<span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
-<span><span class="co">#&gt; Type            Name</span></span>
-<span><span class="co">#&gt; ----------------------------------------------------------------</span></span>
-<span><span class="co">#&gt; compound[4]  my_df</span></span>
+<span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; └── my_df <span style="color: #555555;">&lt;compound x 4&gt;</span></span></span>
 <span><span class="fu"><a href="../reference/h5_class.html">h5_class</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "data.frame"</span></span></code></pre></div>
 <p>Reading the data back with <code><a href="../reference/h5_read.html">h5_read()</a></code> restores it as an R

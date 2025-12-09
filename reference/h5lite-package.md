@@ -44,6 +44,11 @@ common tasks:
 - [`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
   A deep dive into using attributes.
 
+- [`vignette("oo-interface")`](https://cmmr.github.io/h5lite/articles/oo-interface.md):
+  Guide to the object-oriented
+  [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md)
+  interface.
+
 - [`vignette("parallel-io")`](https://cmmr.github.io/h5lite/articles/parallel-io.md):
   Guide for using h5lite in parallel environments.
 

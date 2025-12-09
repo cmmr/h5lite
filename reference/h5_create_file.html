@@ -19,12 +19,13 @@
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Working with Atomic Vectors</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
     <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Working with Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Using h5lite with Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
   </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
@@ -74,6 +75,16 @@ the file if it does not exist.</p>
 <p>It is provided as a convenience for users who prefer to explicitly create
 a file before writing data to it.</p>
     </div>
+    <div class="section level2">
+    <h2 id="file-handling">File Handling<a class="anchor" aria-label="anchor" href="#file-handling"></a></h2>
+
+
+<ul><li><p>If <code>file</code> does not exist, it will be created as a new, empty HDF5 file.</p></li>
+<li><p>If <code>file</code> already exists and is a valid HDF5 file, this function does
+nothing and returns successfully.</p></li>
+<li><p>If <code>file</code> exists but is <strong>not</strong> a valid HDF5 file (e.g., a text file),
+an error will be thrown and the file will not be modified.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="h5_create_group.html">h5_create_group()</a></code>, <code><a href="h5_write.html">h5_write()</a></code></p></div>

@@ -1,5 +1,12 @@
 # Package index
 
+## Object-Oriented Interface
+
+Create a file handle for a convenient, object-oriented workflow.
+
+- [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md) :
+  Create an HDF5 File Handle
+
 ## Read & Write
 
 Functions for reading and writing datasets, attributes, and nested

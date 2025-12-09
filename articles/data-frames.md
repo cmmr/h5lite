@@ -47,12 +47,8 @@ a `compound` HDF5 type.
 
 ``` r
 h5_str(file)
-#> Listing contents of: /tmp/Rtmp1JgK2p/file1c222cdad10.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> compound[4]  my_df
+#> /
+#> └── my_df <compound x 4>
 h5_class(file, "my_df")
 #> [1] "data.frame"
 ```

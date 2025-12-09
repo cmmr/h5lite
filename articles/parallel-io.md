@@ -1,4 +1,4 @@
-# Using h5lite with Parallel Processing
+# Parallel Processing
 
 ``` r
 library(h5lite)

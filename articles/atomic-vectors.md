@@ -1,4 +1,4 @@
-# Working with Atomic Vectors
+# Atomic Vectors
 
 ``` r
 library(h5lite)
@@ -48,14 +48,10 @@ You can inspect the contents of the file with
 h5_ls(file)
 #> [1] "trial_ids"    "sample_names" "qc_pass"
 h5_str(file)
-#> Listing contents of: /tmp/RtmpiIxlwQ/file1bb022afe37.h5
-#> Root group: /
-#> ----------------------------------------------------------------
-#> Type            Name
-#> ----------------------------------------------------------------
-#> uint8[10]    trial_ids
-#> string[4]    sample_names
-#> uint8[4]     qc_pass
+#> /
+#> ├── trial_ids <uint8 x 10>
+#> ├── sample_names <string x 4>
+#> └── qc_pass <uint8 x 4>
 ```
 
 Reading the data back is just as easy with

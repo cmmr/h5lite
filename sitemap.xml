@@ -9,6 +9,7 @@
 <url><loc>https://cmmr.github.io/h5lite/articles/h5lite.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/articles/index.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/articles/matrices.html</loc></url>
+<url><loc>https://cmmr.github.io/h5lite/articles/oo-interface.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/articles/parallel-io.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/authors.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/index.html</loc></url>
@@ -27,6 +28,7 @@
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_ls.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_ls_attr.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_move.html</loc></url>
+<url><loc>https://cmmr.github.io/h5lite/reference/h5_open.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_read.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_read_attr.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_str.html</loc></url>

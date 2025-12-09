@@ -32,6 +32,17 @@ will automatically create the file if it does not exist.
 It is provided as a convenience for users who prefer to explicitly
 create a file before writing data to it.
 
+## File Handling
+
+- If `file` does not exist, it will be created as a new, empty HDF5
+  file.
+
+- If `file` already exists and is a valid HDF5 file, this function does
+  nothing and returns successfully.
+
+- If `file` exists but is **not** a valid HDF5 file (e.g., a text file),
+  an error will be thrown and the file will not be modified.
+
 ## See also
 
 [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md),
