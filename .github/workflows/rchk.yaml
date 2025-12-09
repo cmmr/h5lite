@@ -93,4 +93,4 @@ jobs:
             -v "$PWD:/rchk/source" \
             --entrypoint /bin/bash \
             kalibera/rchk:latest \
-            R -f /rchk/source/inst/check.R
+            R -f /rchk/source/inst/check.r
