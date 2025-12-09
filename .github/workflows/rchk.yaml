@@ -29,13 +29,59 @@ jobs:
           mv "$PKG_TAR" packages/
           echo "PKG_TAR=$PKG_TAR" >> $GITHUB_ENV
 
+      - name: Create Check Script
+        run: |
+          cat <<EOF > packages/check.R
+          # 1. Install remotes to handle dependencies automatically
+          install.packages("remotes", repos = "https://cloud.r-project.org")
+
+          # 2. Identify the package tarball and extract it to read DESCRIPTION
+          #    (We look in /rchk/packages which maps to the host 'packages' dir)
+          pkg_tar_name <- Sys.getenv("PKG_TAR")
+          if (pkg_tar_name == "") {
+            pkg_tar_name <- list.files("/rchk/packages", pattern = "\\\\.tar\\\\.gz$", full.names = FALSE)[1]
+          }
+          pkg_tar_path <- file.path("/rchk/packages", pkg_tar_name)
+          
+          # Extract source to a temp dir so remotes can read DESCRIPTION
+          tmp_dir <- tempfile()
+          dir.create(tmp_dir)
+          untar(pkg_tar_path, exdir = tmp_dir)
+          pkg_src <- list.files(tmp_dir, full.names = TRUE)[1]
+          pkg_name <- basename(pkg_src)
+
+          # 3. Install dependencies with --no-clean
+          #    We assume "LinkingTo" deps (like hdf5lib) need their build dir preserved.
+          #    Applying it to all deps is safe in this ephemeral container.
+          remotes::install_deps(
+            pkg_src, 
+            dependencies = c("Depends", "Imports", "LinkingTo"), 
+            repos = "https://cloud.r-project.org",
+            INSTALL_opts = c("--no-clean", "--no-byte-compile")
+          )
+
+          # 4. Install the target package libs for rchk analysis
+          #    (This uses the internal rchk script which skips already installed deps)
+          source("/rchk/scripts/utils.r")
+          install_package_libs(pkg_tar_path, target = "/rchk/packages/libsonly")
+
+          # 5. Run the actual check
+          #    We use system() to invoke the bash check script
+          cmd <- paste("/rchk/scripts/check_package.sh", pkg_name)
+          status <- system(cmd)
+
+          # Propagate exit code so CI fails if rchk fails
+          if (status != 0) quit(status = status)
+          EOF
+
       - name: Run rchk
         run: |
           docker pull kalibera/rchk:latest
           docker run --rm \
             -v "$PWD/packages:/rchk/packages" \
+            -e PKG_TAR="${{ env.PKG_TAR }}" \
             kalibera/rchk:latest \
-            R -e "install.packages('hdf5lib', repos='https://cloud.r-project.org', INSTALL_opts='--no-clean'); source('/rchk/scripts/utils.r'); install_package_libs('/rchk/packages/${{ env.PKG_TAR }}', target='/rchk/packages/libsonly'); system('/rchk/scripts/check_package.sh h5lite')"
+            R -f /rchk/packages/check.R
 
       - name: Verify Results
         shell: Rscript {0}
