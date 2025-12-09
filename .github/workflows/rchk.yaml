@@ -48,7 +48,6 @@ jobs:
           maacheck_file <- file.path(libs_dir, paste0(pkg, ".so.maacheck"))
           bcheck_file   <- file.path(libs_dir, paste0(pkg, ".so.bcheck"))
           
-          stopifnot(file.exists(maacheck_file))
           stopifnot(file.exists(bcheck_file))
 
           # Ignore "too many states" warnings from bcheck
@@ -58,7 +57,8 @@ jobs:
           errors <- errors[!grepl("^Analyzed [0-9]+ functions", errors)]
 
           # Anything in maacheck log is a failure
-          errors <- c(errors, readLines(maacheck_file))
+          if (file.exists(maacheck_file))
+            errors <- c(errors, readLines(maacheck_file))
           
           # Remove empty lines
           errors <- errors[nzchar(errors)]

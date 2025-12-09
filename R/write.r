@@ -307,10 +307,6 @@ validate_dtype <- function(data, dtype = "auto") {
   if (is.list(data))       return ("group")
   if (is.complex(data))    return ("complex")
   
-  # POSIXt objects are numeric but should be treated as standard doubles
-  # without special integer type selection.
-  if (inherits(data, "POSIXt")) return ("float64")
-  
   # For numeric/logical data, validate the user's 'dtype' argument.
   supported_dtypes <- c(
     "auto", "float16", "float32", "float64", 

@@ -56,3 +56,30 @@ test_that("data.frame with POSIXt column is written as character", {
   expect_type(df_read$timestamp, "character")
   expect_equal(df_read, df_expected)
 })
+
+test_that("data.frame with POSIXt column as attribute is written as character", {
+  file_path <- tempfile(fileext = ".h5")
+  on.exit(unlink(file_path), add = TRUE)
+
+  # 1. Create a dummy dataset to attach the attribute to
+  h5_write(file_path, "dset", 1)
+
+  # 2. Define data.frame with a POSIXt column
+  time_obj <- as.POSIXct("2025-12-08 15:30:00", tz = "UTC")
+  df_with_posix <- data.frame(
+    id = 1:3,
+    timestamp = time_obj + 0:2
+  )
+
+  # 3. Write as an attribute and read back
+  h5_write_attr(file_path, "dset", "df_attr", df_with_posix)
+  df_read <- h5_read_attr(file_path, "dset", "df_attr")
+
+  # 4. Create expected data.frame for comparison
+  df_expected <- df_with_posix
+  df_expected$id <- as.numeric(df_expected$id)
+  df_expected$timestamp <- format(df_expected$timestamp, format = "%Y-%m-%dT%H:%M:%OSZ")
+
+  # 5. Verify
+  expect_equal(df_read, df_expected)
+})
