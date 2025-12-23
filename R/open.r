@@ -166,9 +166,9 @@ h5_run <- function(env, func) {
   args <- as.list(parent.frame())
   
   # Normalize paths for 'name', 'from', and 'to' arguments if they exist
-  if (hasName(args, "name")) { args$name <- normalize_path(env$.wd, args$name) }
-  if (hasName(args, "from")) { args$from <- normalize_path(env$.wd, args$from) }
-  if (hasName(args, "to"))   { args$to   <- normalize_path(env$.wd, args$to)   }
+  if ("name" %in% names(args)) { args$name <- normalize_path(env$.wd, args$name) }
+  if ("from" %in% names(args)) { args$from <- normalize_path(env$.wd, args$from) }
+  if ("to"   %in% names(args)) { args$to   <- normalize_path(env$.wd, args$to)   }
   
   # Call the underlying h5lite function (e.g., h5_read) with the modified arguments
   args$file <- env$.file

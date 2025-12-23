@@ -134,7 +134,10 @@
 #' unlink(file)
 h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE) {
   
-  file   <- validate_strings(file, name, attr)
+  file <- validate_strings(file, name, attr)
+  if (!is.null(attr) && !h5_exists(file, name))
+    stop("Cannot write attribute '", attr, "' to non-existent object '", name, "'.", call. = FALSE)
+  
   as_map <- get_as_mapping(
     as      = as , 
     choices = c(
@@ -288,10 +291,10 @@ resolve_h5_type <- function(data, name, as_map) {
     r_data_type <- paste0(".", storage.mode(data))
     
     # Lookup Priority
-    h5_type <- if (hasName(as_map, name))             { as_map[[name]] } 
-               else if (hasName(as_map, r_data_type)) { as_map[[r_data_type]] } 
-               else if (hasName(as_map, "."))         { as_map[["."]] }
-               else                                   { "auto" }
+    h5_type <- if (name             %in% names(as_map)) { as_map[[name]] } 
+               else if (r_data_type %in% names(as_map)) { as_map[[r_data_type]] } 
+               else if ("."         %in% names(as_map)) { as_map[["."]] }
+               else                                     { "auto" }
   }
   
   if (identical(h5_type, "skip"))  return ("skip")

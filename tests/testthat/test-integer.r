@@ -84,6 +84,8 @@ test_that("Integer attributes work", {
   expect_equal(h5_read(file, "data", attr = "meta", as = "integer"), 100L)
   
   expect_null(h5_delete(file, "data", attr = "meta"))
+  expect_null(h5_delete(file, "data"))
+  expect_error(h5_write(1:5, file, "data", attr = "meta"))
 })
 
 test_that("Specific integer types (int8-int64) can be forced", {

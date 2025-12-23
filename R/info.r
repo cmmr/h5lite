@@ -260,8 +260,9 @@ h5_names <- function (file, name = "/", attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#' h5_write(1:10, file, "data", attr = "unit")
-#' h5_write(1:10, file, "data", attr = "timestamp")
+#' h5_write(1:10,          file, "data")
+#' h5_write(I("meters"),   file, "data", attr = "unit")
+#' h5_write(I(Sys.time()), file, "data", attr = "timestamp")
 #' 
 #' h5_attr_names(file, "data")
 #' 

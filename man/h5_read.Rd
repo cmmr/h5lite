@@ -70,7 +70,9 @@ file <- tempfile(fileext = ".h5")
 
 # --- Write Data ---
 h5_write(c(10L, 20L), file, "ints")
-h5_write(c(1.5, 2.5), file, "floats", attr = "unit")
+h5_write(I(TRUE),     file, "ints", attr = "ready")
+h5_write(c(10.5, 18), file, "floats")
+h5_write(I("meters"), file, "floats", attr = "unit")
 
 # --- Read Data ---
 # Read dataset
@@ -91,9 +93,9 @@ print(unit)
 x_dbl <- h5_read(file, "ints", as = "double")
 class(x_dbl)
 
-# Force attached attribute to be read as character (if it were numeric)
+# Force attached attribute to be read as logical
 # Note the "@" prefix to target the attribute
-# h5_read(file, "dset", as = c("@my_attr" = "character"))
+# h5_read(file, "ints", as = c("@ready" = "logical"))
 
 unlink(file)
 }
