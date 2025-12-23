@@ -36,7 +36,7 @@ df <- data.frame(
 h5_write(df, file_path, "dataframe")
 
 # --- 4. Attributes ---
-h5_write(c(100L, 200L, file_path, "dset_with_attr"))
+h5_write(c(100L, 200L), file_path, "dset_with_attr")
 h5_write("meters", file_path, "dset_with_attr", "unit")
 h5_write(1.5, file_path, "dset_with_attr", "scale")
 
