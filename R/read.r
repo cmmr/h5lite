@@ -1,203 +1,175 @@
-
-#' Read an HDF5 Object
-#' 
-#' Reads a dataset or group from an HDF5 file into an R object.
-#' 
-#' @param file Path to the HDF5 file.
-#' @param name Name of the dataset or group to read (e.g., `"/data/matrix"`).
-#' @param attrs Controls which HDF5 attributes are read and attached to the R object.
-#'   Can be `FALSE` (the default), `TRUE` (all attributes),
-#'   a character vector of attribute names to include (e.g., `c("info", "version")`),
-#'   or a character vector of names to exclude, prefixed with `-` (e.g., `c("-class")`).
-#'   Non-existent attributes are silently skipped.
-#' 
-#' @section Reading Datasets:
-#' When `name` points to a dataset, `h5_read` converts it to the corresponding
-#' R object:
-#' 
-#' - **Numeric** datasets are read as `numeric` (double) to prevent overflow.
-#' - **String** datasets are read as `character`.
-#' - **Complex** datasets are read as `complex`.
-#' - **Enum** datasets are read as `factor`.
-#' - **1-byte Opaque** datasets are read as `raw`.
-#' - **Compound** datasets are read as `data.frame`.
-#' 
-#' Dimensions are preserved and transposed to match R's column-major order.
-#' 
-#' @section Reading Groups:
-#' If `name` points to a group, `h5_read` will read it recursively, creating a
-#' corresponding nested R `list`. This makes it easy to read complex, structured
-#' data in a single command.
-#' 
-#' - HDF5 **groups** are read as R `list`s.
-#' - **Datasets** within the group are read into R objects as described above.
-#' - HDF5 **attributes** on the group are attached as R attributes to the `list`.
-#' - The elements in the returned list are **sorted alphabetically** by name.
-#' 
-#' @return An R object corresponding to the HDF5 object. This can be a
-#'   `numeric`, `character`, `complex`, `factor`, `raw`, `data.frame`, a nested `list`,
-#'   or `NULL` if the object has a null dataspace.
-#' 
-#' @seealso [h5_read_attr()], [h5_write()], [h5_ls()],
-#'   `vignette("data-organization")` for reading lists,
-#'   `vignette("attributes-in-depth")` for the `attrs` argument.
-#' @export
-#' @examples
-#' file <- tempfile(fileext = ".h5")
-#' 
-#' # --- Reading Datasets ---
-#' h5_write(file, "my_matrix", matrix(1:4, 2))
-#' h5_write(file, "my_factor", factor(c("a", "b")))
-#' 
-#' mat <- h5_read(file, "my_matrix")
-#' fac <- h5_read(file, "my_factor")
-#' 
-#' # --- Reading Groups ---
-#' h5_write(file, "/config/version", 1.2)
-#' h5_write(file, "/config/user", "test")
-#' h5_write_attr(file, "/config", "info", "settings")
-#' 
-#' # Read the 'config' group into a list
-#' config_list <- h5_read(file, "config")
-#' str(config_list)
-#' 
-#' # Read the entire file from the root
-#' all_content <- h5_read(file, "/")
-#' str(all_content)
-#' 
-#' # --- Round-tripping with Attributes ---
-#' named_vec <- c(a = 1, b = 2)
-#' h5_write(file, "named_vec", named_vec, attrs = TRUE)
-#' 
-#' # Read back with attrs = TRUE to restore names
-#' vec_rt <- h5_read(file, "named_vec", attrs = TRUE)
-#' all.equal(named_vec, vec_rt)
-#' 
-#' unlink(file)
-h5_read <- function(file, name, attrs = FALSE) {
-  
-  file <- path.expand(file)
-  if (!h5_exists(file, name)) {
-    stop("Object '", name, "' does not exist in file '", file, "'.")
-  }
-  
-  # If the object is a group, read it recursively into a list.
-  if (h5_is_group(file, name)) {
-    
-    # Get all immediate children, sort them alphabetically for consistent list order.
-    children   <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
-    # Recursively call h5_read on each child and name the resulting list elements.
-    res        <- lapply(children, h5_read, file = file, attrs = attrs)
-    names(res) <- if (length(res) == 0) NULL else basename(children)
-    
-  } else {
-    # If it's a dataset, call the C function to read its data.
-    res <- .Call("C_h5_read_dataset", file, name, PACKAGE = "h5lite")
-  }
-  
-  # If attrs is not FALSE, read and attach HDF5 attributes as R attributes.
-  if (!isFALSE(attrs)) {
-    # Determine which attributes to read based on the 'attrs' argument.
-    available_attrs <- h5_ls_attr(file, name)
-    attrs_to_read <- get_attributes_to_read(available_attrs, attrs)
-    
-    for (attr_name in attrs_to_read) {
-      attr_val <- h5_read_attr(file, name, attr_name)
-      # Special case: R requires row.names to be integer or character, not double.
-      # Since we read all numeric attributes as double, we must coerce row.names back to integer.
-      if (attr_name == "row.names" && is.numeric(attr_val))
-        attr_val <- as.integer(attr_val)
-      attr(res, attr_name) <- attr_val
-    }
-  }
-  
-  return(res)
-}
-
-
-#' Read an HDF5 Attribute
-#' 
-#' Reads an attribute associated with an HDF5 object (dataset or group).
-#' 
-#' @details
-#' - Numeric attributes are read as `numeric` (double).
-#' - String attributes are read as `character`.
-#' - Complex attributes are read as `complex`.
-#' - `enum` attributes are read as `factor`.
-#' - 1-byte `opaque` attributes are read as `raw`.
+#' Read an HDF5 Object or Attribute
 #'
-#' @param file Path to the HDF5 file.
-#' @param name Name of the object (dataset or group) the attribute is attached to.
-#' @param attribute Name of the attribute to read.
-#' @return A `numeric`, `character`, `complex`, `factor`, or `raw` vector/array.
-#'   Returns `NULL` if the attribute has a null dataspace.
-#' 
-#' @seealso [h5_read()], [h5_write_attr()], [h5_ls_attr()], [h5_exists_attr()]
+#' Reads a dataset, a group, or a specific attribute from an HDF5 file into an R object.
+#'
+#' @param file The path to the HDF5 file.
+#' @param name The full path of the dataset or group to read (e.g., `"/data/matrix"`).
+#' @param attr The name of an attribute to read.
+#'   * If `NULL` (default), the function reads the object specified by `name` (and attaches its attributes to the result).
+#'   * If provided (string), the function reads *only* the specified attribute from `name`.
+#' @param as The target R data type.
+#'   * **Global:** `"auto"` (default), `"integer"`, `"double"`, `"logical"`, `"bit64"`, `"null"`.
+#'   * **Specific:** A named vector mapping names or type classes to R types (see Section "Type Conversion").
+#'
+#' @section Type Conversion (`as`):
+#' You can control how HDF5 data is converted to R types using the `as` argument.
+#'
+#' **1. Mapping by Name:**
+#' \itemize{
+#'   \item `as = c("data_col" = "integer")`: Reads the dataset/column named "data_col" as an integer.
+#'   \item `as = c("@validated" = "logical")`: When reading a dataset, this forces the attached attribute "validated" to be read as logical.
+#' }
+#'
+#' **2. Mapping by HDF5 Type Class:**
+#' You can target specific HDF5 data types using keys prefixed with a dot (`.`).
+#' Supported classes include:
+#' \itemize{
+#'   \item **Integer:** `.int`, `.int8`, `.int16`, `.int32`, `.int64`
+#'   \item **Unsigned:** `.uint`, `.uint8`, `.uint16`, `.uint32`, `.uint64`
+#'   \item **Floating Point:** `.float`, `.float16`, `.float32`, `.float64`
+#' }
+#' Example: `as = c(.uint8 = "logical", .int = "bit64")`
+#'
+#' **3. Precedence & Attribute Config:**
+#' * **Attributes vs Datasets:** Attribute type mappings take precedence over dataset mappings.
+#'   If you specify `as = c(.uint = "logical", "@.uint" = "integer")`, unsigned integer datasets
+#'   will be read as `logical`, but unsigned integer *attributes* will be read as `integer`.
+#' * **Specific vs Generic:** Specific keys (e.g., `.uint32`) take precedence over generic keys (e.g., `.uint`),
+#'   which take precedence over the global default (`.`).
+#'
+#' @note
+#' The `@` prefix is **only** used to configure attached attributes when reading a dataset (`attr = NULL`).
+#' If you are reading a specific attribute directly (e.g., `h5_read(..., attr = "id")`), do **not** use
+#' the `@` prefix in the `as` argument.
+#'
+#' @return An R object corresponding to the HDF5 object or attribute.
+#'   Returns `NULL` if the object is skipped via `as = "null"`.
+#' @seealso [h5_write()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
 #' 
-#' # Create a dataset to attach attributes to
-#' h5_write(file, "dset", 1)
+#' # --- Write Data ---
+#' h5_write(c(10L, 20L), file, "ints")
+#' h5_write(c(1.5, 2.5), file, "floats", attr = "unit")
 #' 
-#' # Write attributes of different types
-#' h5_write_attr(file, "dset", "a_string", "some metadata")
-#' h5_write_attr(file, "dset", "a_vector", c(1.1, 2.2))
+#' # --- Read Data ---
+#' # Read dataset
+#' x <- h5_read(file, "ints")
+#' print(x)
 #' 
-#' # Read them back
-#' str_attr <- h5_read_attr(file, "dset", "a_string")
-#' vec_attr <- h5_read_attr(file, "dset", "a_vector")
+#' # Read dataset with attributes
+#' y <- h5_read(file, "floats")
+#' print(attr(y, "unit"))
 #' 
-#' print(str_attr)
-#' print(vec_attr)
+#' # Read a specific attribute directly
+#' unit <- h5_read(file, "floats", attr = "unit")
+#' print(unit)
+#' 
+#' # --- Type Conversion Examples ---
+#' 
+#' # Force integer dataset to be read as numeric (double)
+#' x_dbl <- h5_read(file, "ints", as = "double")
+#' class(x_dbl)
+#' 
+#' # Force attached attribute to be read as character (if it were numeric)
+#' # Note the "@" prefix to target the attribute
+#' # h5_read(file, "dset", as = c("@my_attr" = "character"))
+#' 
 #' unlink(file)
-h5_read_attr <- function(file, name, attribute) {
-  file <- path.expand(file)
-  if (!h5_exists(file, name)) {
-    stop("Object '", name, "' does not exist in file '", file, "'.")
-  }
-  if (!h5_exists_attr(file, name, attribute)) {
-    stop("Attribute '", attribute, "' does not exist on object '", name, "'.")
+h5_read <- function(file, name = "/", attr = NULL, as = "auto") {
+  
+  file   <- validate_strings(file, name, attr, must_exist = TRUE)
+  as_map <- get_as_mapping(
+    as      = as , 
+    choices = c("auto", "integer", "double", "logical", "bit64", "null") )
+
+  
+  # --- Perform Read Operation ---
+  
+  # Case 1: Read Specific Attribute directly
+  if (!is.null(attr))
+    return(.Call("C_h5_read_attribute", file, name, attr, as_map, PACKAGE = "h5lite"))
+  
+  # Case 2: Read Group (Recursive)
+  if (h5_is_group(file, name)) {
+    children <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
+    res      <- lapply(children, h5_read, file = file, as = as_map)
+    names(res) <- if (length(res) == 0) NULL else basename(children)
   }
   
-  # Call the C function to read the attribute's data.
-  res <- .Call("C_h5_read_attribute", file, name, attribute, PACKAGE = "h5lite")
+  # Case 3: Read Dataset
+  else {
+    res <- .Call("C_h5_read_dataset", file, name, as_map, basename(name), PACKAGE = "h5lite")
+  }
+
+  # --- Attach Attributes (Recursive) ---
+  attr_names <- h5_attr_names(file, name)
+  attr_names <- setdiff(attr_names, c("DIMENSION_LIST", "REFERENCE_LIST"))
+  if (length(attr_names) > 0) {
+    attr_map <- get_attribute_map(as_map)
+    for (attr_name in attr_names)
+      if (!is.na(h5_class(file, name, attr_name)))
+        attr(res, attr_name) <- h5_read(file, name, attr_name, as = attr_map)
+  }
   
   return(res)
 }
 
-#' Helper to select HDF5 attributes for reading based on the 'attrs' argument
-#' @param available_attrs A character vector of all attributes on the HDF5 object.
-#' @param attrs The `attrs` argument from `h5_read`.
-#' @return A character vector of attribute names to be read.
-#' @noRd
+
+#' Sanity check the 'as' argument
+#' Ensures all values are valid and that multiple values are named.
 #' @keywords internal
-get_attributes_to_read <- function(available_attrs, attrs) {
+get_as_mapping <- function (as, choices) {
   
-  # If attrs is TRUE, return all available attributes.
-  if (is.logical(attrs)) {
-    if (isTRUE(attrs)) {
-      return(available_attrs) # Read all
-    } else {
-      return(character(0)) # Read none
-    }
-  }
+  if (is.null(as))       return ("auto")
+  if (!is.character(as)) stop('`as` must be a character vector.')
   
-  # If attrs is a character vector, handle inclusion/exclusion logic.
-  if (is.character(attrs) && length(attrs) > 0) {
-    is_exclusion <- startsWith(attrs, "-")
+  if (length(as) > 1 && is.null(names(as)))
+    stop("When 'as' has multiple values, they must be named.")
+  
+  if (!is.null(names(as)) && (any(is.na(names(as))) || any(names(as) == "")))
+    stop("The 'as' argument's names cannot be NA or an empty string.")
+  
+  as_map <- as
+  
+  for (i in seq_along(as_map))
+    as_map[i] <- tryCatch(
+      expr  = match.arg(tolower(as_map[[i]]), choices),
+      error = function (e) { 
+        stop(
+          call. = FALSE,
+          "Invalid `as` argument: '", as_map[[i]], "'\n", 
+          "Valid options are: '", paste(collapse = "', '", choices), "'.") })
+  
+  return (as_map)
+}
+
+
+#' Prepare the 'as' map for attributes
+#' @keywords internal
+get_attribute_map <- function(as_map) {
+  
+  if (is.null(names(as_map))) return (as_map)
+
+  # 1. Keep only keys starting with "." (type classes) or "@" (attribute specifics)
+  #    (This removes dataset specific names like "data_col")
+  as_map <- as_map[grepl("^[.@]", names(as_map))] 
+  
+  if (length(as_map) > 0) {
+    # 2. Sort: Reverse order places "@" keys before "." keys 
+    #    (e.g., "@.uint" comes before ".uint")
+    as_map <- as_map[rev(order(names(as_map)))]     
     
-    if (all(is_exclusion)) {
-      # Exclusion mode: start with all attributes and remove specified ones
-      to_exclude <- substring(attrs, 2)
-      return(available_attrs[!available_attrs %in% to_exclude])
-    } else if (all(!is_exclusion)) {
-      # Inclusion mode: start with none and add specified ones that exist
-      return(intersect(attrs, available_attrs))
-    } else {
-      stop("The 'attrs' argument cannot contain a mix of inclusive (e.g., 'a') and exclusive (e.g., '-b') names.")
-    }
+    # 3. Strip: Remove the "@" prefix so they match the attribute types/names
+    names(as_map) <- sub("^@", "", names(as_map)) 
+    
+    # 4. Dedup: Keep the first occurrence. 
+    #    Since we reverse-sorted, the original "@"-prefixed keys override the standard ones.
+    as_map <- as_map[!duplicated(names(as_map))]    
   }
   
-  return(character(0)) # Default to reading no attributes
+  if (is.null(as_map) || length(as_map) == 0) return ("auto")
+  
+  return(as_map)
 }

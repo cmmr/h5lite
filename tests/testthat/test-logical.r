@@ -1,89 +1,49 @@
-library(testthat)
-library(h5lite)
+test_that("Logical scalars and vectors work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
 
-test_that("Logical datasets are written with correct types and round-trip correctly", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # --- 1. DEFINE DATA ---
-  d_logical_no_na <- c(TRUE, FALSE, TRUE, TRUE)
-  d_logical_with_na <- c(TRUE, FALSE, NA, TRUE)
-  d_scalar_logical <- I(TRUE)
-
-  # --- 2. WRITE DATA ---
-  h5_write(file_path, "logical_no_na", d_logical_no_na)
-  h5_write(file_path, "logical_with_na", d_logical_with_na)
-  h5_write(file_path, "scalar_logical", d_scalar_logical)
-
-  # --- 3. VERIFY TYPES ---
-  # Without NA, should be an efficient integer type (uint8)
-  expect_equal(h5_typeof(file_path, "logical_no_na"), "uint8")
-  # With NA, should be promoted to float16
-  expect_equal(h5_typeof(file_path, "logical_with_na"), "float16")
-  # Scalar
-  expect_equal(h5_dim(file_path, "scalar_logical"), integer(0))
-
-  # --- 4. READ AND VERIFY DATA ---
-  # Reading converts to numeric (double) for safety, which is expected.
-  expect_equal(h5_read(file_path, "logical_no_na"), as.numeric(d_logical_no_na))
-  expect_equal(h5_read(file_path, "logical_with_na"), as.numeric(d_logical_with_na))
-  expect_equal(h5_read(file_path, "scalar_logical"), as.numeric(as.logical(d_scalar_logical)))
+  # 1. Vector
+  vec <- c(TRUE, FALSE, TRUE)
+  h5_write(vec, file, "vec")
+  
+  # Default read is integer (0/1)
+  expect_equal(h5_read(file, "vec"), c(1, 0, 1))
+  # Explicit read as logical
+  expect_equal(h5_read(file, "vec", as = "logical"), vec)
+  
+  # 2. Scalar
+  h5_write(TRUE, file, "scalar")
+  expect_equal(h5_read(file, "scalar", as = "logical"), TRUE)
 })
 
-test_that("Logical attributes are written with correct types and round-trip correctly", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # --- 1. DEFINE DATA ---
-  d_attr_no_na <- c(TRUE, FALSE)
-  d_attr_with_na <- c(TRUE, NA, FALSE)
-
-  # --- 2. WRITE DATA ---
-  h5_write(file_path, "dset", 1) # Dummy dataset
-  h5_write_attr(file_path, "dset", "attr_no_na", d_attr_no_na)
-  h5_write_attr(file_path, "dset", "attr_with_na", d_attr_with_na)
-
-  # --- 3. VERIFY TYPES ---
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_no_na"), "uint8")
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float16")
-
-  # --- 4. READ AND VERIFY DATA ---
-  expect_equal(h5_read_attr(file_path, "dset", "attr_no_na"), as.numeric(d_attr_no_na))
-  expect_equal(h5_read_attr(file_path, "dset", "attr_with_na"), as.numeric(d_attr_with_na))
+test_that("Logical matrices work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  mat <- matrix(c(TRUE, FALSE, FALSE, TRUE), 2, 2)
+  h5_write(mat, file, "matrix")
+  expect_equal(h5_read(file, "matrix", as = "logical"), mat)
 })
 
-test_that("data.frame with logical column containing NA round-trips correctly", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # --- 1. DEFINE DATA ---
-  df_with_logical_na <- data.frame(
-    id = 1:3,
-    is_valid = c(TRUE, NA, FALSE)
-  )
-
-  # --- 2. WRITE AND READ ---
-  h5_write(file_path, "df_logical_na", df_with_logical_na)
-  df_read <- h5_read(file_path, "df_logical_na")
-
-  # --- 3. VERIFY ---
-  # The read-back data.frame will have numeric columns for integer/logical
-  df_expected <- df_with_logical_na
-  df_expected$id <- as.numeric(df_expected$id)
-  df_expected$is_valid <- as.numeric(df_expected$is_valid)
-  expect_equal(df_read, df_expected)
+test_that("Logical attributes work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  h5_write(1, file, "dset")
+  h5_write(TRUE, file, "dset", attr = "is_valid")
+  expect_equal(h5_read(file, "dset", attr = "is_valid", as = "logical"), TRUE)
 })
 
-test_that("Writing logical data with NA to a non-float dtype throws an error", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  d_logical_with_na <- c(TRUE, NA, FALSE)
-
-  # Test for datasets
-  expect_error(h5_write(file_path, "logical_na_as_int", d_logical_with_na, dtype = "uint8"))
-
-  # Test for attributes
-  h5_write(file_path, "dset", 1)
-  expect_error(h5_write_attr(file_path, "dset", "logical_attr_with_na", d_logical_with_na, dtype = "int32"))
+test_that("NAs in logicals are handled", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  # Logical NAs are integer NA_integer_ internally in R, so h5lite sees int NA
+  # It promotes to float to store NaN unless we force integer/logical
+  vec <- c(TRUE, NA, FALSE)
+  
+  # Default write (auto) -> Promotes to float because of NA
+  h5_write(vec, file, "auto")
+  expect_true(startsWith(h5_typeof(file, "auto"), "float"))
+  expect_equal(h5_read(file, "auto", as = "logical"), vec)
 })

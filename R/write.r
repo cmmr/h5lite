@@ -1,32 +1,29 @@
-
 #' Write an R Object to HDF5
 #' 
 #' Writes an R object to an HDF5 file, creating the file if it does not exist.
-#' This function can write atomic vectors, matrices, arrays, factors, `data.frame`s,
-#' and nested `list`s.
+#' This function acts as a unified writer for datasets, groups (lists), and attributes.
 #'
-#' @param file Path to the HDF5 file.
-#' @param name Name of the dataset (e.g., "/data/matrix").
 #' @param data The R object to write. Supported: `numeric`, `integer`, `complex`, 
 #'   `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`, `NULL`,
 #'   and nested `list`s.
-#' @param dtype The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
+#' @param file The path to the HDF5 file.
+#' @param name The name of the dataset or group to write (e.g., "/data/matrix").
+#' @param attr The name of an attribute to write.
+#'   * If `NULL` (default), `data` is written as a dataset or group at the path `name`.
+#'   * If provided (string), `data` is written as an attribute named `attr` attached to the object `name`.
+#' @param as The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
 #'   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
-#'   `"uint16"`, `"uint32"`, or `"uint64"`. The default, `"auto"`, selects the
-#'   most space-efficient type for the data. See details below.
+#'   `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The default, `"auto"`, selects
+#'   the most space-efficient type for the data. See details below.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
-#' @param attrs Controls which R attributes of `data` are written to the HDF5 object.
-#'   Can be `FALSE` (the default), `TRUE` (all attributes except `dim`),
-#'   a character vector of attribute names to include (e.g., `c("info", "version")`),
-#'   or a character vector of names to exclude, prefixed with `-` (e.g., `c("-class")`).
 #' 
 #' @section Writing Scalars:
 #' By default, `h5_write` saves single-element vectors as 1-dimensional arrays.
 #' To write a true HDF5 scalar, wrap the value in `I()` to treat it "as-is."
-#' For example, `h5_write(file, "x", I(5))` will create a scalar dataset, while
-#' `h5_write(file, "x", 5)` will create a 1D array of length 1.
+#' For example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
+#' `h5_write(5, file, "x")` will create a 1D array of length 1.
 #' 
 #' @section Writing Lists:
 #' If `data` is a `list` (but not a `data.frame`), `h5_write` will write it
@@ -61,13 +58,22 @@
 #' stored in a human-readable and unambiguous way. This conversion applies to
 #' standalone `POSIXt` objects, as well as to columns within a `data.frame`.
 #' 
-#' @section Data Type Selection (`dtype`):
-#' The `dtype` argument controls the on-disk storage type and only applies to
+#' @section Data Type Selection (`as` Argument):
+#' The `as` argument controls the on-disk storage type and only applies to
 #' `integer`, `numeric`, and `logical` vectors. For all other data types
 #' (`character`, `complex`, `factor`, `raw`), the storage type is determined
 #' automatically.
 #' 
-#' If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
+#' The `as` argument can be one of the following:
+#'   * **Global:** A single string, e.g., `"auto"` (default), `"float32"`, `"int64"`.
+#'   * **Specific:** A named vector mapping names or type classes to HDF5 types.
+#'     Matches `h5_read` behavior:
+#'     * `"col_name" = "type"`: Specific dataset/column.
+#'     * `"@attr_name" = "type"`: Specific attached attribute.
+#'     * `".int" = "type"`: Class-based (e.g., .int, .double, .logical).
+#'     * `"." = "type"`: Global default fallback.
+#' 
+#' If `as` is set to `"auto"` (the default), `h5lite` will automatically
 #' select the most space-efficient HDF5 type based on the following rules:
 #' 1.  If the data contains fractional values (e.g., `1.5`), it is stored as
 #'     `float64`.
@@ -82,354 +88,296 @@
 #'
 #' To override this automatic behavior, you can specify an exact type. The full
 #' list of supported values is:
-#' - `"auto"`
+#' - `"auto"`, `"skip"`
 #' - `"float16"`, `"float32"`, `"float64"`
 #' - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 #' - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
-#'
-#' @section Attribute Round-tripping:
-#' To properly round-trip an R object, it is helpful to set `attrs = TRUE`. This
-#' preserves important R metadata—such as the `names` of a named vector, `row.names`
-#' of a `data.frame`, or the `class` of an object—as HDF5 attributes.
-#' 
-#' **Limitation**: HDF5 has no direct analog for R's `dimnames`.
-#' Attempting to write an object that has `dimnames` (e.g., a named matrix)
-#' with `attrs = TRUE` will result in an error. You must either remove the
-#' `dimnames` or set `attrs = FALSE`.
 #' 
 #' @return Invisibly returns `file`. This function is called for its side effects.
-#' @seealso [h5_read()], [h5_write_attr()],
-#'   `vignette("atomic-vectors")`,
-#'   `vignette("matrices")`,
-#'   `vignette("data-frames")`,
-#'   `vignette("data-organization")`,
-#'   `vignette("attributes-in-depth")`
+#' @seealso [h5_read()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
 #' 
-#' # Write a simple vector (dtype is auto-detected as uint8)
-#' h5_write(file, "vec1", 1:20)
-#' h5_typeof(file, "vec1") # "uint8"
+#' # 1. Writing Basic Datasets
+#' h5_write(1:10, file, "data/integers")
+#' h5_write(rnorm(10), file, "data/floats")
+#' h5_write(letters[1:5], file, "data/chars")
 #' 
-#' # Write a matrix, letting h5_write determine dimensions
-#' mat <- matrix(rnorm(12), nrow = 4, ncol = 3)
-#' h5_write(file, "group/mat", mat)
-#' h5_dim(file, "group/mat") # c(4, 3)
+#' # 2. Writing Attributes
+#' # Write an object first
+#' h5_write(1:10, file, "data/vector")
+#' # Attach an attribute to it using the 'attr' parameter
+#' h5_write("My Description", file, "data/vector", attr = "description")
+#' h5_write(100, file, "data/vector", attr = "scale_factor")
 #' 
-#' # Overwrite the first vector, forcing a 32-bit integer type
-#' h5_write(file, "vec1", 101:120, dtype = "int32")
-#' h5_typeof(file, "vec1") # "int32"
-#' 
-#' # Write a scalar value
-#' h5_write(file, "scalar", I(3.14))
-#' 
-#' # Write a named vector and preserve its names by setting attrs = TRUE
-#' named_vec <- c(a = 1, b = 2)
-#' h5_write(file, "named_vector", named_vec, attrs = TRUE)
-#' 
-#' # Write a nested list, which creates groups and datasets
+#' # 3. Writing Complex Structures (Lists/Groups)
 #' my_list <- list(
-#'   config = list(version = 1.2, user = "test"),
-#'   data = matrix(1:4, 2)
+#'   meta = list(id = 1, name = "Experiment A"),
+#'   results = matrix(runif(9), 3, 3),
+#'   valid = TRUE
 #' )
-#' attr(my_list, "info") <- "Session data"
-#' h5_write(file, "session_data", my_list)
+#' h5_write(my_list, file, "experiment_1")
 #' 
-#' h5_ls(file, recursive = TRUE)
+#' # 4. Writing Data Frames (Compound Datasets)
+#' df <- data.frame(
+#'   id = 1:5,
+#'   score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+#'   grade = factor(c("A", "A", "B", "C", "D"))
+#' )
+#' h5_write(df, file, "records/scores")
+#' 
+#' # 5. Controlling Data Types (Compression)
+#' # Store integers as 8-bit unsigned
+#' h5_write(1:5, file, "compressed/small_ints", as = "uint8")
 #' 
 #' unlink(file)
-h5_write <- function(file, name, data,
-                     dtype = "auto",
-                     compress = TRUE,
-                     attrs = FALSE) {
+h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE) {
   
-  # Automatically convert POSIXt to ISO 8601 character strings for clarity.
-  if (inherits(data, "POSIXt")) {
-    data <- format(data, format = "%Y-%m-%dT%H:%M:%OSZ")
-  }
-  
-  # If data is a list (but not a data.frame), handle it as a group structure.
+  file   <- validate_strings(file, name, attr)
+  as_map <- get_as_mapping(
+    as      = as , 
+    choices = c(
+      "auto", "skip", "float16", "float32", "float64", 
+      "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64" ) )
+
+  # Write the data
+  h5_create_group(file, name = "/")
   if (is_list_group(data)) {
-    
-    # 1. Dry run: Validate the entire structure before writing anything.
-    validate_write_recursive(data, name, attrs)
-    
-    # 2. Write: If validation passed, perform the recursive write.
-    write_recursive(file, name, data, compress, attrs)
-  
-  # If data is NULL, write a special HDF5 null dataset.
-  } else if (is.null(data)) {
-    
-    file <- path.expand(file)
-    # For NULL, dims is irrelevant, level is 0, and dtype is "null".
-    # This combination signals to the C code to create an H5S_NULL dataset.
-    .Call("C_h5_write_dataset", file, name, data, "null", NULL, 0L, PACKAGE = "h5lite")
-    
-  }
-  
-  # Otherwise, handle as a single dataset (vector, matrix, data.frame, etc.).
-  else {
-    
-    file  <- path.expand(file)
-    level <- if (isTRUE(compress)) 5L else as.integer(compress)
-    # Validate attributes before writing the main data.
-    attrs <- validate_attrs(data, attrs)
-
-    if (is.data.frame(data)) {
-
-      # HDF5 compound types must have at least one member.
-      if (ncol(data) == 0) {
-        stop("Cannot write a data.frame with zero columns to HDF5.", call. = FALSE)
-      }
-      
-      # Automatically convert POSIXt columns to ISO 8601 character strings.
-      for (j in seq_along(data)) {
-        if (inherits(data[[j]], "POSIXt")) {
-          data[[j]] <- format(data[[j]], format = "%Y-%m-%dT%H:%M:%OSZ")
-        }
-      }
-      
-      # Get the best dtype for each column and call the compound writer.
-      dtypes <- sapply(data, validate_dtype)
-      .Call("C_h5_write_dataframe", file, name, data, dtypes, level, PACKAGE = "h5lite")
-
-    } else {
-      
-      # For atomic vectors/arrays, validate dimensions and data type.
-      dims  <- validate_dims(data)
-      dtype <- validate_dtype(data, dtype)
-      .Call("C_h5_write_dataset", file, name, data, dtype, dims, level, PACKAGE = "h5lite")
-
-      # Rule: Ignore user-added 'AsIs' class for scalars after writing.
-      # This prevents the class from being written as an HDF5 attribute if attrs=TRUE.
-      if (inherits(data, 'AsIs') && is.null(dims) && !isFALSE(attrs))
-        class(data) <- setdiff(class(data), "AsIs")
-    }
-    
-    # If attributes are to be written, get them and write them one by one.
-    attrs_to_write <- get_attributes_to_write(data, attrs)
-    
-    for (attr_name in names(attrs_to_write))
-      h5_write_attr(file, name, attr_name, attrs_to_write[[attr_name]])
-    
+    write_group(data, file, name, as_map, compress, dry = TRUE)
+    write_group(data, file, name, as_map, compress, dry = FALSE)
+  } else {
+    write_data(data, file, name, attr, as_map, compress, dry = TRUE)
+    write_data(data, file, name, attr, as_map, compress, dry = FALSE)
   }
   
   invisible(file)
 }
 
-
-#' Recursively write a list for h5_write
-#' @noRd
+#' Recursively write a list as a group
 #' @keywords internal
-write_recursive <- function(file, name, data, compress, attrs) {
+write_group <- function(data, file, name, as_map, compress = TRUE, dry = FALSE) {
+
+  if (!dry) h5_delete(file, name, warn = FALSE)
+  if (!dry) h5_create_group(file, name)
   
-  # If the current object is a list, treat it as a group.
-  if (is_list_group(data)) {
-    
-    # Create the group. This is safe even if it exists.
-    h5_create_group(file, name)
-    
-    # Write the R attributes of the list object as HDF5 attributes on the group.
-    group_attrs <- get_attributes_to_write(data, attrs)
-    group_attrs[['names']] <- NULL # 'names' are the children, not a group attribute.
-    for (attr_name in names(group_attrs))
-      h5_write_attr(file, name, attr_name, group_attrs[[attr_name]])
-    
-    # Recursively write each child element.
-    for (child_name in names(data)) {
-      child_path <- if (name == "/") child_name else paste(name, child_name, sep = "/")
-      write_recursive(file, child_path, data[[child_name]], compress, attrs)
+  write_attributes(data, file, name, as_map, dry = dry)
+  
+  # Recursively write children
+  for (child_name in names(data)) {
+    child_path <- paste(name, child_name, sep = "/")
+    child_data <- data[[child_name]]
+    if (is_list_group(child_data)) {
+      write_group(child_data, file, child_path, as_map, compress, dry = dry)
+    } else {
+      write_data(child_data, file, child_path, attr = NULL, as_map, compress, dry = dry)
+    }
+  }
+}
+
+#' Write a single dataset or attribute
+#' @keywords internal
+write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = FALSE) {
+  
+  # Convert POSIXt vectors/columns to ISO 8601 character strings.
+  if (inherits(data, "POSIXt")) {
+    data <- format(data, format = "%Y-%m-%dT%H:%M:%OSZ")
+  }
+  else if (is.data.frame(data)) {
+    for (i in seq_along(data))
+      if (inherits(data[[i]], "POSIXt"))
+        data[[i]] <- format(data[[i]], format = "%Y-%m-%dT%H:%M:%OSZ")
+  }
+
+  map_key <- if (is.null(attr)) name else attr
+  h5_type <- resolve_h5_type(data, map_key, as_map)
+  
+  if (!all(h5_type == "skip")) {
+
+    if (any(h5_type == "skip") && is.data.frame(data)) {
+      data    <- data[, h5_type != "skip", drop = FALSE]
+      h5_type <- h5_type[h5_type != "skip"]
     }
     
-  } else { # Otherwise, it's a dataset. Write it directly.
-    h5_write(file, name, data, compress = compress, attrs = attrs)
+    dims <- validate_dims(data)
+
+    if (is.null(attr)) {
+      level <- if (isTRUE(compress)) 5L else as.integer(compress)
+      
+      if (!dry)
+        .Call("C_h5_write_dataset", file, name, data, h5_type, dims, level, PACKAGE = "h5lite")
+      
+      write_attributes(data, file, name, as_map, dry = dry)
+    }
+    else {
+      if (!dry)
+        .Call("C_h5_write_attribute", file, name, attr, data, h5_type, dims, PACKAGE = "h5lite")
+    }
+  }
+}
+
+#' Write R attributes to HDF5
+#' @keywords internal
+write_attributes <- function(data, file, name, as_map, dry = FALSE) {
+
+  attr_names <- names(attributes(data))
+  attr_names <- setdiff(attr_names, c("class", "dim", "dimnames", "names", "row.names"))
+
+  if (length(attr_names) > 0) {
+    attr_map <- get_attribute_map(as_map)
+    for (attr_name in attr_names) {
+      attr_data <- attr(data, attr_name, exact = TRUE)
+      if (is_list_group(attr_data)) next # skip dimnames, etc
+      if (!dry)
+        write_data(attr_data, file, name, attr_name, attr_map, dry = dry)
+    }
   }
 }
 
 
-#' Recursively validate a list for h5_write
-#' @noRd
+# --- Type Resolution Logic ---
+
+#' Resolves the HDF5 type based on the 'as' map and data properties
+#' 
+#' @param data The R object.
+#' @param name The name of the object (column name, dataset name, or attribute name).
+#' @param as_map The processed 'as' argument (named vector).
 #' @keywords internal
-validate_write_recursive <- function(data, current_path, attrs) {
+resolve_h5_type <- function(data, name, as_map) {
   
-  # First, validate the current object itself.
-  dtype <- tryCatch({
-    validate_attrs(data, attrs)
-    validate_dtype(data)
-  }, error = function(e) {
-    stop("Validation failed for '", current_path, "': ", e$message, call. = FALSE)
-  })
+  # Resolve type for *each* column
+  if (is.data.frame(data)) {
+
+    if (ncol(data) == 0)
+      stop("Cannot write a data.frame with zero columns: ", name, call. = FALSE)
     
-  # It's a group (list)
-  if (dtype == "group") {
-    
-    # All list elements must be named to be written as groups/datasets.
-    if (length(data) > 0) {
-      list_names <- names(data)
-      if (is.null(list_names) || any(list_names == "")) {
-        stop("Validation failed for group '", current_path, 
-             "'. All elements in a list must be named.", call. = FALSE)
-      }
+    col_types <- character(ncol(data))
+    col_names <- names(data)
+    for (i in seq_along(data)) {
+      col_types[i] <- resolve_h5_type(data[[i]], col_names[i], as_map)
     }
-    
-    # Then, recursively validate each child element.
-    for (name in names(data)) {
-      child_path <- paste(current_path, name, sep = "/")
-      validate_write_recursive(data[[name]], child_path, attrs)
-    }
-    
+    return(col_types)
   }
-}
-
-
-#' Validates or selects the HDF5 data type for an R object.
-#'
-#' This function acts as a dispatcher. It identifies non-numeric R types that have
-#' a fixed HDF5 mapping (e.g., `character` -> `string`). For numeric, integer,
-#' and logical data, it either validates a user-provided `dtype` or automatically
-#' selects the most space-efficient type that can safely represent the data.
-#'
-#' @param data The R object to be written.
-#' @param dtype The user-provided `dtype` string (e.g., "auto", "int32").
-#' @return A string representing the validated or selected HDF5 data type.
-#' @noRd
-#' @keywords internal
-validate_dtype <- function(data, dtype = "auto") {
   
-  assert_valid_object(data)
+  if (is.null(data))               return ("null")
+  if (is.raw(data))                return ("raw")
+  if (is.character(data))          return ("character")
+  if (is.complex(data))            return ("complex")
+  if (inherits(data, "integer64")) return ("bit64")
+  if (inherits(data, "factor")) {
+    
+    if (!is.factor(data))
+      stop("Non-factors with factor class cannot be written to HDF5.", call. = FALSE) # nocov
+    if (!is.character(levels(data)))
+      stop("Factors with non-character levels cannot be written to HDF5.", call. = FALSE) # nocov
+    if (anyNA(data))
+      stop("Factors with NA values cannot be written to HDF5 Enum types. Convert to character vector first.", call. = FALSE)
+    if (typeof(data) != "integer")
+      stop("Factors with non-integer values cannot be written to HDF5 Enum types.", call. = FALSE) # nocov
+    
+    return ("factor")
+  }
   
-  if (is.null(data))       return ("null")
-  if (is.factor(data))     return ("factor")
-  if (is.raw(data))        return ("raw")
-  if (is.data.frame(data)) return ("data.frame")
-  if (is.character(data))  return ("character")
-  if (is.list(data))       return ("group")
-  if (is.complex(data))    return ("complex")
   
-  # For numeric/logical data, validate the user's 'dtype' argument.
-  supported_dtypes <- c(
+  if (is.null(names(as_map))) {
+    h5_type <- as_map
+    
+  } else {
+  
+    # Generate type keys for lookup (e.g., .integer, .double)
+    r_data_type <- paste0(".", storage.mode(data))
+    
+    # Lookup Priority
+    h5_type <- if (hasName(as_map, name))             { as_map[[name]] } 
+               else if (hasName(as_map, r_data_type)) { as_map[[r_data_type]] } 
+               else if (hasName(as_map, "."))         { as_map[["."]] }
+               else                                   { "auto" }
+  }
+  
+  if (identical(h5_type, "skip"))  return ("skip")
+  
+  if (!is.numeric(data) && !is.logical(data)) {
+    stop("Cannot write data of class ", paste(class(data), collapse = "/"), " to HDF5.", call. = FALSE) # nocov
+  }
+  
+  supported_h5_types <- c(
     "auto", "float16", "float32", "float64", 
     "int8", "int16", "int32", "int64",
     "uint8", "uint16", "uint32", "uint64")
   
-  dtype <- match.arg(tolower(dtype), supported_dtypes)
-
-  if (dtype == "auto") select_best_dtype(data)
-  else                 sanity_check_dtype(data, dtype)
+  h5_type <- match.arg(tolower(h5_type), supported_h5_types)
+  
+  if (h5_type == "auto") select_best_h5_type(data)
+  else                   sanity_check_h5_type(data, h5_type)
 }
 
-#' Automatically select the most space-efficient HDF5 data type for numeric data.
-#'
-#' This function analyzes the range and properties of numeric, integer, or logical
-#' data to choose the smallest HDF5 type that will not cause data loss.
-#'
-#' - If the data contains non-integer values, it defaults to `float64`.
-#' - If the data contains `NA`, `NaN`, or `Inf`, it selects the smallest floating-point
-#'   type (`float16`, `float32`, `float64`) that can still represent all integer
-#'   values in the data's range without loss of precision.
-#' - For finite integer data, it selects the smallest fitting signed or unsigned
-#'   integer type (e.g., `uint8`, `int16`).
-#' - It correctly handles the limitation that R's `double` type can only precisely
-#'   represent integers up to `2^53 - 1`.
-#'
-#' @param data The numeric, integer, or logical vector.
-#' @return A string representing the optimal HDF5 data type.
-#' @noRd
-select_best_dtype <- function (data) {
 
-  # If data is empty, default to uint8.
-  if (length(data) == 0) return("uint8")
+#' @keywords internal
+select_best_h5_type <- function (data) {
   
-  # All values are NA/NaN/Inf
-  if (!any(is.finite(data))) return ("float16")
   
-  # Values have fractional part.
-  if (is.double(data) && any(data %% 1 != 0, na.rm = TRUE)) {
-      return ("float64")
-  }
-  
-  # It's integer data. Find the range.
-  val_range <- range(data, na.rm = TRUE, finite = TRUE)
-  min_val <- val_range[1]
-  max_val <- val_range[2]
-  
-  # If NA/NaN/Inf are present, use the smallest float that can encode the integer range.
-  if (any(!is.finite(data))) {
-    if      (min_val >= -2^11 && max_val <= 2^11) { return ("float16") }
-    else if (min_val >= -2^24 && max_val <= 2^24) { return ("float32") }
-    else                                          { return ("float64") }
-  }
-  
-  # R's doubles can precisely represent integers up to 2^53 - 1.
-  # This is our effective upper bound for integer checks.
-
-  if (min_val >= 0) { # Unsigned integers
-    if      (max_val <= 2^8-1)  "uint8"
-    else if (max_val <= 2^16-1) "uint16"
-    else if (max_val <= 2^32-1) "uint32"
-    else if (max_val <= 2^53-1) "uint64"
-    else "float64" # Too large, store as float64
-  }
-  else { # Signed integers
-    if      (min_val >= -2^7  && max_val <= 2^7-1)  "int8"
-    else if (min_val >= -2^15 && max_val <= 2^15-1) "int16"
-    else if (min_val >= -2^31 && max_val <= 2^31-1) "int32"
-    else if (min_val >= -2^53 && max_val <= 2^53-1) "int64"
-    else "float64" # Too large, store as float64
-  }
-  
-}
-
-#' Sanity-checks a user-specified `dtype` against the data's range.
-#'
-#' This function verifies that the data can be safely stored in the user-requested
-#' HDF5 data type without overflow.
-#'
-#' - It checks if the minimum and maximum values of the data fit within the
-#'   range of the specified `dtype`.
-#' - It ensures that if the data contains `NA`, `NaN`, or `Inf`, the `dtype` is a
-#'   floating-point type, as integer types cannot represent these special values.
-#'
-#' @param data The R object to be written.
-#' @param dtype The user-specified HDF5 data type string (e.g., "uint8", "float32").
-#' @return The validated `dtype` string if the check passes. Throws an error otherwise.
-#' @noRd
-sanity_check_dtype <- function (data, dtype) {
-  
-  if (length(data) == 0) return(dtype)
-
-  if (any(!is.finite(data)) && !startsWith(dtype, "float"))
-    stop("Data contains NA, NaN, or Inf, which can only be stored as a ",
-        "floating-point type ('float16', 'float32' or 'float64'). ",
-        "The specified dtype '", dtype, "' is not supported for these values.",
-          call. = FALSE)
+  if (is.double(data) || !all(is.finite(data))) {
     
-    if (any(is.finite(data)) && dtype != "float64") {
-      
-      type_ranges <- list(
-        int8    = c(-2^7,  2^7-1),  uint8  = c(0, 2^8-1),   
-        int16   = c(-2^15, 2^15-1), uint16 = c(0, 2^16-1),
-        int32   = c(-2^31, 2^31-1), uint32 = c(0, 2^32-1),  
-        int64   = c(-2^63, 2^63-1), uint64 = c(0, 2^64-1),
-        float16 = c(-65504,  65504),
-        float32 = c(-3.4e38, 3.4e38) )
-      
-      val_range <- range(data, na.rm = TRUE, finite = TRUE)
-      min_val <- val_range[1]
-      max_val <- val_range[2]
-
-      range_limits <- type_ranges[[dtype]]
-      if (min_val < range_limits[1] || max_val > range_limits[2]) {
-        stop("The specified dtype '", dtype, "' cannot represent the data range [",
-             min_val, ", ", max_val, "]. Please choose a larger type.", call. = FALSE)
-      }
+    if (length(data) == 0)                 return ("float32")
+    if (any(data %% 1 != 0, na.rm = TRUE)) return ("float64")
+    
+    val_range <- range(c(0, data), na.rm = TRUE, finite = TRUE)
+    min_val   <- val_range[1]
+    max_val   <- val_range[2]
+    
+    if (min_val >= -2^24 && max_val <= 2^24) return ("float32")
+    return ("float64")
+    
+  }
+  
+  else { # Finite integer data
+    
+    if (length(data) == 0) return ("uint8")
+  
+    val_range <- range(c(0L, data), na.rm = TRUE)
+    min_val   <- val_range[1]
+    max_val   <- val_range[2]
+    
+    if (min_val >= 0) {
+      if (max_val <= 2^8-1)  return ("uint8")
+      if (max_val <= 2^16-1) return ("uint16")
+      return ("uint32")
+    }
+    else {
+      if (min_val >= -2^7  && max_val <= 2^7-1)  return ("int8")
+      if (min_val >= -2^15 && max_val <= 2^15-1) return ("int16")
+      return ("int32")
     }
     
-    return(dtype)
+  }
 }
 
 
+#' @keywords internal
+sanity_check_h5_type <- function (data, h5_type) {
+
+  if (length(data) == 0) return(h5_type)
+  if (any(!is.finite(data)) && !startsWith(h5_type, "float"))
+    stop("Data contains NA/NaN/Inf; requires float type.", call. = FALSE)
+    
+  if (any(is.finite(data)) && h5_type != "float64") {
+    type_ranges <- list(
+      int8    = c(-2^7,  2^7-1),  uint8  = c(0, 2^8-1),   
+      int16   = c(-2^15, 2^15-1), uint16 = c(0, 2^16-1),
+      int32   = c(-2^31, 2^31-1), uint32 = c(0, 2^32-1),  
+      int64   = c(-2^63, 2^63-1), uint64 = c(0, 2^64-1),
+      float16 = c(-65504,  65504),
+      float32 = c(-3.4e38, 3.4e38) )
+    val_range <- range(data, na.rm = TRUE, finite = TRUE)
+    rng <- type_ranges[[h5_type]]
+    if (!is.null(rng) && (val_range[1] < rng[1] || val_range[2] > rng[2])) {
+      stop("Data range [", val_range[1], ", ", val_range[2], "] exceeds '", h5_type, "'", call. = FALSE)
+    }
+  }
+  return(h5_type)
+}
+
+#' @keywords internal
 validate_dims <- function (data) {
   
   # If data is wrapped in I(), treat as a scalar (NULL dims), but ONLY if it's length 1.
@@ -446,36 +394,8 @@ validate_dims <- function (data) {
   if (is.null(dim(data))) length(data) else dim(data)
 }
 
-
+#' @keywords internal
 is_list_group <- function (data) {
   # A "list group" is a list that is not a data.frame.
   return (is.list(data) && !is.data.frame(data))
-}
-
-
-# Checks if an object is of a type that h5lite can potentially write. Includes lists.
-assert_valid_object <- function (data) {
-  
-  # NULL
-  if (is.null(data)) return (NULL)
-
-  # logical, integer, numeric, complex, character, raw, factor
-  if (is.atomic(data)) return (NULL)
-  
-  # list, data.frame
-  if (is.list(data)) return (NULL)
-  
-  stop("Cannot map R type to HDF5 object: '", typeof(data), "'")
-}
-
-
-# Checks if an object can be written as a single HDF5 dataset. Excludes lists.
-assert_valid_dataset <- function (data) {
-  
-  assert_valid_object(data)
-  
-  if (is_list_group(data))
-    stop("Cannot map R type to HDF5 dataset: 'list'")
-  
-  invisible(NULL)
 }

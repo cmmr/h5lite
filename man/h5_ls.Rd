@@ -4,10 +4,10 @@
 \alias{h5_ls}
 \title{List HDF5 Objects}
 \usage{
-h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
+h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE, scales = FALSE)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The group path to start listing from. Defaults to the root group (\code{/}).}
 
@@ -16,6 +16,9 @@ under \code{name}. If \code{FALSE}, lists only the immediate children.}
 
 \item{full.names}{If \code{TRUE}, the full paths from the file's root are
 returned. If \code{FALSE} (the default), names are relative to \code{name}.}
+
+\item{scales}{If \code{TRUE}, also returns datasets that are dimensions scales for
+other datasets.}
 }
 \value{
 A character vector of object names. If \code{name} is \code{/} (the default),
@@ -27,19 +30,20 @@ Lists the names of objects (datasets and groups) within an HDF5 file or group.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+h5_create_group(file, "foo/bar")
+h5_write(1:5, file, "foo/data")
 
-# Create some nested objects
-h5_write(file, "g1/d1", 1)
-h5_write(file, "g1/g2/d2", 2)
+# List everything recursively
+h5_ls(file)
 
-# List recursively from the root (default)
-h5_ls(file) # c("g1", "g1/d1", "g1/g2", "g1/g2/d2")
+# List only top-level objects
+h5_ls(file, recursive = FALSE)
 
-# List recursively from a subgroup
-h5_ls(file, name = "g1") # c("d1", "g2", "g2/d2")
+# List relative to a sub-group
+h5_ls(file, "foo")
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_ls_attr]{h5_ls_attr()}}
+\code{\link[=h5_attr_names]{h5_attr_names()}}, \code{\link[=h5_str]{h5_str()}}
 }

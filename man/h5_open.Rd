@@ -25,17 +25,19 @@ operations on the same file.
 
 For example, instead of writing:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{h5_write(file, "dset1", 1:10)
-h5_write(file, "dset2", 2:20)
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{h5_write(1:10, file, "dset1")
+h5_write(2:20, file, "dset2")
 h5_ls(file)
 }\if{html}{\out{</div>}}
 
-You can create a handle and use its methods:
+You can create a handle and use its methods. Note that the \code{file} argument
+is omitted from the method calls:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{h5 <- h5_open("my_file.h5")
-h5$write("dset1", 1:10)
-h5$write("dset2", 2:20)
+h5$write(1:10, "dset1")
+h5$write(2:20, "dset2")
 h5$ls()
+h5$close()
 }\if{html}{\out{</div>}}
 }
 \section{Pass-by-Reference Behavior}{
@@ -53,19 +55,17 @@ The \code{h5} object provides several ways to interact with the HDF5 file:
 \subsection{Standard \code{h5lite} Functions as Methods}{
 Most \code{h5lite} functions (e.g., \code{h5_read}, \code{h5_write}, \code{h5_ls}) are
 available as methods on the \code{h5} object, without the \code{h5_} prefix.
-The \code{file} argument is automatically supplied.
 
-For example, \code{h5$write("dset", data)} is equivalent to
-\code{h5_write(file, "dset", data)}.
+For example, \code{h5$write(data, "dset")} is equivalent to
+\code{h5_write(data, file, "dset")}.
 
-The available methods are: \code{read}, \code{read_attr}, \code{write}, \code{write_attr},
-\code{class}, \code{class_attr}, \code{dim}, \code{dim_attr}, \code{exists}, \code{exists_attr},
-\code{is_dataset}, \code{is_group}, \code{ls}, \code{ls_attr}, \code{str}, \code{typeof}, \code{typeof_attr},
-\code{create_file}, \code{create_group}, \code{delete}, \code{delete_attr}, \code{move}.
+The available methods are: \code{read}, \code{write}, \code{class}, \code{dim}, \code{exists},
+\code{is_dataset}, \code{is_group}, \code{ls}, \code{names}, \code{str}, \code{typeof}, \code{create_group},
+\code{attr_names}, \code{delete}, \code{move}.
 }
 
 \subsection{Navigation (\verb{$cd()}, \verb{$pwd()})}{
-The handle maintains an internal working directory (\verb{_wd}) to simplify
+The handle maintains an internal working directory to simplify
 path management.
 \itemize{
 \item{\code{h5$cd(group)}: Changes the handle's internal working directory.
@@ -81,19 +81,6 @@ an absolute path (e.g., \code{h5$read("/path/to/dset")}), the working directory
 is ignored.
 }
 
-\subsection{Subsetting with \code{[[} and \verb{[[<-}}{
-The \code{h5} handle also supports \code{[[} for reading and writing, providing a
-convenient, list-like syntax.
-\itemize{
-\item \strong{Reading Datasets/Groups:} \code{h5[["my_dataset"]]} is a shortcut for \code{h5$read("my_dataset")}.
-\item \strong{Writing Datasets/Groups:} \code{h5[["my_dataset"]] <- value} is a shortcut for \code{h5$write("my_dataset", value)}.
-\item \strong{Accessing Attributes:} You can access attributes by separating the object name
-and attribute name with an \code{@} symbol. For example:
-- \code{h5[["my_dataset@my_attribute"]]} reads an attribute.
-- \code{h5[["my_dataset@my_attribute"]] <- "new value"} writes an attribute.
-}
-}
-
 \subsection{Closing the Handle (\verb{$close()})}{
 The \code{h5lite} package does not keep files persistently open. Each operation
 opens, modifies, and closes the file. Therefore, the \code{h5$close()} method
@@ -107,35 +94,29 @@ call (e.g., \code{h5$ls()}) will throw an error.
 
 \examples{
 file <- tempfile(fileext = ".h5")
+
+# Open the handle
 h5 <- h5_open(file)
 
-h5$write("a", 1:10)
-h5$write("b", c("x", "y"))
+# Write data (note: 'data' is the first argument, 'file' is implicit)
+h5$write(1:5, "vector")
+h5$write(matrix(1:9, 3, 3), "matrix")
+
+# Create a group and navigate to it
+h5$create_group("simulations")
+h5$cd("simulations")
+print(h5$pwd()) # "/simulations"
+
+# Write data relative to the current working directory
+h5$write(rnorm(10), "run1") # Writes to /simulations/run1
+
+# Read data
+dat <- h5$read("run1")
+
+# List contents of current WD
 h5$ls()
 
-# --- Subsetting for Read/Write ---
-h5[["c"]] <- matrix(1:4, 2)
-h5[["c@units"]] <- "m/s"
-print(h5[["c"]])
-print(h5[["c@units"]])
-
-# --- Navigation ---
-h5$cd("/g1/g2")
-h5$pwd() # "/g1/g2"
-h5$write("d1", 1:5) # Writes to /g1/g2/d1
-h5$cd("..")
-h5$ls() # Lists 'g2'
-
-# Write and read using subsetting
-h5[["c"]] <- matrix(1:4, 2)
-h5[["c@units"]] <- "m/s"
-print(h5[["c"]])
-print(h5[["c@units"]])
-
-
-# Invalidate the handle
+# Close the handle
 h5$close()
-# try(h5$ls()) # This would now throw an error
-
 unlink(file)
 }

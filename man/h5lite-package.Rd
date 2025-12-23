@@ -17,23 +17,8 @@ the low-level details of the HDF5 C API.
 \itemize{
 \item \strong{Simple API:} Use familiar functions like \code{\link[=h5_read]{h5_read()}} and \code{\link[=h5_write]{h5_write()}}.
 \item \strong{Automatic Handling:} Dimensions, data types, and group creation are handled automatically.
-\item \strong{Safe by Default:} Numeric data is read as \code{double} to prevent integer overflow.
+\item \strong{Safe by Default:} Auto-selects a safe R data type for numeric data to prevent overflow.
 \item \strong{Easy Installation:} The required HDF5 library is bundled with the package.
-}
-}
-
-\section{Vignettes}{
-
-The following vignettes provide detailed examples and explanations for common tasks:
-\itemize{
-\item \code{vignette("h5lite")}: A general introduction to the package.
-\item \code{vignette("atomic-vectors")}: Details on writing atomic vectors and scalars.
-\item \code{vignette("matrices")}: Details on writing matrices and arrays.
-\item \code{vignette("data-frames")}: Details on writing \code{data.frame} objects.
-\item \code{vignette("data-organization")}: How to organize data using groups and lists.
-\item \code{vignette("attributes-in-depth")}: A deep dive into using attributes.
-\item \code{vignette("oo-interface")}: Guide to the object-oriented \code{h5_open()} interface.
-\item \code{vignette("parallel-io")}: Guide for using h5lite in parallel environments.
 }
 }
 

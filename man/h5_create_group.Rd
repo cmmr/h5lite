@@ -7,7 +7,7 @@
 h5_create_group(file, name)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The full path of the group to create (e.g., "/g1/g2").}
 }
@@ -20,10 +20,11 @@ This is useful for creating an empty group structure.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+h5_create_file(file)
 
-h5_create_group(file, "/my/nested/group")
-
-# List all objects recursively to see the full structure
+# Create a nested group structure
+h5_create_group(file, "/data/experiment/run1")
 h5_ls(file, recursive = TRUE)
+
 unlink(file)
 }

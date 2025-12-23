@@ -7,7 +7,7 @@
 h5_str(file, name = "/", attrs = TRUE)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The name of the group or dataset to display. Defaults to the root
 group "/".}
@@ -35,17 +35,14 @@ fast and memory-safe for arbitrarily large files.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+h5_write(list(x = 1:10, y = matrix(1:9, 3, 3)), file, "group")
+h5_write("metadata", file, "group", attr = "info")
 
-# Create a nested structure
-h5_write(file, "/config/version", I(1.2))
-h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
-h5_write_attr(file, "/data/matrix", "title", "my matrix")
-
-# Display the structure of the entire file
+# Print structure
 h5_str(file)
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_ls_attr]{h5_ls_attr()}}
+\code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_attr_names]{h5_attr_names()}}
 }

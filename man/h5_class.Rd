@@ -2,18 +2,17 @@
 % Please edit documentation in R/info.r
 \name{h5_class}
 \alias{h5_class}
-\title{Get R Class of an HDF5 Object}
+\title{Get R Class of an HDF5 Object or Attribute}
 \usage{
-h5_class(file, name, attrs = FALSE)
+h5_class(file, name, attr = NULL)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The full path of the object (group or dataset) to check.}
 
-\item{attrs}{Controls attribute checking. If \code{TRUE} or a character
-vector containing \code{"class"}, the function will check for a \code{"class"}
-HDF5 attribute on the object.}
+\item{attr}{The name of an attribute to check. If \code{NULL} (default), the function
+checks the class of the object itself.}
 }
 \value{
 A character string representing the R class (e.g., \code{"numeric"}, \code{"complex"},
@@ -21,53 +20,29 @@ A character string representing the R class (e.g., \code{"numeric"}, \code{"comp
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
 \description{
-Inspects an HDF5 object and returns the R class that \code{h5_read()} would produce.
+Inspects an HDF5 object (or an attribute attached to it) and returns the R class
+that \code{h5_read()} would produce.
 }
 \details{
-This function determines the resulting R class by inspecting the object's
-metadata.
+This function determines the resulting R class by inspecting the storage metadata.
+
 \itemize{
 \item \strong{Groups} are reported as \code{"list"}.
-\item \strong{Datasets} (integers, floats) are reported as \code{"numeric"}
-(since \code{h5_read} always returns \code{double}).
-\item \strong{String} datasets are reported as \code{"character"}.
-\item \strong{Complex} datasets are reported as \code{"complex"}.
-\item \strong{Enum} datasets are reported as \code{"factor"}.
-\item \strong{1-byte Opaque} datasets are reported as \code{"raw"}.
-\item \strong{Compound} datasets are reported as \code{"data.frame"}.
-\item \strong{Null} datasets (with a null dataspace) are reported as \code{"NULL"}.
+\item \strong{Integer/Float} datasets/attributes are reported as \code{"numeric"}.
+\item \strong{String} datasets/attributes are reported as \code{"character"}.
+\item \strong{Complex} datasets/attributes are reported as \code{"complex"}.
+\item \strong{Enum} datasets/attributes are reported as \code{"factor"}.
+\item \strong{1-byte Opaque} datasets/attributes are reported as \code{"raw"}.
+\item \strong{Compound} datasets/attributes are reported as \code{"data.frame"}.
+\item \strong{Null} datasets/attributes (with a null dataspace) are reported as \code{"NULL"}.
 }
-
-If \code{attrs} is set to \code{TRUE} or is a character vector containing \code{"class"},
-this function will first check for an HDF5 attribute on the object named
-\code{"class"}. If a string attribute with this name exists, its value
-(e.g., \code{"data.frame"}) will be returned, taking precedence over
-the object's type.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-
-# Write various object types
-h5_write(file, "integers", 1:5)
-h5_write(file, "doubles", c(1.1, 2.2))
-h5_write(file, "text", "hello")
-h5_create_group(file, "my_group")
-
-# Write a data.frame, which becomes a compound dataset
-h5_write(file, "my_df", data.frame(a = 1:2, b = c("x", "y")))
-
-# Check R classes
-h5_class(file, "integers")      # "numeric"
-h5_class(file, "doubles")       # "numeric"
-h5_class(file, "text")          # "character"
-h5_class(file, "my_group")      # "list"
-
-# Check the data.frame
-h5_class(file, "my_df") # "data.frame"
-h5_class(file, "my_df", attrs = TRUE)  # "data.frame"
-
+h5_write(1:10, file, "dset")
+h5_class(file, "dset") # "numeric"
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_class_attr]{h5_class_attr()}}, \code{\link[=h5_typeof]{h5_typeof()}}, \code{\link[=h5_read]{h5_read()}}
+\code{\link[=h5_typeof]{h5_typeof()}}, \code{\link[=h5_read]{h5_read()}}
 }

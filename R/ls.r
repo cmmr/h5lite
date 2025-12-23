@@ -1,59 +1,44 @@
-
 #' List HDF5 Objects
 #' 
 #' Lists the names of objects (datasets and groups) within an HDF5 file or group.
 #'
-#' @param file Path to the HDF5 file.
+#' @param file The path to the HDF5 file.
 #' @param name The group path to start listing from. Defaults to the root group (`/`).
 #' @param recursive If `TRUE` (default), lists all objects found recursively
 #'   under `name`. If `FALSE`, lists only the immediate children.
 #' @param full.names If `TRUE`, the full paths from the file's root are
 #'   returned. If `FALSE` (the default), names are relative to `name`.
+#' @param scales If `TRUE`, also returns datasets that are dimensions scales for
+#'   other datasets.
+#' 
 #' @return A character vector of object names. If `name` is `/` (the default),
 #'   the paths are relative to the root of the file. If `name` is another group,
 #'   the paths are relative to that group (unless `full.names = TRUE`).
 #' 
-#' @seealso [h5_ls_attr()]
+#' @seealso [h5_attr_names()], [h5_str()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' h5_create_group(file, "foo/bar")
+#' h5_write(1:5, file, "foo/data")
 #' 
-#' # Create some nested objects
-#' h5_write(file, "g1/d1", 1)
-#' h5_write(file, "g1/g2/d2", 2)
+#' # List everything recursively
+#' h5_ls(file)
 #' 
-#' # List recursively from the root (default)
-#' h5_ls(file) # c("g1", "g1/d1", "g1/g2", "g1/g2/d2")
+#' # List only top-level objects
+#' h5_ls(file, recursive = FALSE)
 #' 
-#' # List recursively from a subgroup
-#' h5_ls(file, name = "g1") # c("d1", "g2", "g2/d2")
+#' # List relative to a sub-group
+#' h5_ls(file, "foo")
 #' 
 #' unlink(file)
-h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE) {
-  file <- path.expand(file)
-  if (!file.exists(file)) stop("File does not exist: ", file)
+h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE, scales = FALSE) {
+
+  file <- validate_strings(file, name, must_exist = TRUE)
+  assert_scalar_logical(recursive, full.names, scales)
   
   # Call the C function that performs a recursive or non-recursive listing.
-  .Call("C_h5_ls", file, name, recursive, full.names, PACKAGE = "h5lite")
-}
-
-#' List HDF5 Attributes
-#' 
-#' Lists the names of attributes attached to a specific HDF5 object.
-#'
-#' @param file Path to the HDF5 file.
-#' @param name The path to the object (dataset or group) to query. 
-#'   Use `/` for the file's root attributes.
-#' @return A character vector of attribute names.
-#' 
-#' @seealso [h5_ls()]
-#' @export
-h5_ls_attr <- function(file, name) {
-  file <- path.expand(file)
-  if (!file.exists(file)) stop("File does not exist: ", file)
-  
-  # Call the C function that iterates over attributes and returns their names.
-  .Call("C_h5_ls_attr", file, name, PACKAGE = "h5lite")
+  .Call("C_h5_ls", file, name, recursive, full.names, scales, PACKAGE = "h5lite")
 }
 
 #' Display the Structure of an HDF5 Object
@@ -71,30 +56,28 @@ h5_ls_attr <- function(file, name) {
 #' metadata (names, types, dimensions) of the objects in the file, making it
 #' fast and memory-safe for arbitrarily large files.
 #'
-#' @param file Path to the HDF5 file.
+#' @param file The path to the HDF5 file.
 #' @param name The name of the group or dataset to display. Defaults to the root
 #'   group "/".
 #' @param attrs Set to `FALSE` to only groups and datasets. The default (`TRUE`)
 #'   shows attributes as well.
 #' @return This function is called for its side-effect of printing to the
 #'   console and returns \code{NULL} invisibly.
-#' @seealso [h5_ls()], [h5_ls_attr()]
+#' @seealso [h5_ls()], [h5_attr_names()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#'
-#' # Create a nested structure
-#' h5_write(file, "/config/version", I(1.2))
-#' h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
-#' h5_write_attr(file, "/data/matrix", "title", "my matrix")
-#'
-#' # Display the structure of the entire file
+#' h5_write(list(x = 1:10, y = matrix(1:9, 3, 3)), file, "group")
+#' h5_write("metadata", file, "group", attr = "info")
+#' 
+#' # Print structure
 #' h5_str(file)
-#'
+#' 
 #' unlink(file)
 h5_str <- function(file, name = "/", attrs = TRUE) {
-  file <- path.expand(file)
-  if (!file.exists(file)) stop("File does not exist: ", file)
+  
+  file <- validate_strings(file, name, must_exist = TRUE)
+  assert_scalar_logical(attrs)
   
   # Call the C function that recursively visits objects and prints a summary.
   .Call("C_h5_str", file, name, isTRUE(attrs), PACKAGE = "h5lite")

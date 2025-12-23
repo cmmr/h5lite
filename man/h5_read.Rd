@@ -2,93 +2,101 @@
 % Please edit documentation in R/read.r
 \name{h5_read}
 \alias{h5_read}
-\title{Read an HDF5 Object}
+\title{Read an HDF5 Object or Attribute}
 \usage{
-h5_read(file, name, attrs = FALSE)
+h5_read(file, name = "/", attr = NULL, as = "auto")
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
-\item{name}{Name of the dataset or group to read (e.g., \code{"/data/matrix"}).}
+\item{name}{The full path of the dataset or group to read (e.g., \code{"/data/matrix"}).}
 
-\item{attrs}{Controls which HDF5 attributes are read and attached to the R object.
-Can be \code{FALSE} (the default), \code{TRUE} (all attributes),
-a character vector of attribute names to include (e.g., \code{c("info", "version")}),
-or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).
-Non-existent attributes are silently skipped.}
+\item{attr}{The name of an attribute to read.
+\itemize{
+\item If \code{NULL} (default), the function reads the object specified by \code{name} (and attaches its attributes to the result).
+\item If provided (string), the function reads \emph{only} the specified attribute from \code{name}.
+}}
+
+\item{as}{The target R data type.
+\itemize{
+\item \strong{Global:} \code{"auto"} (default), \code{"integer"}, \code{"double"}, \code{"logical"}, \code{"bit64"}, \code{"null"}.
+\item \strong{Specific:} A named vector mapping names or type classes to R types (see Section "Type Conversion").
+}}
 }
 \value{
-An R object corresponding to the HDF5 object. This can be a
-\code{numeric}, \code{character}, \code{complex}, \code{factor}, \code{raw}, \code{data.frame}, a nested \code{list},
-or \code{NULL} if the object has a null dataspace.
+An R object corresponding to the HDF5 object or attribute.
+Returns \code{NULL} if the object is skipped via \code{as = "null"}.
 }
 \description{
-Reads a dataset or group from an HDF5 file into an R object.
+Reads a dataset, a group, or a specific attribute from an HDF5 file into an R object.
 }
-\section{Reading Datasets}{
+\note{
+The \code{@} prefix is \strong{only} used to configure attached attributes when reading a dataset (\code{attr = NULL}).
+If you are reading a specific attribute directly (e.g., \code{h5_read(..., attr = "id")}), do \strong{not} use
+the \code{@} prefix in the \code{as} argument.
+}
+\section{Type Conversion (\code{as})}{
 
-When \code{name} points to a dataset, \code{h5_read} converts it to the corresponding
-R object:
+You can control how HDF5 data is converted to R types using the \code{as} argument.
+
+\strong{1. Mapping by Name:}
 \itemize{
-\item \strong{Numeric} datasets are read as \code{numeric} (double) to prevent overflow.
-\item \strong{String} datasets are read as \code{character}.
-\item \strong{Complex} datasets are read as \code{complex}.
-\item \strong{Enum} datasets are read as \code{factor}.
-\item \strong{1-byte Opaque} datasets are read as \code{raw}.
-\item \strong{Compound} datasets are read as \code{data.frame}.
+\item \code{as = c("data_col" = "integer")}: Reads the dataset/column named "data_col" as an integer.
+\item \code{as = c("@validated" = "logical")}: When reading a dataset, this forces the attached attribute "validated" to be read as logical.
 }
 
-Dimensions are preserved and transposed to match R's column-major order.
-}
-
-\section{Reading Groups}{
-
-If \code{name} points to a group, \code{h5_read} will read it recursively, creating a
-corresponding nested R \code{list}. This makes it easy to read complex, structured
-data in a single command.
+\strong{2. Mapping by HDF5 Type Class:}
+You can target specific HDF5 data types using keys prefixed with a dot (\code{.}).
+Supported classes include:
 \itemize{
-\item HDF5 \strong{groups} are read as R \code{list}s.
-\item \strong{Datasets} within the group are read into R objects as described above.
-\item HDF5 \strong{attributes} on the group are attached as R attributes to the \code{list}.
-\item The elements in the returned list are \strong{sorted alphabetically} by name.
+\item \strong{Integer:} \code{.int}, \code{.int8}, \code{.int16}, \code{.int32}, \code{.int64}
+\item \strong{Unsigned:} \code{.uint}, \code{.uint8}, \code{.uint16}, \code{.uint32}, \code{.uint64}
+\item \strong{Floating Point:} \code{.float}, \code{.float16}, \code{.float32}, \code{.float64}
+}
+Example: \code{as = c(.uint8 = "logical", .int = "bit64")}
+
+\strong{3. Precedence & Attribute Config:}
+\itemize{
+\item \strong{Attributes vs Datasets:} Attribute type mappings take precedence over dataset mappings.
+If you specify \code{as = c(.uint = "logical", "@.uint" = "integer")}, unsigned integer datasets
+will be read as \code{logical}, but unsigned integer \emph{attributes} will be read as \code{integer}.
+\item \strong{Specific vs Generic:} Specific keys (e.g., \code{.uint32}) take precedence over generic keys (e.g., \code{.uint}),
+which take precedence over the global default (\code{.}).
 }
 }
 
 \examples{
 file <- tempfile(fileext = ".h5")
 
-# --- Reading Datasets ---
-h5_write(file, "my_matrix", matrix(1:4, 2))
-h5_write(file, "my_factor", factor(c("a", "b")))
+# --- Write Data ---
+h5_write(c(10L, 20L), file, "ints")
+h5_write(c(1.5, 2.5), file, "floats", attr = "unit")
 
-mat <- h5_read(file, "my_matrix")
-fac <- h5_read(file, "my_factor")
+# --- Read Data ---
+# Read dataset
+x <- h5_read(file, "ints")
+print(x)
 
-# --- Reading Groups ---
-h5_write(file, "/config/version", 1.2)
-h5_write(file, "/config/user", "test")
-h5_write_attr(file, "/config", "info", "settings")
+# Read dataset with attributes
+y <- h5_read(file, "floats")
+print(attr(y, "unit"))
 
-# Read the 'config' group into a list
-config_list <- h5_read(file, "config")
-str(config_list)
+# Read a specific attribute directly
+unit <- h5_read(file, "floats", attr = "unit")
+print(unit)
 
-# Read the entire file from the root
-all_content <- h5_read(file, "/")
-str(all_content)
+# --- Type Conversion Examples ---
 
-# --- Round-tripping with Attributes ---
-named_vec <- c(a = 1, b = 2)
-h5_write(file, "named_vec", named_vec, attrs = TRUE)
+# Force integer dataset to be read as numeric (double)
+x_dbl <- h5_read(file, "ints", as = "double")
+class(x_dbl)
 
-# Read back with attrs = TRUE to restore names
-vec_rt <- h5_read(file, "named_vec", attrs = TRUE)
-all.equal(named_vec, vec_rt)
+# Force attached attribute to be read as character (if it were numeric)
+# Note the "@" prefix to target the attribute
+# h5_read(file, "dset", as = c("@my_attr" = "character"))
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read_attr]{h5_read_attr()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}},
-\code{vignette("data-organization")} for reading lists,
-\code{vignette("attributes-in-depth")} for the \code{attrs} argument.
+\code{\link[=h5_write]{h5_write()}}
 }

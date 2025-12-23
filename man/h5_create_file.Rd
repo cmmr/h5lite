@@ -42,16 +42,13 @@ an error will be thrown and the file will not be modified.
 \examples{
 file <- tempfile(fileext = ".h5")
 
-# Explicitly create the file (optional)
+# Explicitly create the file
 h5_create_file(file)
 
-# Check that it exists
-file.exists(file) # TRUE
+if (file.exists(file)) {
+  message("File created successfully.")
+}
 
-# Write to the file
-h5_write(file, "data", 1:10)
-
-# Clean up
 unlink(file)
 }
 \seealso{

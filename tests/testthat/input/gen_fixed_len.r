@@ -5,7 +5,7 @@ file_path <- testthat::test_path('input/fixed_len.h5')
 # Example data: R character vector
 # Note: These are different lengths, but we will force them into a fixed width
 vec_data <- c("BRCA1", "TP53", "EGFR", "MYC")
-mtx_data <- matrix(vec_data, nrow = 2, ncol = 2)
+mtx_data <- t(matrix(vec_data, nrow = 2, ncol = 2))
 
 h5createFile(file_path)
 
@@ -30,4 +30,6 @@ h5createDataset(
 h5write(obj = vec_data, file = file_path, name = 'chr_vec')
 h5write(obj = mtx_data, file = file_path, name = 'chr_mtx')
 
+h5lite::h5_delete(file_path, 'chr_vec', 'rhdf5-NA.OK')
+h5lite::h5_delete(file_path, 'chr_mtx', 'rhdf5-NA.OK')
 

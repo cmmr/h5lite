@@ -4,45 +4,45 @@
 \alias{h5_write}
 \title{Write an R Object to HDF5}
 \usage{
-h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
+h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
-
-\item{name}{Name of the dataset (e.g., "/data/matrix").}
-
 \item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{complex},
 \code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{NULL},
 and nested \code{list}s.}
 
-\item{dtype}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"float16"},
+\item{file}{The path to the HDF5 file.}
+
+\item{name}{The name of the dataset or group to write (e.g., "/data/matrix").}
+
+\item{attr}{The name of an attribute to write.
+\itemize{
+\item If \code{NULL} (default), \code{data} is written as a dataset or group at the path \code{name}.
+\item If provided (string), \code{data} is written as an attribute named \code{attr} attached to the object \code{name}.
+}}
+
+\item{as}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"float16"},
 \code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
-\code{"uint16"}, \code{"uint32"}, or \code{"uint64"}. The default, \code{"auto"}, selects the
-most space-efficient type for the data. See details below.}
+\code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}. The default, \code{"auto"}, selects
+the most space-efficient type for the data. See details below.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
 An integer \code{1-9} specifies the zlib compression level directly.}
-
-\item{attrs}{Controls which R attributes of \code{data} are written to the HDF5 object.
-Can be \code{FALSE} (the default), \code{TRUE} (all attributes except \code{dim}),
-a character vector of attribute names to include (e.g., \code{c("info", "version")}),
-or a character vector of names to exclude, prefixed with \code{-} (e.g., \code{c("-class")}).}
 }
 \value{
 Invisibly returns \code{file}. This function is called for its side effects.
 }
 \description{
 Writes an R object to an HDF5 file, creating the file if it does not exist.
-This function can write atomic vectors, matrices, arrays, factors, \code{data.frame}s,
-and nested \code{list}s.
+This function acts as a unified writer for datasets, groups (lists), and attributes.
 }
 \section{Writing Scalars}{
 
 By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
 To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
-For example, \code{h5_write(file, "x", I(5))} will create a scalar dataset, while
-\code{h5_write(file, "x", 5)} will create a 1D array of length 1.
+For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, while
+\code{h5_write(5, file, "x")} will create a 1D array of length 1.
 }
 
 \section{Writing Lists}{
@@ -89,14 +89,27 @@ stored in a human-readable and unambiguous way. This conversion applies to
 standalone \code{POSIXt} objects, as well as to columns within a \code{data.frame}.
 }
 
-\section{Data Type Selection (\code{dtype})}{
+\section{Data Type Selection (\code{as} Argument)}{
 
-The \code{dtype} argument controls the on-disk storage type and only applies to
+The \code{as} argument controls the on-disk storage type and only applies to
 \code{integer}, \code{numeric}, and \code{logical} vectors. For all other data types
 (\code{character}, \code{complex}, \code{factor}, \code{raw}), the storage type is determined
 automatically.
 
-If \code{dtype} is set to \code{"auto"} (the default), \code{h5lite} will automatically
+The \code{as} argument can be one of the following:
+\itemize{
+\item \strong{Global:} A single string, e.g., \code{"auto"} (default), \code{"float32"}, \code{"int64"}.
+\item \strong{Specific:} A named vector mapping names or type classes to HDF5 types.
+Matches \code{h5_read} behavior:
+\itemize{
+\item \code{"col_name" = "type"}: Specific dataset/column.
+\item \code{"@attr_name" = "type"}: Specific attached attribute.
+\item \code{".int" = "type"}: Class-based (e.g., .int, .double, .logical).
+\item \code{"." = "type"}: Global default fallback.
+}
+}
+
+If \code{as} is set to \code{"auto"} (the default), \code{h5lite} will automatically
 select the most space-efficient HDF5 type based on the following rules:
 \enumerate{
 \item If the data contains fractional values (e.g., \code{1.5}), it is stored as
@@ -114,65 +127,50 @@ automatically stored as \code{float64} to preserve precision.
 To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:
 \itemize{
-\item \code{"auto"}
+\item \code{"auto"}, \code{"skip"}
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
 }
 }
 
-\section{Attribute Round-tripping}{
-
-To properly round-trip an R object, it is helpful to set \code{attrs = TRUE}. This
-preserves important R metadata—such as the \code{names} of a named vector, \code{row.names}
-of a \code{data.frame}, or the \code{class} of an object—as HDF5 attributes.
-
-\strong{Limitation}: HDF5 has no direct analog for R's \code{dimnames}.
-Attempting to write an object that has \code{dimnames} (e.g., a named matrix)
-with \code{attrs = TRUE} will result in an error. You must either remove the
-\code{dimnames} or set \code{attrs = FALSE}.
-}
-
 \examples{
 file <- tempfile(fileext = ".h5")
 
-# Write a simple vector (dtype is auto-detected as uint8)
-h5_write(file, "vec1", 1:20)
-h5_typeof(file, "vec1") # "uint8"
+# 1. Writing Basic Datasets
+h5_write(1:10, file, "data/integers")
+h5_write(rnorm(10), file, "data/floats")
+h5_write(letters[1:5], file, "data/chars")
 
-# Write a matrix, letting h5_write determine dimensions
-mat <- matrix(rnorm(12), nrow = 4, ncol = 3)
-h5_write(file, "group/mat", mat)
-h5_dim(file, "group/mat") # c(4, 3)
+# 2. Writing Attributes
+# Write an object first
+h5_write(1:10, file, "data/vector")
+# Attach an attribute to it using the 'attr' parameter
+h5_write("My Description", file, "data/vector", attr = "description")
+h5_write(100, file, "data/vector", attr = "scale_factor")
 
-# Overwrite the first vector, forcing a 32-bit integer type
-h5_write(file, "vec1", 101:120, dtype = "int32")
-h5_typeof(file, "vec1") # "int32"
-
-# Write a scalar value
-h5_write(file, "scalar", I(3.14))
-
-# Write a named vector and preserve its names by setting attrs = TRUE
-named_vec <- c(a = 1, b = 2)
-h5_write(file, "named_vector", named_vec, attrs = TRUE)
-
-# Write a nested list, which creates groups and datasets
+# 3. Writing Complex Structures (Lists/Groups)
 my_list <- list(
-  config = list(version = 1.2, user = "test"),
-  data = matrix(1:4, 2)
+  meta = list(id = 1, name = "Experiment A"),
+  results = matrix(runif(9), 3, 3),
+  valid = TRUE
 )
-attr(my_list, "info") <- "Session data"
-h5_write(file, "session_data", my_list)
+h5_write(my_list, file, "experiment_1")
 
-h5_ls(file, recursive = TRUE)
+# 4. Writing Data Frames (Compound Datasets)
+df <- data.frame(
+  id = 1:5,
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  grade = factor(c("A", "A", "B", "C", "D"))
+)
+h5_write(df, file, "records/scores")
+
+# 5. Controlling Data Types (Compression)
+# Store integers as 8-bit unsigned
+h5_write(1:5, file, "compressed/small_ints", as = "uint8")
 
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write_attr]{h5_write_attr()}},
-\code{vignette("atomic-vectors")},
-\code{vignette("matrices")},
-\code{vignette("data-frames")},
-\code{vignette("data-organization")},
-\code{vignette("attributes-in-depth")}
+\code{\link[=h5_read]{h5_read()}}
 }

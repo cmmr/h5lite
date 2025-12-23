@@ -1,4 +1,3 @@
-
 #' Create an HDF5 File Handle
 #' 
 #' Creates a file handle that provides a convenient, object-oriented interface
@@ -12,16 +11,18 @@
 #'
 #' For example, instead of writing:
 #' ```r
-#' h5_write(file, "dset1", 1:10)
-#' h5_write(file, "dset2", 2:20)
+#' h5_write(1:10, file, "dset1")
+#' h5_write(2:20, file, "dset2")
 #' h5_ls(file)
 #' ```
-#' You can create a handle and use its methods:
+#' You can create a handle and use its methods. Note that the `file` argument
+#' is omitted from the method calls:
 #' ```r
 #' h5 <- h5_open("my_file.h5")
-#' h5$write("dset1", 1:10)
-#' h5$write("dset2", 2:20)
+#' h5$write(1:10, "dset1")
+#' h5$write(2:20, "dset2")
 #' h5$ls()
+#' h5$close()
 #' ```
 #'
 #' @section Pass-by-Reference Behavior:
@@ -36,15 +37,13 @@
 #' \subsection{Standard `h5lite` Functions as Methods}{
 #'   Most `h5lite` functions (e.g., `h5_read`, `h5_write`, `h5_ls`) are
 #'   available as methods on the `h5` object, without the `h5_` prefix.
-#'   The `file` argument is automatically supplied.
 #'
-#'   For example, `h5$write("dset", data)` is equivalent to
-#'   `h5_write(file, "dset", data)`.
+#'   For example, `h5$write(data, "dset")` is equivalent to
+#'   `h5_write(data, file, "dset")`.
 #'
-#'   The available methods are: `read`, `read_attr`, `write`, `write_attr`,
-#'   `class`, `class_attr`, `dim`, `dim_attr`, `exists`, `exists_attr`,
-#'   `is_dataset`, `is_group`, `ls`, `ls_attr`, `str`, `typeof`, `typeof_attr`,
-#'   `create_file`, `create_group`, `delete`, `delete_attr`, `move`.
+#'   The available methods are: `read`, `write`, `class`, `dim`, `exists`,
+#'   `is_dataset`, `is_group`, `ls`, `names`, `str`, `typeof`, `create_group`,
+#'   `attr_names`, `delete`, `move`.
 #' }
 #'
 #' \subsection{Navigation (`$cd()`, `$pwd()`)}{
@@ -64,19 +63,6 @@
 #'   is ignored.
 #' }
 #'
-#' \subsection{Subsetting with `[[` and `[[<-`}{
-#'   The `h5` handle also supports `[[` for reading and writing, providing a
-#'   convenient, list-like syntax.
-#'   \itemize{
-#'     \item **Reading Datasets/Groups:** `h5[["my_dataset"]]` is a shortcut for `h5$read("my_dataset")`.
-#'     \item **Writing Datasets/Groups:** `h5[["my_dataset"]] <- value` is a shortcut for `h5$write("my_dataset", value)`.
-#'     \item **Accessing Attributes:** You can access attributes by separating the object name
-#'       and attribute name with an `@` symbol. For example:
-#'     - `h5[["my_dataset@@my_attribute"]]` reads an attribute.
-#'     - `h5[["my_dataset@@my_attribute"]] <- "new value"` writes an attribute.
-#'   }
-#' }
-#'
 #' \subsection{Closing the Handle (`$close()`)}{
 #' The `h5lite` package does not keep files persistently open. Each operation
 #' opens, modifies, and closes the file. Therefore, the `h5$close()` method
@@ -93,89 +79,77 @@
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#' h5 <- h5_open(file)
-#'
-#' h5$write("a", 1:10)
-#' h5$write("b", c("x", "y"))
-#' h5$ls()
-#'
-#' # --- Subsetting for Read/Write ---
-#' h5[["c"]] <- matrix(1:4, 2)
-#' h5[["c@@units"]] <- "m/s"
-#' print(h5[["c"]])
-#' print(h5[["c@@units"]])
-#'
-#' # --- Navigation ---
-#' h5$cd("/g1/g2")
-#' h5$pwd() # "/g1/g2"
-#' h5$write("d1", 1:5) # Writes to /g1/g2/d1
-#' h5$cd("..")
-#' h5$ls() # Lists 'g2'
-#'
-#' # Write and read using subsetting
-#' h5[["c"]] <- matrix(1:4, 2)
-#' h5[["c@units"]] <- "m/s"
-#' print(h5[["c"]])
-#' print(h5[["c@units"]])
 #' 
-#'
-#' # Invalidate the handle
+#' # Open the handle
+#' h5 <- h5_open(file)
+#' 
+#' # Write data (note: 'data' is the first argument, 'file' is implicit)
+#' h5$write(1:5, "vector")
+#' h5$write(matrix(1:9, 3, 3), "matrix")
+#' 
+#' # Create a group and navigate to it
+#' h5$create_group("simulations")
+#' h5$cd("simulations")
+#' print(h5$pwd()) # "/simulations"
+#' 
+#' # Write data relative to the current working directory
+#' h5$write(rnorm(10), "run1") # Writes to /simulations/run1
+#' 
+#' # Read data
+#' dat <- h5$read("run1")
+#' 
+#' # List contents of current WD
+#' h5$ls()
+#' 
+#' # Close the handle
 #' h5$close()
-#' # try(h5$ls()) # This would now throw an error
-#'
 #' unlink(file)
-
 h5_open <- function (file) {
-
+  
   h5_create_file(file)
   
-  env <- new.env(parent = emptyenv())
-  env$.file <- file
-  env$.wd <- "/"
-
-  env$read         = function(name, attrs = FALSE) { h5_run(env, h5_read) }
-  env$read_attr    = function(name, attribute) { h5_run(env, h5_read_attr) }
-  env$write        = function(name, data, dtype = "auto", compress = TRUE, attrs = FALSE) { h5_run(env, h5_write) }
-  env$write_attr   = function(name, attribute, data, dtype = "auto") { h5_run(env, h5_write_attr) }
-  env$class        = function(name, attrs = FALSE) { h5_run(env, h5_class) }
-  env$class_attr   = function(name, attribute) { h5_run(env, h5_class_attr) }
-  env$dim          = function(name) { h5_run(env, h5_dim) }
-  env$dim_attr     = function(name, attribute) { h5_run(env, h5_dim_attr) }
-  env$exists       = function(name = ".") { h5_run(env, h5_exists) }
-  env$exists_attr  = function(name, attribute) { h5_run(env, h5_exists_attr) }
-  env$is_dataset   = function(name) { h5_run(env, h5_is_dataset) }
-  env$is_group     = function(name) { h5_run(env, h5_is_group) }
-  env$ls           = function(name = ".", recursive = TRUE, full.names = FALSE) { h5_run(env, h5_ls) }
-  env$ls_attr      = function(name) { h5_run(env, h5_ls_attr) }
-  env$str          = function(name = ".", attrs = TRUE) { h5_run(env, h5_str) }
-  env$typeof       = function(name) { h5_run(env, h5_typeof) }
-  env$typeof_attr  = function(name, attribute) { h5_run(env, h5_typeof_attr) }
-  env$create_file  = function() { h5_run(env, h5_create_file) }
-  env$create_group = function(name) { h5_run(env, h5_create_group) }
-  env$delete       = function(name) { h5_run(env, h5_delete) }
-  env$delete_attr  = function(name, attribute) { h5_run(env, h5_delete_attr) }
-  env$move         = function(from, to) { h5_run(env, h5_move) }
+  env        <- new.env(parent = emptyenv())
+  env$.file  <- file
+  env$.wd    <- "/"
+  class(env) <- "h5"
+  
+  env$read         = function(name = ".", attr = NULL, as = "auto")                  { h5_run(env, h5_read)  }
+  env$write        = function(data, name, attr = NULL, as = "auto", compress = TRUE) { h5_run(env, h5_write) }
+  env$ls           = function(name = ".", recursive = TRUE, full.names = FALSE)      { h5_run(env, h5_ls)    }
+  
+  env$str          = function(name = ".", attrs = TRUE)       { h5_run(env, h5_str)          }
+  env$class        = function(name, attr = NULL)              { h5_run(env, h5_class)        }
+  env$dim          = function(name, attr = NULL)              { h5_run(env, h5_dim)          }
+  env$exists       = function(name, attr = NULL)              { h5_run(env, h5_exists)       }
+  env$typeof       = function(name, attr = NULL)              { h5_run(env, h5_typeof)       }
+  env$delete       = function(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
+  env$is_dataset   = function(name)                           { h5_run(env, h5_is_dataset)   }
+  env$is_group     = function(name)                           { h5_run(env, h5_is_group)     }
+  env$names        = function(name = ".")                     { h5_run(env, h5_names)        }
+  env$attr_names   = function(name = ".")                     { h5_run(env, h5_attr_names)   }
+  env$create_group = function(name)                           { h5_run(env, h5_create_group) }
+  env$move         = function(from, to)                       { h5_run(env, h5_move)         }
   
   # Navigation methods
   env$cd = function(group = "/") {
     check_open(env)
     env$.wd <- normalize_path(env$.wd, group)
-    invisible(env)
+    return(invisible(NULL))
   }
   env$pwd = function() {
     check_open(env)
-    env$.wd
+    return(env$.wd)
   }
   
   # Control methods
   env$close = function () {
     check_open(env)
     env$.file <- NULL
-    env$.wd <- NULL
-    invisible(NULL)
+    env$.wd   <- NULL
+    return(invisible(NULL))
   }
-
-  structure(env, class = "h5")
+  
+  return(env)
 }
 
 check_open <- function(env) {
@@ -185,17 +159,17 @@ check_open <- function(env) {
 
 
 h5_run <- function(env, func) {
-
+  
   check_open(env) # Ensure the handle is not closed
   
   # Capture the arguments passed to the calling function (e.g., h5$read)
   args <- as.list(parent.frame())
-
+  
   # Normalize paths for 'name', 'from', and 'to' arguments if they exist
   if (hasName(args, "name")) { args$name <- normalize_path(env$.wd, args$name) }
   if (hasName(args, "from")) { args$from <- normalize_path(env$.wd, args$from) }
   if (hasName(args, "to"))   { args$to   <- normalize_path(env$.wd, args$to)   }
-
+  
   # Call the underlying h5lite function (e.g., h5_read) with the modified arguments
   args$file <- env$.file
   do.call(func, args, envir = parent.frame(n = 2))
@@ -261,64 +235,4 @@ str.h5 <- function(object, ...) {
 as.character.h5 <- function(x, ...) {
   # Return the file path, or NULL if the handle is closed.
   x$.file
-}
-
-#' @export
-`[[.h5` <- function(x, i) {
-  if (!is.character(i) || length(i) != 1) {
-    stop("Subsetting h5 objects with `[[` requires a single character name.", call. = FALSE)
-  }
-
-  # Explicitly check for an empty attribute name, which is invalid.
-  if (endsWith(i, "@")) {
-    stop("Invalid attribute subsetting syntax. Attribute name cannot be empty.", call. = FALSE)
-  }
-
-  parts <- strsplit(i, "@", fixed = TRUE)[[1]]
-
-  if (length(parts) == 1) {
-    # No '@', so it's a dataset/group read
-    x$read(name = i)
-  } else if (length(parts) == 2) {
-    # Found '@', it's an attribute read
-    obj_name  <- parts[1]
-    attr_name <- parts[2]
-    if (nchar(obj_name) == 0) {
-      obj_name <- x$.wd # If object name is empty, use the current working directory
-    }
-    x$read_attr(name = obj_name, attribute = attr_name)
-  } else {
-    stop("Invalid subsetting syntax. Only one '@' is permitted for attribute access.", call. = FALSE) # nocov
-  }
-}
-
-#' @export
-`[[<-.h5` <- function(x, i, value) {
-  if (!is.character(i) || length(i) != 1) {
-    stop("Subsetting h5 objects with `[[<-` requires a single character name.", call. = FALSE)
-  }
-
-  # Explicitly check for an empty attribute name, which is invalid.
-  if (endsWith(i, "@")) {
-    stop("Invalid attribute subsetting syntax. Attribute name cannot be empty.", call. = FALSE)
-  }
-  
-  parts <- strsplit(i, "@", fixed = TRUE)[[1]]
-  
-  if (length(parts) == 1) {
-    # No '@', so it's a dataset/group write
-    x$write(name = i, data = value)
-  } else if (length(parts) == 2) {
-    # Found '@', it's an attribute write
-    obj_name  <- parts[1]
-    attr_name <- parts[2]
-    if (nchar(obj_name) == 0) {
-      obj_name <- x$.wd # If object name is empty, use the current working directory
-    }
-    x$write_attr(name = obj_name, attribute = attr_name, data = value)
-  } else {
-    stop("Invalid subsetting syntax. Only one '@' is permitted for attribute access.", call. = FALSE) # nocov
-  }
-
-  x
 }

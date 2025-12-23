@@ -1,154 +1,150 @@
-library(testthat)
-library(h5lite)
+test_that("Integer scalars and vectors work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  # 1. Simple Integer Vector
+  vec <- 1:10
+  h5_write(vec, file, "vec")
+  expect_equal(h5_read(file, "vec"), vec)
+  expect_equal(h5_class(file, "vec"), "numeric") # Stored as integer, read as numeric by default
+  expect_equal(h5_read(file, "vec", as = "integer"), vec)
 
-test_that("Integer datasets are written with correct types and round-trip", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
+  # 2. Integer Scalar (1D array of length 1)
+  h5_write(42L, file, "scalar")
+  expect_equal(h5_read(file, "scalar"), 42L)
+  
+  # 3. Explicit Scalar (I(x))
+  h5_write(I(42L), file, "scalar_I")
+  expect_equal(h5_dim(file, "scalar_I"), integer(0)) # Rank 0
+  expect_equal(h5_read(file, "scalar_I"), 42L)
 
-  # --- 1. DEFINE DATA ---
-  d_int_no_na <- 1L:100L
-  d_int_with_na <- c(1L, 2L, NA_integer_, 4L)
-  d_mat_int <- matrix(1L:12L, nrow = 4)
-  d_scalar_int <- I(42L)
-
-  # --- 2. WRITE DATA ---
-  h5_write(file_path, "int_no_na", d_int_no_na)
-  h5_write(file_path, "int_with_na", d_int_with_na)
-  h5_write(file_path, "mat_int", d_mat_int)
-  h5_write(file_path, "scalar_int", d_scalar_int)
-
-  # --- 3. VERIFY TYPES ---
-  # Without NA, should be an efficient integer type (uint8)
-  expect_equal(h5_typeof(file_path, "int_no_na"), "uint8")
-  expect_equal(h5_typeof(file_path, "scalar_int"), "uint8")
-  expect_equal(h5_dim(file_path, "scalar_int"), integer(0))
-  # With NA, should be promoted to float16
-  expect_equal(h5_typeof(file_path, "int_with_na"), "float16")
-
-  # --- 4. READ AND VERIFY DATA ---
-  # Reading converts to numeric (double) for safety, which is expected.
-  expect_equal(h5_read(file_path, "int_no_na"), as.numeric(d_int_no_na))
-  expect_equal(h5_read(file_path, "int_with_na"), as.numeric(d_int_with_na))
-  expect_equal(h5_read(file_path, "mat_int"), d_mat_int)
-  expect_equal(h5_read(file_path, "scalar_int"), as.integer(d_scalar_int))
+  # 4. Integers with NA (Auto-promoted to float to store NaN)
+  vec_na <- c(1L, NA_integer_, 3L)
+  h5_write(vec_na, file, "vec_na")
+  expect_true(startsWith(h5_typeof(file, "vec_na"), "float")) # Promoted
+  read_back <- h5_read(file, "vec_na")
+  expect_true(is.double(read_back))
+  expect_true(is.nan(read_back[2]))
+  
+  # 5. Named vector
+  vec_named <- structure(c(1:5), names = letters[1:5])
+  h5_write(vec_named, file, "vec_named")
+  expect_equal(h5_read(file, "vec_named"), vec_named)
+  expect_equal(h5_names(file, "vec_named"), letters[1:5])
+  
+  # Force read back as integer (NaN becomes NA_integer_)
+  expect_equal(h5_read(file, "vec_na", as = "integer"), vec_na)
 })
 
-test_that("Integer attributes are written with correct types and round-trip", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # --- 1. DEFINE DATA ---
-  d_attr_no_na <- c(1L, 2L, 3L)
-  d_attr_with_na <- c(10L, NA_integer_, 20L)
-
-  # --- 2. WRITE DATA ---
-  h5_write(file_path, "dset", 1) # Dummy dataset
-  h5_write_attr(file_path, "dset", "attr_no_na", d_attr_no_na)
-  h5_write_attr(file_path, "dset", "attr_with_na", d_attr_with_na)
-
-  # --- 3. VERIFY TYPES ---
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_no_na"), "uint8")
-  expect_equal(h5_typeof_attr(file_path, "dset", "attr_with_na"), "float16")
-
-  # --- 4. READ AND VERIFY DATA ---
-  expect_equal(h5_read_attr(file_path, "dset", "attr_no_na"), as.numeric(d_attr_no_na))
-  expect_equal(h5_read_attr(file_path, "dset", "attr_with_na"), as.numeric(d_attr_with_na))
+test_that("Integer matrices and arrays work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  mat <- matrix(1:9, nrow = 3)
+  h5_write(mat, file, "mat")
+  expect_equal(h5_read(file, "mat"), mat)
+  expect_equal(h5_dim(file, "mat"), c(3, 3))
+  expect_equal(h5_names(file, "mat"), character(0))
+  expect_equal(h5_length(file, "mat"), 9L)
+  
+  mat_named <- matrix(1:9, nrow = 3, dimnames = list(letters[1:3], LETTERS[1:3]))
+  h5_write(mat_named, file, "mat_named")
+  expect_equal(h5_read(file, "mat_named"), mat_named)
+  expect_equal(h5_names(file, "mat_named"), LETTERS[1:3])
+  
+  mat_rownm <- matrix(1:9, nrow = 3, dimnames = list(letters[1:3], NULL))
+  h5_write(mat_rownm, file, "mat_rownm")
+  expect_equal(h5_read(file, "mat_rownm"), mat_rownm)
+  expect_equal(h5_names(file, "mat_rownm"), character(0))
+  
+  mat_colnm <- matrix(1:9, nrow = 3, dimnames = list(NULL, LETTERS[1:3]))
+  h5_write(mat_colnm, file, "mat_colnm")
+  expect_equal(h5_read(file, "mat_colnm"), mat_colnm)
+  expect_equal(h5_names(file, "mat_colnm"), LETTERS[1:3])
+  
+  arr3d <- array(
+    data = 1:24, 
+    dim = c(2,3,4), 
+    dimnames = list(LETTERS[1:2], LETTERS[3:5], LETTERS[7:10]) )
+  
+  h5_write(arr3d, file, "arr3d")
+  expect_equal(h5_read(file, "arr3d"), arr3d)
+  expect_equal(h5_dim(file, "arr3d"), c(2,3,4) )
+  expect_equal(h5_names(file, "arr3d"), LETTERS[3:5])
+  expect_equal(h5_length(file, "arr3d"), prod(c(2,3,4)))
 })
 
-test_that("data.frame with integer column containing NA round-trips correctly", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  df <- data.frame(id = 1:3, value = c(10L, NA_integer_, 30L))
-  h5_write(file_path, "df_int_na", df)
-  df_read <- h5_read(file_path, "df_int_na")
-
-  # The read-back data.frame will have numeric columns for integer/logical
-  df_expected <- df
-  df_expected$id <- as.numeric(df_expected$id)
-  df_expected$value <- as.numeric(df_expected$value)
-  expect_equal(df_read, df_expected)
+test_that("Integer attributes work", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  h5_write(1:5, file, "data")
+  h5_write(100L, file, "data", attr = "meta")
+  
+  expect_equal(h5_read(file, "data", attr = "meta", as = "integer"), 100L)
+  
+  expect_null(h5_delete(file, "data", attr = "meta"))
 })
 
-test_that("Writing integer data with NA to a non-float dtype throws an error", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
+test_that("Specific integer types (int8-int64) can be forced", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  val <- c(-100L, 100L)
+  
+  h5_write(val, file, "i8", as = "int8")
+  expect_equal(h5_typeof(file, "i8"), "int8")
+  expect_equal(h5_read(file, "i8", as = "integer"), val)
 
-  d_int_with_na <- c(1L, NA_integer_, 3L)
-
-  # Attempting to write NA to an integer type should fail loudly
-  expect_error(h5_write(file_path, "int_na_as_int", d_int_with_na, dtype = "int32"))
-
-  # Also test for attributes
-  h5_write(file_path, "dset", 1)
-  expect_error(h5_write_attr(file_path, "dset", "int_attr_with_na", d_int_with_na, dtype = "int16"))
+  # Can't write -100 to a uint
+  expect_error(h5_write(val, file, "u8", as = "uint8"))
 })
 
-test_that("Writing integer data outside the dtype range throws an error", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # Test 1: Value too large for the specified unsigned type
-  d_too_large <- c(100L, 300L) # 300 is > 255 (max for uint8)
-  expect_error(h5_write(file_path, "too_large", d_too_large, dtype = "uint8"))
-
-  # Test 2: Negative value for an unsigned type
-  d_negative <- c(-10L, 50L) # -10 is < 0 (min for uint8)
-  expect_error(h5_write(file_path, "negative", d_negative, dtype = "uint8"))
+test_that("Auto-selection of int size edge cases", {
+  
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  h5_write(as.integer(c(0, 0)),         file, 'uint8_lo')
+  h5_write(as.integer(c(0, 2^8 - 1)),   file, 'uint8_hi')
+  h5_write(as.integer(c(0, 2^8)),       file, 'uint16_lo')
+  h5_write(as.integer(c(0, 2^16 - 1)),  file, 'uint16_hi')
+  h5_write(as.integer(c(0, 2^16)),      file, 'uint32_lo')
+  h5_write(as.integer(c(-1, -2^7)),     file, 'int8_lo')
+  h5_write(as.integer(c(-1, 2^7 - 1)),  file, 'int8_hi')
+  h5_write(as.integer(c(-1, -2^15)),    file, 'int16_lo')
+  h5_write(as.integer(c(-1, 2^15 - 1)), file, 'int16_hi')
+  h5_write(as.integer(c(-1, 2^15)),     file, 'int32_lo')
+  
+  expect_equal(h5_typeof(file, "uint8_lo"),  "uint8")
+  expect_equal(h5_typeof(file, "uint8_hi"),  "uint8")
+  expect_equal(h5_typeof(file, "uint16_lo"), "uint16")
+  expect_equal(h5_typeof(file, "uint16_hi"), "uint16")
+  expect_equal(h5_typeof(file, "uint32_lo"), "uint32")
+  expect_equal(h5_typeof(file, "int8_lo"),   "int8")
+  expect_equal(h5_typeof(file, "int8_hi"),   "int8")
+  expect_equal(h5_typeof(file, "int16_lo"),  "int16")
+  expect_equal(h5_typeof(file, "int16_hi"),  "int16")
+  expect_equal(h5_typeof(file, "int32_lo"),  "int32")
 })
 
-test_that("Automatic integer type selection is correct", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
-
-  # --- Unsigned Integer Types ---
-  h5_write(file_path, "u8", c(0L, 255L))
-  expect_equal(h5_typeof(file_path, "u8"), "uint8")
-
-  h5_write(file_path, "u16", c(0L, 256L))
-  expect_equal(h5_typeof(file_path, "u16"), "uint16")
-
-  h5_write(file_path, "u32", c(0L, 65536L))
-  expect_equal(h5_typeof(file_path, "u32"), "uint32")
-
-  # For values > 2^31-1, R uses numeric (double)
-  h5_write(file_path, "u64", c(0, 2^32))
-  expect_equal(h5_typeof(file_path, "u64"), "uint64")
-
-  # Value exceeds R's safe integer range, should become float64
-  h5_write(file_path, "u_as_f64", c(0, 2^53))
-  expect_equal(h5_typeof(file_path, "u_as_f64"), "float64")
-
-  # --- Signed Integer Types ---
-  h5_write(file_path, "s8", c(-128L, 127L))
-  expect_equal(h5_typeof(file_path, "s8"), "int8")
-
-  h5_write(file_path, "s16", c(-129L, 128L))
-  expect_equal(h5_typeof(file_path, "s16"), "int16")
-
-  h5_write(file_path, "s32", c(-32769L, 32768L))
-  expect_equal(h5_typeof(file_path, "s32"), "int32")
-
-  # For values outside R's 32-bit integer range, use numeric (double)
-  h5_write(file_path, "s64", c(-2^32, 2^32))
-  expect_equal(h5_typeof(file_path, "s64"), "int64")
-
-  # Value exceeds R's safe integer range, should become float64
-  h5_write(file_path, "s_as_f64", c(-2^54, 0))
-  expect_equal(h5_typeof(file_path, "s_as_f64"), "float64")
+test_that("Compression", {
+  
+  file_compressed   <- tempfile(fileext = ".h5")
+  file_uncompressed <- tempfile(fileext = ".h5")
+  on.exit(unlink(c(file_compressed, file_uncompressed)))
+  
+  vec <- rep(1L, 10000000)
+  h5_write(vec, file_compressed,   "vec", compress = TRUE)
+  h5_write(vec, file_uncompressed, "vec", compress = FALSE)
+  expect_lt(file.size(file_compressed), file.size(file_uncompressed))
+  
+  
+  mtx <- matrix(vec, nrow = 100)
+  h5_write(mtx, file_compressed, "mtx", compress = TRUE)
+  expect_equal(h5_read(file_compressed, "mtx"), mtx)
+  
 })
 
-test_that("Writing a zero-length integer vector works", {
-  file_path <- tempfile(fileext = ".h5")
-  on.exit(unlink(file_path), add = TRUE)
 
-  # Test with auto dtype
-  h5_write(file_path, "zero_len_int_auto", integer(0))
-  expect_equal(h5_read(file_path, "zero_len_int_auto"), numeric(0))
-  expect_equal(h5_typeof(file_path, "zero_len_int_auto"), "uint8") # Default for empty
 
-  # Test with specified dtype
-  h5_write(file_path, "zero_len_int_dtype", integer(0), dtype = "int32")
-  expect_equal(h5_read(file_path, "zero_len_int_dtype"), numeric(0))
-  expect_equal(h5_typeof(file_path, "zero_len_int_dtype"), "int32")
-})

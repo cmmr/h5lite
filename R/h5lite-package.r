@@ -11,21 +11,8 @@
 #' \itemize{
 #'   \item **Simple API:** Use familiar functions like [h5_read()] and [h5_write()].
 #'   \item **Automatic Handling:** Dimensions, data types, and group creation are handled automatically.
-#'   \item **Safe by Default:** Numeric data is read as `double` to prevent integer overflow.
+#'   \item **Safe by Default:** Auto-selects a safe R data type for numeric data to prevent overflow.
 #'   \item **Easy Installation:** The required HDF5 library is bundled with the package.
-#' }
-#' 
-#' @section Vignettes:
-#' The following vignettes provide detailed examples and explanations for common tasks:
-#' \itemize{
-#'   \item `vignette("h5lite")`: A general introduction to the package.
-#'   \item `vignette("atomic-vectors")`: Details on writing atomic vectors and scalars.
-#'   \item `vignette("matrices")`: Details on writing matrices and arrays.
-#'   \item `vignette("data-frames")`: Details on writing `data.frame` objects.
-#'   \item `vignette("data-organization")`: How to organize data using groups and lists.
-#'   \item `vignette("attributes-in-depth")`: A deep dive into using attributes.
-#'   \item `vignette("oo-interface")`: Guide to the object-oriented `h5_open()` interface.
-#'   \item `vignette("parallel-io")`: Guide for using h5lite in parallel environments.
 #' }
 #'
 #' @seealso

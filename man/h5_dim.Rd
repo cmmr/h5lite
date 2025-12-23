@@ -2,33 +2,28 @@
 % Please edit documentation in R/info.r
 \name{h5_dim}
 \alias{h5_dim}
-\title{Get HDF5 Object Dimensions}
+\title{Get Dimensions of an HDF5 Object or Attribute}
 \usage{
-h5_dim(file, name)
+h5_dim(file, name, attr = NULL)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
-\item{name}{Name of the dataset.}
+\item{name}{Name of the dataset or object.}
+
+\item{attr}{The name of an attribute to check. If \code{NULL} (default), the function
+returns the dimensions of the object itself.}
 }
 \value{
 An integer vector of dimensions, or \code{integer(0)} for scalars.
 }
 \description{
-Returns the dimensions of a dataset as an integer vector.
+Returns the dimensions of a dataset or an attribute as an integer vector.
 These dimensions match the R-style (column-major) interpretation.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-
-mat <- matrix(1:10, nrow = 2, ncol = 5)
-h5_write(file, "matrix", mat)
-
-# Check dims without reading the whole dataset
-h5_dim(file, "matrix") # Returns c(2, 5)
-
+h5_write(matrix(1:10, 2, 5), file, "matrix")
+h5_dim(file, "matrix") # 2 5
 unlink(file)
-}
-\seealso{
-\code{\link[=h5_dim_attr]{h5_dim_attr()}}
 }

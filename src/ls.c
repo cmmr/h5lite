@@ -1,10 +1,4 @@
 #include "h5lite.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
-/* Use the type helper defined in info.c */
-extern SEXP h5_type_to_rstr(hid_t type_id);
 
 /* --- COLOR & FORMATTING DEFINITIONS --- */
 
@@ -51,13 +45,19 @@ static void format_type_and_dims(hid_t type_id, hid_t space_id, char *buffer, si
     /* Array Case: "<type x dim1 x ...>" */
     snprintf(buffer, buf_len, "<%s", type_base);
     
-    hsize_t dims[32];
-    if (ndims > 32) ndims = 32; /* Cap for display safety */
+    hsize_t *dims = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
     H5Sget_simple_extent_dims(space_id, dims, NULL);
+    
+    /* If it's a 1D compound, show it as 2D (nrow x ncol) */
+    if (H5Tget_class(type_id) == H5T_COMPOUND && ndims == 1) {
+      dims[1] = H5Tget_nmembers(type_id);
+      ndims = 2;
+    }
     
     char tmp[64];
     for(int i = 0; i < ndims; i++) {
-      snprintf(tmp, sizeof(tmp), " x %llu", (unsigned long long)dims[i]);
+      /* \xC3\x97 = × */
+      snprintf(tmp, sizeof(tmp), " \xC3\x97 %llu", (unsigned long long)dims[i]);
       
       /* Safe concatenation: ensure we don't write past buf_len */
       size_t current_len = strlen(buffer);
@@ -141,7 +141,7 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) 
       H5Aget_name(attr_id, sizeof(attr_name), attr_name);
       
       /* Get Type Info */
-      hid_t atype = H5Aget_type(attr_id);
+      hid_t atype  = H5Aget_type(attr_id);
       hid_t aspace = H5Aget_space(attr_id);
       char type_str[256];
       format_type_and_dims(atype, aspace, type_str, sizeof(type_str));
@@ -264,19 +264,18 @@ SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs) {
 }
 
 
-/* --- DATA COLLECTION HELPERS (Unchanged for h5_ls) --- */
+/* --- DATA COLLECTION HELPERS --- */
 
 /*
- * A struct to pass data between the main 'ls' function and the HDF5 callback functions.
- * This allows the callbacks to either count items or fill an R character vector.
+ * Helper to check if an object name is an HDF5 dimension scale.
  */
-typedef struct {
-  int count;
-  int idx;
-  SEXP names;
-  const char *gname;
-  int full_names;
-} h5_op_data_t;
+static int is_dimension_scale(hid_t loc_id, const char *name) {
+  hid_t did = H5Dopen(loc_id, name, H5P_DEFAULT);
+  if (did < 0) return 0;
+  int is_scale = H5DSis_scale(did);
+  H5Dclose(did);
+  return (is_scale > 0);
+}
 
 /*
  * H5Ovisit callback for recursively listing objects.
@@ -286,6 +285,11 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   /* Skip the root object itself. */
   if (strcmp(name, ".") == 0 || strlen(name) == 0) return 0;
+  
+  /* Filter out dimension scales if requested */
+  if (!data->show_scales && info->type == H5O_TYPE_DATASET) {
+    if (is_dimension_scale(obj, name)) return 0;
+  }
   
   /* If names is not NULL, we are in the "fill" pass. Otherwise, we are counting. */
   if (data->names != R_NilValue) {
@@ -317,6 +321,17 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
 static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *info, void *op_data) {
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   
+  /* Filter out dimension scales if requested */
+  if (!data->show_scales) {
+    H5O_info_t oinfo;
+    /* Use H5Oget_info_by_name to determine if it's a dataset */
+    if (H5Oget_info_by_name(group, name, &oinfo, H5O_INFO_BASIC, H5P_DEFAULT) >= 0) {
+      if (oinfo.type == H5O_TYPE_DATASET) {
+        if (is_dimension_scale(group, name)) return 0;
+      }
+    }
+  }
+  
   /* If names is not NULL, we are in the "fill" pass. Otherwise, we are counting. */
   if (data->names != R_NilValue) {
     if (data->full_names) {
@@ -341,61 +356,41 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
 }
 
 /*
- * H5Aiterate callback for listing attribute names.
- * Used by C_h5_ls_attr.
- */
-static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data) {
-  h5_op_data_t *data = (h5_op_data_t *)op_data;
-  if (data->names != R_NilValue) {
-    SET_STRING_ELT(data->names, data->idx, mkChar(attr_name));
-    data->idx++;
-  }
-  return 0;
-}
-
-/*
  * C implementation of h5_ls().
  * Lists objects in a group, either recursively or non-recursively.
  * It uses a two-pass approach: first pass counts items, second pass allocates and fills the R vector.
  */
-SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
+SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales) {
   const char *fname = CHAR(STRING_ELT(filename, 0));
   const char *gname = CHAR(STRING_ELT(group_name, 0));
   int is_recursive = LOGICAL(recursive)[0];
   int use_full_names = LOGICAL(full_names)[0];
+  int show_scales = LOGICAL(scales)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
   
   hid_t group_id = H5Oopen(file_id, gname, H5P_DEFAULT);
-  if (group_id < 0) {
-    H5Fclose(file_id); // # nocov
-    error("Failed to open group/object: %s", gname); // # nocov
-  }
+  if (group_id < 0) { H5Fclose(file_id); error("Failed to open group/object: %s", gname); }
   
   /* Initialize the data structure to pass to the callback. */
   h5_op_data_t op_data;
-  op_data.count = 0;
-  op_data.idx = 0;
-  op_data.names = R_NilValue;
-  op_data.gname = gname;
-  op_data.full_names = use_full_names;
+  op_data.count       = 0;
+  op_data.idx         = 0;
+  op_data.names       = R_NilValue;
+  op_data.gname       = gname;
+  op_data.full_names  = use_full_names;
+  op_data.show_scales = show_scales;
   
   /* First pass: Count the number of items. `op_data.names` is NULL. */
-  if (is_recursive) {
-    H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC);
-  } else {
-    H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data);
-  }
+  if (is_recursive) { H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC); }
+  else              { H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data); }
   
   /* Second pass: Allocate the R vector and fill it with names. */
   if (op_data.count > 0) {
     PROTECT(op_data.names = allocVector(STRSXP, op_data.count));
-    if (is_recursive) {
-      H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC);
-    } else {
-      H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data);
-    }
+    if (is_recursive) { H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC); }
+    else              { H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data); }
   } else {
     PROTECT(op_data.names = allocVector(STRSXP, 0));
   }
@@ -405,51 +400,4 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names) {
   
   UNPROTECT(1);
   return op_data.names;
-}
-
-/*
- * C implementation of h5_ls_attr().
- * Lists the names of all attributes on a given object.
- */
-SEXP C_h5_ls_attr(SEXP filename, SEXP obj_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  
-  hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
-  if (file_id < 0) error("Failed to open file: %s", fname);
-  
-  hid_t obj_id = H5Oopen(file_id, oname, H5P_DEFAULT);
-  if (obj_id < 0) {
-    H5Fclose(file_id); // # nocov
-    error("Failed to open object: %s", oname); // # nocov
-  }
-  
-  /* Get the number of attributes on the object. */
-  H5O_info_t oinfo;
-  /* Updated to 3-arg signature for HDF5 1.12+ */
-  herr_t status = H5Oget_info(obj_id, &oinfo, H5O_INFO_NUM_ATTRS);
-  if (status < 0) {
-    H5Oclose(obj_id); H5Fclose(file_id); // # nocov
-    error("Failed to get object info"); // # nocov
-  }
-  
-  hsize_t n_attrs = oinfo.num_attrs;
-  SEXP result;
-  
-  /* Allocate the result vector and use H5Aiterate to fill it. */
-  if (n_attrs > 0) {
-    PROTECT(result = allocVector(STRSXP, (R_xlen_t)n_attrs));
-    h5_op_data_t op_data;
-    op_data.names = result;
-    op_data.idx = 0;
-    H5Aiterate2(obj_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_attr_cb, &op_data);
-  } else {
-    PROTECT(result = allocVector(STRSXP, 0));
-  }
-  
-  H5Oclose(obj_id);
-  H5Fclose(file_id);
-  
-  UNPROTECT(1);
-  return result;
 }

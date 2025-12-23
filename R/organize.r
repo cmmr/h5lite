@@ -1,24 +1,23 @@
-
-
 #' Create an HDF5 Group
 #' 
 #' Explicitly creates a new group (or nested groups) in an HDF5 file.
 #' This is useful for creating an empty group structure.
 #'
-#' @param file Path to the HDF5 file.
+#' @param file The path to the HDF5 file.
 #' @param name The full path of the group to create (e.g., "/g1/g2").
 #' @return Invisibly returns `NULL`. This function is called for its side effects.
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' h5_create_file(file)
 #' 
-#' h5_create_group(file, "/my/nested/group")
-#' 
-#' # List all objects recursively to see the full structure
+#' # Create a nested group structure
+#' h5_create_group(file, "/data/experiment/run1")
 #' h5_ls(file, recursive = TRUE)
+#' 
 #' unlink(file)
-h5_create_group <- function(file, name) {
-  file <- path.expand(file)
+h5_create_group <- function (file, name) {
+  file <- validate_strings(file, name)
   # Call the C function, which handles creating parent groups automatically.
   .Call("C_h5_create_group", file, name, PACKAGE = "h5lite")
   invisible(NULL)
@@ -55,19 +54,16 @@ h5_create_group <- function(file, name) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#'
-#' # Explicitly create the file (optional)
+#' 
+#' # Explicitly create the file
 #' h5_create_file(file)
-#'
-#' # Check that it exists
-#' file.exists(file) # TRUE
-#'
-#' # Write to the file
-#' h5_write(file, "data", 1:10)
-#'
-#' # Clean up
+#' 
+#' if (file.exists(file)) {
+#'   message("File created successfully.")
+#' }
+#' 
 #' unlink(file)
-h5_create_file <- function(file) {
+h5_create_file <- function (file) {
   # Creating a file is equivalent to creating the root group '/'.
   h5_create_group(file = file, name = "/")
 }
@@ -88,7 +84,7 @@ h5_create_file <- function(file) {
 #' different group (e.g., `"data/old"` to `"archive/old"`). The destination
 #' parent group will be automatically created if it does not exist.
 #'
-#' @param file Path to the HDF5 file.
+#' @param file The path to the HDF5 file.
 #' @param from The current (source) path of the object (e.g., `"/group/data"`).
 #' @param to The new (destination) path for the object (e.g., `"/group/data_new"`).
 #'
@@ -99,45 +95,79 @@ h5_create_file <- function(file) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#'
-#' # Create a sample file structure
-#' h5_write(file, "group1/dataset_a", 1:10)
-#' h5_write(file, "group1/dataset_b", 2:20)
-#' h5_create_group(file, "group2")
-#'
-#' # --- Example 1: Rename a dataset ---
-#'
-#' print(h5_ls(file, recursive = TRUE))
-#' #> [1] "group1"           "group1/dataset_a" "group1/dataset_b" "group2"
-#'
-#' h5_move(file, "group1/dataset_a", "group1/data_renamed")
-#'
-#' print(h5_ls(file, recursive = TRUE))
-#' #> [1] "group1"              "group1/dataset_b"  "group1/data_renamed" "group2"
-#'
-#'
-#' # --- Example 2: Move a dataset between groups ---
-#'
-#' h5_move(file, "group1/dataset_b", "group2/data_moved")
-#'
-#' print(h5_ls(file, recursive = TRUE))
-#' #> [1] "group1"              "group1/data_renamed" "group2"
-#' #> [4] "group2/data_moved"
-#'
-#' # Clean up
+#' h5_write(1:10, file, "group/dataset")
+#' 
+#' # Rename within the same group
+#' h5_move(file, "group/dataset", "group/renamed")
+#' h5_ls(file)
+#' 
+#' # Move to a new group (creates parent automatically)
+#' h5_move(file, "group/renamed", "archive/dataset")
+#' h5_ls(file, recursive = TRUE)
+#' 
 #' unlink(file)
-h5_move <- function(file, from, to) {
-  file <- path.expand(file)
-  if (!file.exists(file)) stop("File does not exist: ", file)
-  
-  if (!is.character(from) || length(from) != 1) {
-    stop("'from' must be a single string.")
-  }
-  if (!is.character(to) || length(to) != 1) {
-    stop("'to' must be a single string.")
-  }
+h5_move <- function (file, from, to) {
+
+  file <- validate_strings(file, from, must_exist = TRUE)
+  assert_scalar_character(to)
   
   # Call the C function that wraps H5Lmove.
   .Call("C_h5_move", file, from, to, PACKAGE = "h5lite")
+  invisible(NULL)
+}
+
+
+#' Delete an HDF5 Object or Attribute
+#'
+#' Deletes an object (dataset or group) or an attribute from an HDF5 file.
+#' If the object or attribute does not exist, a warning is issued and the function returns
+#' successfully (no error is raised).
+#'
+#' @param file The path to the HDF5 file.
+#' @param name The full path of the object to delete (e.g., `"/data/dset"` or `"/groups/g1"`).
+#' @param attr The name of the attribute to delete.
+#'   * If `NULL` (the default), the object specified by `name` is deleted.
+#'   * If a string is provided, the attribute named `attr` is removed from the object `name`.
+#' @param warn Emit a warning if the name/attr does not exist. Default: `TRUE`
+#'
+#' @return Invisibly returns `NULL`. This function is called for its side effects.
+#' @seealso [h5_create_group()], [h5_move()]
+#' @export
+#' @examples
+#' file <- tempfile(fileext = ".h5")
+#' h5_create_file(file)
+#'
+#' # Create some data and attributes
+#' h5_write(matrix(1:10, 2, 5), file, "matrix")
+#' h5_write("A note", file, "matrix", attr = "note")
+#'
+#' # Delete the attribute
+#' h5_delete(file, "matrix", attr = "note")
+#' h5_attr_names(file, "matrix") # Returns character(0)
+#'
+#' # Delete the dataset
+#' h5_delete(file, "matrix")
+#' h5_ls(file) # Returns character(0)
+#'
+#' # Cleaning up
+#' unlink(file)
+h5_delete <- function(file, name, attr = NULL, warn = TRUE) {
+
+  file <- validate_strings(file, name, attr)
+  assert_scalar_logical(warn)
+  
+  # Error if the file doesn't exist.
+  if (!file.exists(file)) stop("File '", file, "' does not exist.")
+
+  # Warn but do not error if the target doesn't exist.
+  if (h5_exists(file, name, attr)) {
+    if (is.null(attr)) { .Call("C_h5_delete",      file, name,       PACKAGE = "h5lite") }
+    else               { .Call("C_h5_delete_attr", file, name, attr, PACKAGE = "h5lite") }
+  }
+  else if (isTRUE(warn)) {
+    if (is.null(attr)) { warning("Object '", name, "' not found in file '", file, "'. Nothing to delete.") }
+    else               { warning("Attribute '", attr, "' not found on object '", name, "'. Nothing to delete.")}
+  }
+
   invisible(NULL)
 }

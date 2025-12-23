@@ -2,63 +2,50 @@
 % Please edit documentation in R/info.r
 \name{h5_exists}
 \alias{h5_exists}
-\title{Check if an HDF5 File or Object Exists}
+\title{Check if an HDF5 File, Object, or Attribute Exists}
 \usage{
-h5_exists(file, name = "/")
+h5_exists(file, name = "/", attr = NULL, assert = FALSE)
 }
 \arguments{
 \item{file}{Path to the file.}
 
 \item{name}{The full path of the object to check (e.g., \code{"/data/matrix"}).
-Defaults to \code{"/"}, which tests if the file itself is a valid HDF5 file.}
+Defaults to \code{"/"} to test file validity.}
+
+\item{attr}{The name of an attribute to check. If provided, the function tests
+for the existence of this attribute on \code{name}.}
+
+\item{assert}{Logical. If \code{TRUE} and the target does not exist, the function
+will stop with an informative error message instead of returning \code{FALSE}.
+Defaults to \code{FALSE}.}
 }
 \value{
-A logical value: \code{TRUE} if the file/object exists and is valid,
-\code{FALSE} otherwise.
+A logical value: \code{TRUE} if the target exists and is valid, \code{FALSE} otherwise.
 }
 \description{
-Safely checks if a file is a valid HDF5 file or if a specific object
-(group or dataset) exists within a valid HDF5 file.
+Safely checks if a file, an object within a file, or an attribute on an object exists.
 }
 \details{
 This function provides a robust, error-free way to test for existence.
 
 \itemize{
-\item \strong{Testing for a File:} If \code{name} is \code{/} (the default),
+\item \strong{Testing for a File:} If \code{name} is \code{/} and \code{attr} is \code{NULL},
 the function checks if \code{file} is a valid, readable HDF5 file.
-It will return \code{FALSE} for non-existent files, non-HDF5 files, or
-corrupted files without raising an error.
 
-\item \strong{Testing for an Object:} If \code{name} is a path (e.g., \verb{/data/matrix}),
-the function first confirms the file is valid HDF5, and then checks
-if the specific object exists within it.
+\item \strong{Testing for an Object:} If \code{name} is a path (e.g., \verb{/data/matrix})
+and \code{attr} is \code{NULL}, the function checks if the specific object exists.
+
+\item \strong{Testing for an Attribute:} If \code{attr} is provided, the function checks
+if that attribute exists on the specified object \code{name}.
 }
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-h5_write(file, "my_data", 1:10)
-
-# --- Test 1: Check for a specific object ---
-h5_exists(file, "my_data") # TRUE
-h5_exists(file, "nonexistent_data") # FALSE
-
-# --- Test 2: Check for a valid HDF5 file ---
+h5_create_file(file)
 h5_exists(file) # TRUE
-h5_exists(file, "/") # TRUE
-
-# --- Test 3: Check invalid or non-existent files ---
-h5_exists("not_a_real_file.h5") # FALSE
-
-text_file <- tempfile()
-writeLines("this is not hdf5", text_file)
-h5_exists(text_file) # FALSE
-
-# Check for an object in an invalid file (also FALSE)
-h5_exists(text_file, "my_data") # FALSE
-
+h5_exists(file, "missing_object") # FALSE
 unlink(file)
-unlink(text_file)
 }
 \seealso{
-\code{\link[=h5_exists_attr]{h5_exists_attr()}}, \code{\link[=h5_is_group]{h5_is_group()}}, \code{\link[=h5_is_dataset]{h5_is_dataset()}}
+\code{\link[=h5_is_group]{h5_is_group()}}, \code{\link[=h5_is_dataset]{h5_is_dataset()}}
 }

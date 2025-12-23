@@ -4,12 +4,15 @@
 \alias{h5_is_dataset}
 \title{Check if an HDF5 Object is a Dataset}
 \usage{
-h5_is_dataset(file, name)
+h5_is_dataset(file, name, attr = NULL)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The full path of the object to check.}
+
+\item{attr}{The name of an attribute. If provided, the function returns \code{TRUE} if the attribute exists,
+as all attributes are considered datasets in HDF5 context. (Default: \code{NULL})}
 }
 \value{
 A logical value: \code{TRUE} if the object exists and is a dataset,
@@ -20,13 +23,8 @@ Checks if the object at a given path is a dataset.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-h5_create_group(file, "my_group")
-h5_write(file, "my_dataset", 1)
-
-h5_is_dataset(file, "my_dataset") # TRUE
-h5_is_dataset(file, "my_group") # FALSE
-h5_is_dataset(file, "nonexistent") # FALSE
-
+h5_write(1, file, "dset")
+h5_is_dataset(file, "dset") # TRUE
 unlink(file)
 }
 \seealso{

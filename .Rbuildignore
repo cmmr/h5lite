@@ -10,3 +10,4 @@
 ^.*\.Rproj$
 ^rhub_check\.r$
 ^\.Rproj\.user$
+compile_flags.txt

@@ -1,5 +1,4 @@
 #include "h5lite.h"
-#include <stdio.h> // For fopen, fclose
 
 /*
  * Opens an HDF5 file with read-write access.
@@ -27,20 +26,20 @@ hid_t open_or_create_file(const char *fname) {
   if (is_hdf5 > 0) {
     /* File exists and is a valid HDF5 file, open it. */
     file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
-  } else {
+  }
+  else {
     /* File is not a valid HDF5 file. Check if it exists at all. */
     FILE *fp = fopen(fname, "r");
-    if (fp != NULL) {
-      /* File exists but is not HDF5. This is an error. */
-      fclose(fp);
-      error("File exists but is not a valid HDF5 file: %s", fname);
-    } else {
-      /* File does not exist, so create it. */
-      file_id = H5Fcreate(fname, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
-    }
+
+    /* File exists but is not HDF5. This is an error. */
+    if (fp != NULL) { fclose(fp); error("File exists but is not a valid HDF5 file: %s", fname); }
+    
+    /* File does not exist, so create it. */
+    file_id = H5Fcreate(fname, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
   }
   
-  if (file_id < 0) error("Failed to open or create file: %s", fname);
+  if (file_id < 0)
+    error("Failed to open or create file: %s", fname); // # nocov
   
   return file_id;
 }
@@ -57,12 +56,12 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
   if (dims == R_NilValue) {
     /* SCALAR */
     *out_rank = 0;
-    if (XLENGTH(data) != 1) error("Data for scalar must have length 1");
+    if (XLENGTH(data) != 1) return -1;
     space_id = H5Screate(H5S_SCALAR);
   } else {
     /* ARRAY */
     *out_rank = (int)XLENGTH(dims);
-    if (*out_rank == 0) error("dims must be NULL or a vector");
+    if (*out_rank == 0) return -1;
     
     /* R_alloc allocates memory that is garbage-collected by R. No free() needed. */
     hsize_t *h5_dims = (hsize_t *)R_alloc(*out_rank, sizeof(hsize_t));
@@ -74,9 +73,7 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
       total_elements *= h5_dims[i];
     }
     
-    if (total_elements != (hsize_t)XLENGTH(data)) {
-      error("Dimensions do not match data length"); // # nocov
-    }
+    if (total_elements != (hsize_t)XLENGTH(data)) return -1;
     *out_h5_dims = h5_dims;
     space_id = H5Screate_simple(*out_rank, h5_dims, NULL);
   }
@@ -87,7 +84,7 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
  * Checks if a link (dataset or group) exists and deletes it if it does.
  * This is used to implement "overwrite-by-default" behavior.
  */
-void handle_overwrite(hid_t file_id, const char *name) {
+herr_t handle_overwrite(hid_t file_id, const char *name) {
   /* Suppress HDF5's auto error printing for H5Lexists */
   herr_t (*old_func)(hid_t, void*);
   void *old_client_data;
@@ -99,19 +96,15 @@ void handle_overwrite(hid_t file_id, const char *name) {
   /* Restore error handler */
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
-  if (link_exists > 0) {
-    if (H5Ldelete(file_id, name, H5P_DEFAULT) < 0) {
-      H5Fclose(file_id); // # nocov
-      error("Failed to overwrite existing object '%s'", name); // # nocov
-    }
-  }
+  if (link_exists > 0) { return H5Ldelete(file_id, name, H5P_DEFAULT); }
+  else                 { return 0; }
 }
 
 /*
  * Checks if an attribute exists on an object and deletes it if it does.
  * This is used to implement "overwrite-by-default" behavior for attributes.
  */
-void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_name) {
+herr_t handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_name) {
   /* Suppress HDF5's auto error printing for H5Aexists */
   herr_t (*old_func)(hid_t, void*);
   void *old_client_data;
@@ -123,12 +116,8 @@ void handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_na
   /* Restore error handler */
   H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
   
-  if (attr_exists > 0) {
-    if (H5Adelete(obj_id, attr_name) < 0) {
-      H5Oclose(obj_id); H5Fclose(file_id); // # nocov
-      error("Failed to overwrite existing attribute '%s'", attr_name); // # nocov
-    }
-  }
+  if (attr_exists > 0) { return H5Adelete(obj_id, attr_name); }
+  else                 { return 0; }
 }
 
 /*
@@ -197,20 +186,49 @@ void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize
 }
 
 /*
+ * Creates an enum type for a factor.
+ */
+static hid_t create_enum_type(SEXP data) {
+  
+    /* Base type for enum is INT. */
+    hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
+    if (type_id < 0) return -1; // # nocov
+    
+    /* Insert each level name and its corresponding integer value into the enum type. */
+    SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
+    R_xlen_t n_levels = XLENGTH(levels);
+    for (R_xlen_t i = 0; i < n_levels; i++) {
+      int val = i + 1; /* R factors are 1-based, so value is i+1 */
+      H5Tenum_insert(type_id, CHAR(STRING_ELT(levels, i)), &val);
+    }
+
+    UNPROTECT(1);
+    return type_id;
+}
+
+/*
  * Gets the native HDF5 memory type corresponding to an R vector's C-level type.
  * For example, REALSXP -> H5T_NATIVE_DOUBLE.
  */
-hid_t get_mem_type(SEXP data) {
+hid_t create_r_memory_type(SEXP data) {
+
+  if (Rf_inherits(data, "integer64")) return H5Tcopy(H5T_NATIVE_INT64);
+  if (Rf_inherits(data, "factor"))    return create_enum_type(data);
+
   switch (TYPEOF(data)) {
-    case REALSXP: return H5T_NATIVE_DOUBLE;
-    case INTSXP:  return H5T_NATIVE_INT;
-    case LGLSXP:  return H5T_NATIVE_INT;    /* R's logicals are int */
-    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE); /* Custom complex type, must be closed */
-    case RAWSXP:  return -1;  /* Handled specially */ // # nocov
-    case STRSXP:  return -1;  /* Handled specially */ // # nocov
-    default: error("Unsupported R data type"); // # nocov
+    case REALSXP: return H5Tcopy(H5T_NATIVE_DOUBLE);
+    case INTSXP:  return H5Tcopy(H5T_NATIVE_INT);
+    case LGLSXP:  return H5Tcopy(H5T_NATIVE_INT);
+    case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE);
+    case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
+    case STRSXP:
+      hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
+      H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
+      H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
+      return vl_string_mem_type;
   }
-  return -1;
+  
+  return -1; // # nocov
 }
 
 /*
@@ -218,7 +236,8 @@ hid_t get_mem_type(SEXP data) {
  * portable, little-endian HDF5 file datatype ID. Also handles special
  * types like "character", "raw", and "factor".
  */
-hid_t get_file_type(const char *dtype, SEXP data) {
+hid_t create_h5_file_type(SEXP data, const char *dtype) {
+
   /* Mappings from user-friendly strings to HDF5 standard types for portability. */
   
   /* Floating Point Types (IEEE Standard) */
@@ -238,73 +257,22 @@ hid_t get_file_type(const char *dtype, SEXP data) {
   if (strcmp(dtype, "uint32") == 0) return H5Tcopy(H5T_STD_U32LE);
   if (strcmp(dtype, "uint64") == 0) return H5Tcopy(H5T_STD_U64LE);
 
-  /* Complex Type */
-  if (strcmp(dtype, "complex") == 0) return H5Tcomplex_create(H5T_IEEE_F64LE);
-  
-  /* Special Types */
-  
-  if (strcmp(dtype, "character") == 0) { /* Variable-length UTF-8 string */
-    hid_t t = H5Tcopy(H5T_C_S1);
-    H5Tset_size(t, H5T_VARIABLE);
-    H5Tset_cset(t, H5T_CSET_UTF8);
-    return t;
+  /* R Types */
+  switch (TYPEOF(data)) {
+    case CPLXSXP: return H5Tcomplex_create(H5T_IEEE_F64LE);
+    case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
+    case STRSXP:
+      hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
+      H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
+      H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
+      return vl_string_mem_type;
   }
   
-  /* R raw -> H5T_OPAQUE (size 1) */
-  if (strcmp(dtype, "raw") == 0) {
-    hid_t t = H5Tcreate(H5T_OPAQUE, 1);
-    return t;
-  }
-  
-  if (strcmp(dtype, "factor") == 0) {
-    
-    if (TYPEOF(data) != INTSXP || !isFactor(data)) {
-      error("dtype 'factor' requires factor data input"); // # nocov
-    }
-    
-    /* Check for NA values which are not supported for Enums */
-    int *data_ptr = INTEGER(data);
-    R_xlen_t n = XLENGTH(data);
-    for (R_xlen_t i = 0; i < n; i++) {
-      if (data_ptr[i] == NA_INTEGER) {
-        error("Factors with NA values cannot be written to HDF5 Enum types. Convert to character vector first.");
-      }
-    }
-    
-    SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
-    R_xlen_t n_levels = XLENGTH(levels);
-    
-    /* Base type for enum is INT. */
-    hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
-    if (type_id < 0) {
-      UNPROTECT(1); // # nocov
-      error("Failed to create enum type"); // # nocov
-    }
-    
-    /* Insert each level name and its corresponding integer value into the enum type. */
-    for (R_xlen_t i = 0; i < n_levels; i++) {
-      // R factors are 1-based, so value is i+1
-      int val = i + 1;
-      H5Tenum_insert(type_id, CHAR(STRING_ELT(levels, i)), &val);
-    }
-    UNPROTECT(1);
-    return type_id;
-  }
-  
-  error("Unknown dtype: %s", dtype); // # nocov
-  return -1;
-}
+  /* integer64 class from bit64 package */
+  if (strcmp(dtype, "bit64") == 0) return H5Tcopy(H5T_STD_I64LE);
 
-/*
- * Gets a void* pointer to the underlying C array of an atomic R vector.
- * Returns NULL for types that are handled specially (like STRSXP).
- */
-void* get_R_data_ptr(SEXP data) {
-  if (TYPEOF(data) == REALSXP) return (void*)REAL(data);
-  if (TYPEOF(data) == INTSXP)  return (void*)INTEGER(data);
-  if (TYPEOF(data) == LGLSXP)  return (void*)LOGICAL(data);
-  if (TYPEOF(data) == RAWSXP)  return (void*)RAW(data);
-  if (TYPEOF(data) == CPLXSXP) return (void*)COMPLEX(data);
-  if (TYPEOF(data) == STRSXP)  return NULL; /* Handled separately */  // # nocov
-  return NULL; // # nocov
+  /* Factor Type */
+  if (Rf_inherits(data, "factor")) return create_enum_type(data);
+
+  return -1; // # nocov
 }

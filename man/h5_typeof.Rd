@@ -2,36 +2,32 @@
 % Please edit documentation in R/info.r
 \name{h5_typeof}
 \alias{h5_typeof}
-\title{Get HDF5 Object Type}
+\title{Get HDF5 Storage Type of an Object or Attribute}
 \usage{
-h5_typeof(file, name)
+h5_typeof(file, name, attr = NULL)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
-\item{name}{Name of the dataset.}
+\item{name}{Name of the dataset or object.}
+
+\item{attr}{The name of an attribute to check. If \code{NULL} (default), the function
+returns the type of the object itself.}
 }
 \value{
 A character string representing the HDF5 storage type (e.g., "float32", "uint32", "string").
 }
 \description{
-Returns the low-level HDF5 storage type of a dataset (e.g., "int8", "float64", "string").
-This allows inspecting the file storage type before reading the data into R.
+Returns the low-level HDF5 storage type of a dataset or an attribute
+(e.g., "int8", "float64", "string"). This allows inspecting the file storage
+type before reading the data into R.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-
-# Write integers
-h5_write(file, "integers", 1:5)
-# Write doubles
-h5_write(file, "doubles", c(1.1, 2.2))
-
-# Check types
-h5_typeof(file, "integers") # "uint8" (auto-selected)
-h5_typeof(file, "doubles")  # "float64" (auto-selected)
-
+h5_write(1L, file, "int32_val", as = "int32")
+h5_typeof(file, "int32_val") # "int32"
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_typeof_attr]{h5_typeof_attr()}}, \code{\link[=h5_class]{h5_class()}}, \code{\link[=h5_exists]{h5_exists()}}
+\code{\link[=h5_class]{h5_class()}}, \code{\link[=h5_exists]{h5_exists()}}
 }

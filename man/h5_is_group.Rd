@@ -4,12 +4,15 @@
 \alias{h5_is_group}
 \title{Check if an HDF5 Object is a Group}
 \usage{
-h5_is_group(file, name)
+h5_is_group(file, name, attr = NULL)
 }
 \arguments{
-\item{file}{Path to the HDF5 file.}
+\item{file}{The path to the HDF5 file.}
 
 \item{name}{The full path of the object to check.}
+
+\item{attr}{The name of an attribute. This parameter is included for consistency with other functions.
+Since attributes cannot be groups, providing this will always return \code{FALSE}. (Default: \code{NULL})}
 }
 \value{
 A logical value: \code{TRUE} if the object exists and is a group,
@@ -20,13 +23,8 @@ Checks if the object at a given path is a group.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-h5_create_group(file, "my_group")
-h5_write(file, "my_dataset", 1)
-
-h5_is_group(file, "my_group") # TRUE
-h5_is_group(file, "my_dataset") # FALSE
-h5_is_group(file, "nonexistent") # FALSE
-
+h5_create_group(file, "grp")
+h5_is_group(file, "grp") # TRUE
 unlink(file)
 }
 \seealso{

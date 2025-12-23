@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "name": "Win32",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "C:/Program Files/R/R-4.5.2/include",
+        "C:/rtools45/x86_64-w64-mingw32.static.posix/include"
+      ],
+      "browse": {
+        "path": [
+          "${workspaceFolder}",
+          "C:/Program Files/R/R-4.5.2/include",
+          "C:/rtools45/x86_64-w64-mingw32.static.posix/include"
+        ],
+        "limitSymbolsToIncludedHeaders": true,
+        "databaseFilename": ""
+      },
+      "defines": [],
+      "compilerPath": "C:/rtools45/x86_64-w64-mingw32.static.posix/bin/gcc.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++14",
+      "intelliSenseMode": "windows-gcc-x64"
+    }
+  ],
+  "version": 4
+}
