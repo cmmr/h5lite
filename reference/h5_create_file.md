@@ -53,16 +53,13 @@ create a file before writing data to it.
 ``` r
 file <- tempfile(fileext = ".h5")
 
-# Explicitly create the file (optional)
+# Explicitly create the file
 h5_create_file(file)
 
-# Check that it exists
-file.exists(file) # TRUE
-#> [1] TRUE
+if (file.exists(file)) {
+  message("File created successfully.")
+}
+#> File created successfully.
 
-# Write to the file
-h5_write(file, "data", 1:10)
-
-# Clean up
 unlink(file)
 ```

@@ -12,7 +12,7 @@ h5_move(file, from, to)
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - from:
 
@@ -48,36 +48,17 @@ parent group will be automatically created if it does not exist.
 
 ``` r
 file <- tempfile(fileext = ".h5")
+h5_write(1:10, file, "group/dataset")
 
-# Create a sample file structure
-h5_write(file, "group1/dataset_a", 1:10)
-h5_write(file, "group1/dataset_b", 2:20)
-h5_create_group(file, "group2")
+# Rename within the same group
+h5_move(file, "group/dataset", "group/renamed")
+h5_ls(file)
+#> [1] "group"         "group/renamed"
 
-# --- Example 1: Rename a dataset ---
+# Move to a new group (creates parent automatically)
+h5_move(file, "group/renamed", "archive/dataset")
+h5_ls(file, recursive = TRUE)
+#> [1] "group"           "archive"         "archive/dataset"
 
-print(h5_ls(file, recursive = TRUE))
-#> [1] "group1"           "group1/dataset_a" "group1/dataset_b" "group2"          
-#> [1] "group1"           "group1/dataset_a" "group1/dataset_b" "group2"
-
-h5_move(file, "group1/dataset_a", "group1/data_renamed")
-
-print(h5_ls(file, recursive = TRUE))
-#> [1] "group1"              "group1/dataset_b"    "group1/data_renamed"
-#> [4] "group2"             
-#> [1] "group1"              "group1/dataset_b"  "group1/data_renamed" "group2"
-
-
-# --- Example 2: Move a dataset between groups ---
-
-h5_move(file, "group1/dataset_b", "group2/data_moved")
-
-print(h5_ls(file, recursive = TRUE))
-#> [1] "group1"              "group1/data_renamed" "group2"             
-#> [4] "group2/data_moved"  
-#> [1] "group1"              "group1/data_renamed" "group2"
-#> [4] "group2/data_moved"
-
-# Clean up
 unlink(file)
 ```

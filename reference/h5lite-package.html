@@ -23,18 +23,7 @@ the low-level details of the HDF5 C API."><meta property="og:image" content="htt
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/h5lite.html">Get started</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
-    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
-    <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
-  </ul></li>
+      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -65,21 +54,8 @@ the low-level details of the HDF5 C API.</p>
 
 <ul><li><p><strong>Simple API:</strong> Use familiar functions like <code><a href="h5_read.html">h5_read()</a></code> and <code><a href="h5_write.html">h5_write()</a></code>.</p></li>
 <li><p><strong>Automatic Handling:</strong> Dimensions, data types, and group creation are handled automatically.</p></li>
-<li><p><strong>Safe by Default:</strong> Numeric data is read as <code>double</code> to prevent integer overflow.</p></li>
+<li><p><strong>Safe by Default:</strong> Auto-selects a safe R data type for numeric data to prevent overflow.</p></li>
 <li><p><strong>Easy Installation:</strong> The required HDF5 library is bundled with the package.</p></li>
-</ul></div>
-    <div class="section level2">
-    <h2 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a></h2>
-
-
-<p>The following vignettes provide detailed examples and explanations for common tasks:</p><ul><li><p><code><a href="../articles/h5lite.html">vignette("h5lite")</a></code>: A general introduction to the package.</p></li>
-<li><p><code><a href="../articles/atomic-vectors.html">vignette("atomic-vectors")</a></code>: Details on writing atomic vectors and scalars.</p></li>
-<li><p><code><a href="../articles/matrices.html">vignette("matrices")</a></code>: Details on writing matrices and arrays.</p></li>
-<li><p><code><a href="../articles/data-frames.html">vignette("data-frames")</a></code>: Details on writing <code>data.frame</code> objects.</p></li>
-<li><p><code><a href="../articles/data-organization.html">vignette("data-organization")</a></code>: How to organize data using groups and lists.</p></li>
-<li><p><code><a href="../articles/attributes-in-depth.html">vignette("attributes-in-depth")</a></code>: A deep dive into using attributes.</p></li>
-<li><p><code><a href="../articles/oo-interface.html">vignette("oo-interface")</a></code>: Guide to the object-oriented <code><a href="h5_open.html">h5_open()</a></code> interface.</p></li>
-<li><p><code><a href="../articles/parallel-io.html">vignette("parallel-io")</a></code>: Guide for using h5lite in parallel environments.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

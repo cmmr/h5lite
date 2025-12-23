@@ -5,18 +5,24 @@ Checks if the object at a given path is a group.
 ## Usage
 
 ``` r
-h5_is_group(file, name)
+h5_is_group(file, name, attr = NULL)
 ```
 
 ## Arguments
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
   The full path of the object to check.
+
+- attr:
+
+  The name of an attribute. This parameter is included for consistency
+  with other functions. Since attributes cannot be groups, providing
+  this will always return `FALSE`. (Default: `NULL`)
 
 ## Value
 
@@ -32,15 +38,8 @@ otherwise (if it is a dataset, or does not exist).
 
 ``` r
 file <- tempfile(fileext = ".h5")
-h5_create_group(file, "my_group")
-h5_write(file, "my_dataset", 1)
-
-h5_is_group(file, "my_group") # TRUE
+h5_create_group(file, "grp")
+h5_is_group(file, "grp") # TRUE
 #> [1] TRUE
-h5_is_group(file, "my_dataset") # FALSE
-#> [1] FALSE
-h5_is_group(file, "nonexistent") # FALSE
-#> [1] FALSE
-
 unlink(file)
 ```

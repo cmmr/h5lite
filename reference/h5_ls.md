@@ -6,14 +6,14 @@ group.
 ## Usage
 
 ``` r
-h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
+h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE, scales = FALSE)
 ```
 
 ## Arguments
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
@@ -30,6 +30,11 @@ h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE)
   If `TRUE`, the full paths from the file's root are returned. If
   `FALSE` (the default), names are relative to `name`.
 
+- scales:
+
+  If `TRUE`, also returns datasets that are dimensions scales for other
+  datasets.
+
 ## Value
 
 A character vector of object names. If `name` is `/` (the default), the
@@ -38,24 +43,27 @@ the paths are relative to that group (unless `full.names = TRUE`).
 
 ## See also
 
-[`h5_ls_attr()`](https://cmmr.github.io/h5lite/reference/h5_ls_attr.md)
+[`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md),
+[`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
+h5_create_group(file, "foo/bar")
+h5_write(1:5, file, "foo/data")
 
-# Create some nested objects
-h5_write(file, "g1/d1", 1)
-h5_write(file, "g1/g2/d2", 2)
+# List everything recursively
+h5_ls(file)
+#> [1] "foo"      "foo/bar"  "foo/data"
 
-# List recursively from the root (default)
-h5_ls(file) # c("g1", "g1/d1", "g1/g2", "g1/g2/d2")
-#> [1] "g1"       "g1/d1"    "g1/g2"    "g1/g2/d2"
+# List only top-level objects
+h5_ls(file, recursive = FALSE)
+#> [1] "foo"
 
-# List recursively from a subgroup
-h5_ls(file, name = "g1") # c("d1", "g2", "g2/d2")
-#> [1] "d1"    "g2"    "g2/d2"
+# List relative to a sub-group
+h5_ls(file, "foo")
+#> [1] "bar"  "data"
 
 unlink(file)
 ```

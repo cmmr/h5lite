@@ -14,7 +14,7 @@ h5_str(file, name = "/", attrs = TRUE)
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
@@ -44,25 +44,22 @@ it fast and memory-safe for arbitrarily large files.
 ## See also
 
 [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
-[`h5_ls_attr()`](https://cmmr.github.io/h5lite/reference/h5_ls_attr.md)
+[`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
+h5_write(list(x = 1:10, y = matrix(1:9, 3, 3)), file, "group")
+h5_write("metadata", file, "group", attr = "info")
 
-# Create a nested structure
-h5_write(file, "/config/version", I(1.2))
-h5_write(file, "/data/matrix", matrix(1:4, 2, 2))
-h5_write_attr(file, "/data/matrix", "title", "my matrix")
-
-# Display the structure of the entire file
+# Print structure
 h5_str(file)
 #> /
-#> ├── config
-#> │   └── version <float64 scalar>
-#> └── data
-#>     └── matrix <uint8 x 2 x 2>
+#> └── group
+#>     ├── @info <string × 1>
+#>     ├── x <uint8 × 10>
+#>     └── y <uint8 × 3 × 3>
 
 unlink(file)
 ```

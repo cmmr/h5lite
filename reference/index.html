@@ -15,18 +15,7 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/h5lite.html">Get started</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
-    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
-    <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
-  </ul></li>
+      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -71,14 +60,7 @@
           <code><a href="h5_read.html">h5_read()</a></code>
 
         </dt>
-        <dd>Read an HDF5 Object</dd>
-
-        <dt>
-
-          <code><a href="h5_read_attr.html">h5_read_attr()</a></code>
-
-        </dt>
-        <dd>Read an HDF5 Attribute</dd>
+        <dd>Read an HDF5 Object or Attribute</dd>
 
         <dt>
 
@@ -86,13 +68,6 @@
 
         </dt>
         <dd>Write an R Object to HDF5</dd>
-
-        <dt>
-
-          <code><a href="h5_write_attr.html">h5_write_attr()</a></code>
-
-        </dt>
-        <dd>Write an Attribute to HDF5</dd>
       </dl></div><div class="section level2">
       <h2 id="inspection-discovery">Inspection &amp; Discovery<a class="anchor" aria-label="anchor" href="#inspection-discovery"></a></h2>
 
@@ -105,45 +80,31 @@
 
       <dl><dt>
 
-          <code><a href="h5_class.html">h5_class()</a></code>
+          <code><a href="h5_attr_names.html">h5_attr_names()</a></code>
 
         </dt>
-        <dd>Get R Class of an HDF5 Object</dd>
+        <dd>List HDF5 Attributes</dd>
 
         <dt>
 
-          <code><a href="h5_class_attr.html">h5_class_attr()</a></code>
+          <code><a href="h5_class.html">h5_class()</a></code>
 
         </dt>
-        <dd>Get R Class of an HDF5 Attribute</dd>
+        <dd>Get R Class of an HDF5 Object or Attribute</dd>
 
         <dt>
 
           <code><a href="h5_dim.html">h5_dim()</a></code>
 
         </dt>
-        <dd>Get HDF5 Object Dimensions</dd>
-
-        <dt>
-
-          <code><a href="h5_dim_attr.html">h5_dim_attr()</a></code>
-
-        </dt>
-        <dd>Get HDF5 Attribute Dimensions</dd>
+        <dd>Get Dimensions of an HDF5 Object or Attribute</dd>
 
         <dt>
 
           <code><a href="h5_exists.html">h5_exists()</a></code>
 
         </dt>
-        <dd>Check if an HDF5 File or Object Exists</dd>
-
-        <dt>
-
-          <code><a href="h5_exists_attr.html">h5_exists_attr()</a></code>
-
-        </dt>
-        <dd>Check if an HDF5 Attribute Exists</dd>
+        <dd>Check if an HDF5 File, Object, or Attribute Exists</dd>
 
         <dt>
 
@@ -161,6 +122,13 @@
 
         <dt>
 
+          <code><a href="h5_length.html">h5_length()</a></code>
+
+        </dt>
+        <dd>Get the Total Length of an HDF5 Object or Attribute</dd>
+
+        <dt>
+
           <code><a href="h5_ls.html">h5_ls()</a></code>
 
         </dt>
@@ -168,10 +136,10 @@
 
         <dt>
 
-          <code><a href="h5_ls_attr.html">h5_ls_attr()</a></code>
+          <code><a href="h5_names.html">h5_names()</a></code>
 
         </dt>
-        <dd>List HDF5 Attributes</dd>
+        <dd>Get Names of an HDF5 Object</dd>
 
         <dt>
 
@@ -185,14 +153,7 @@
           <code><a href="h5_typeof.html">h5_typeof()</a></code>
 
         </dt>
-        <dd>Get HDF5 Object Type</dd>
-
-        <dt>
-
-          <code><a href="h5_typeof_attr.html">h5_typeof_attr()</a></code>
-
-        </dt>
-        <dd>Get HDF5 Attribute Type</dd>
+        <dd>Get HDF5 Storage Type of an Object or Attribute</dd>
       </dl></div><div class="section level2">
       <h2 id="object-management">Object Management<a class="anchor" aria-label="anchor" href="#object-management"></a></h2>
 
@@ -222,14 +183,7 @@
           <code><a href="h5_delete.html">h5_delete()</a></code>
 
         </dt>
-        <dd>Delete an HDF5 Object</dd>
-
-        <dt>
-
-          <code><a href="h5_delete_attr.html">h5_delete_attr()</a></code>
-
-        </dt>
-        <dd>Delete an HDF5 Attribute</dd>
+        <dd>Delete an HDF5 Object or Attribute</dd>
 
         <dt>
 

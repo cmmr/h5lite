@@ -15,42 +15,11 @@ the low-level details of the HDF5 C API.
 - **Automatic Handling:** Dimensions, data types, and group creation are
   handled automatically.
 
-- **Safe by Default:** Numeric data is read as `double` to prevent
-  integer overflow.
+- **Safe by Default:** Auto-selects a safe R data type for numeric data
+  to prevent overflow.
 
 - **Easy Installation:** The required HDF5 library is bundled with the
   package.
-
-## Vignettes
-
-The following vignettes provide detailed examples and explanations for
-common tasks:
-
-- [`vignette("h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md):
-  A general introduction to the package.
-
-- [`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
-  Details on writing atomic vectors and scalars.
-
-- [`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md):
-  Details on writing matrices and arrays.
-
-- [`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md):
-  Details on writing `data.frame` objects.
-
-- [`vignette("data-organization")`](https://cmmr.github.io/h5lite/articles/data-organization.md):
-  How to organize data using groups and lists.
-
-- [`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
-  A deep dive into using attributes.
-
-- [`vignette("oo-interface")`](https://cmmr.github.io/h5lite/articles/oo-interface.md):
-  Guide to the object-oriented
-  [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md)
-  interface.
-
-- [`vignette("parallel-io")`](https://cmmr.github.io/h5lite/articles/parallel-io.md):
-  Guide for using h5lite in parallel environments.
 
 ## See also
 

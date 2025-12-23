@@ -13,7 +13,7 @@ h5_create_group(file, name)
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
@@ -27,11 +27,12 @@ Invisibly returns `NULL`. This function is called for its side effects.
 
 ``` r
 file <- tempfile(fileext = ".h5")
+h5_create_file(file)
 
-h5_create_group(file, "/my/nested/group")
-
-# List all objects recursively to see the full structure
+# Create a nested group structure
+h5_create_group(file, "/data/experiment/run1")
 h5_ls(file, recursive = TRUE)
-#> [1] "my"              "my/nested"       "my/nested/group"
+#> [1] "data"                 "data/experiment"      "data/experiment/run1"
+
 unlink(file)
 ```

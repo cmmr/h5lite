@@ -1,24 +1,16 @@
 # Write an R Object to HDF5
 
 Writes an R object to an HDF5 file, creating the file if it does not
-exist. This function can write atomic vectors, matrices, arrays,
-factors, `data.frame`s, and nested `list`s.
+exist. This function acts as a unified writer for datasets, groups
+(lists), and attributes.
 
 ## Usage
 
 ``` r
-h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
+h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 ```
 
 ## Arguments
-
-- file:
-
-  Path to the HDF5 file.
-
-- name:
-
-  Name of the dataset (e.g., "/data/matrix").
 
 - data:
 
@@ -26,27 +18,37 @@ h5_write(file, name, data, dtype = "auto", compress = TRUE, attrs = FALSE)
   `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`,
   `NULL`, and nested `list`s.
 
-- dtype:
+- file:
+
+  The path to the HDF5 file.
+
+- name:
+
+  The name of the dataset or group to write (e.g., "/data/matrix").
+
+- attr:
+
+  The name of an attribute to write.
+
+  - If `NULL` (default), `data` is written as a dataset or group at the
+    path `name`.
+
+  - If provided (string), `data` is written as an attribute named `attr`
+    attached to the object `name`.
+
+- as:
 
   The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`,
-  `"uint8"`, `"uint16"`, `"uint32"`, or `"uint64"`. The default,
-  `"auto"`, selects the most space-efficient type for the data. See
-  details below.
+  `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The
+  default, `"auto"`, selects the most space-efficient type for the data.
+  See details below.
 
 - compress:
 
   A logical or an integer from 0-9. If `TRUE`, compression level 5 is
   used. If `FALSE` or `0`, no compression is used. An integer `1-9`
   specifies the zlib compression level directly.
-
-- attrs:
-
-  Controls which R attributes of `data` are written to the HDF5 object.
-  Can be `FALSE` (the default), `TRUE` (all attributes except `dim`), a
-  character vector of attribute names to include (e.g.,
-  `c("info", "version")`), or a character vector of names to exclude,
-  prefixed with `-` (e.g., `c("-class")`).
 
 ## Value
 
@@ -57,8 +59,8 @@ Invisibly returns `file`. This function is called for its side effects.
 By default, `h5_write` saves single-element vectors as 1-dimensional
 arrays. To write a true HDF5 scalar, wrap the value in
 [`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
-example, `h5_write(file, "x", I(5))` will create a scalar dataset, while
-`h5_write(file, "x", 5)` will create a 1D array of length 1.
+example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
+`h5_write(5, file, "x")` will create a 1D array of length 1.
 
 ## Writing Lists
 
@@ -104,14 +106,30 @@ stored in a human-readable and unambiguous way. This conversion applies
 to standalone `POSIXt` objects, as well as to columns within a
 `data.frame`.
 
-## Data Type Selection (`dtype`)
+## Data Type Selection (`as` Argument)
 
-The `dtype` argument controls the on-disk storage type and only applies
-to `integer`, `numeric`, and `logical` vectors. For all other data types
+The `as` argument controls the on-disk storage type and only applies to
+`integer`, `numeric`, and `logical` vectors. For all other data types
 (`character`, `complex`, `factor`, `raw`), the storage type is
 determined automatically.
 
-If `dtype` is set to `"auto"` (the default), `h5lite` will automatically
+The `as` argument can be one of the following:
+
+- **Global:** A single string, e.g., `"auto"` (default), `"float32"`,
+  `"int64"`.
+
+- **Specific:** A named vector mapping names or type classes to HDF5
+  types. Matches `h5_read` behavior:
+
+  - `"col_name" = "type"`: Specific dataset/column.
+
+  - `"@attr_name" = "type"`: Specific attached attribute.
+
+  - `".int" = "type"`: Class-based (e.g., .int, .double, .logical).
+
+  - `"." = "type"`: Global default fallback.
+
+If `as` is set to `"auto"` (the default), `h5lite` will automatically
 select the most space-efficient HDF5 type based on the following rules:
 
 1.  If the data contains fractional values (e.g., `1.5`), it is stored
@@ -131,7 +149,7 @@ select the most space-efficient HDF5 type based on the following rules:
 To override this automatic behavior, you can specify an exact type. The
 full list of supported values is:
 
-- `"auto"`
+- `"auto"`, `"skip"`
 
 - `"float16"`, `"float32"`, `"float64"`
 
@@ -139,70 +157,46 @@ full list of supported values is:
 
 - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
-## Attribute Round-tripping
-
-To properly round-trip an R object, it is helpful to set `attrs = TRUE`.
-This preserves important R metadata—such as the `names` of a named
-vector, `row.names` of a `data.frame`, or the `class` of an object—as
-HDF5 attributes.
-
-**Limitation**: HDF5 has no direct analog for R's `dimnames`. Attempting
-to write an object that has `dimnames` (e.g., a named matrix) with
-`attrs = TRUE` will result in an error. You must either remove the
-`dimnames` or set `attrs = FALSE`.
-
 ## See also
 
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
-[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md),
-[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md),
-[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md),
-[`vignette("data-organization")`](https://cmmr.github.io/h5lite/articles/data-organization.md),
-[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
 
-# Write a simple vector (dtype is auto-detected as uint8)
-h5_write(file, "vec1", 1:20)
-h5_typeof(file, "vec1") # "uint8"
-#> [1] "uint8"
+# 1. Writing Basic Datasets
+h5_write(1:10, file, "data/integers")
+h5_write(rnorm(10), file, "data/floats")
+h5_write(letters[1:5], file, "data/chars")
 
-# Write a matrix, letting h5_write determine dimensions
-mat <- matrix(rnorm(12), nrow = 4, ncol = 3)
-h5_write(file, "group/mat", mat)
-h5_dim(file, "group/mat") # c(4, 3)
-#> [1] 4 3
+# 2. Writing Attributes
+# Write an object first
+h5_write(1:10, file, "data/vector")
+# Attach an attribute to it using the 'attr' parameter
+h5_write("My Description", file, "data/vector", attr = "description")
+h5_write(100, file, "data/vector", attr = "scale_factor")
 
-# Overwrite the first vector, forcing a 32-bit integer type
-h5_write(file, "vec1", 101:120, dtype = "int32")
-h5_typeof(file, "vec1") # "int32"
-#> [1] "int32"
-
-# Write a scalar value
-h5_write(file, "scalar", I(3.14))
-
-# Write a named vector and preserve its names by setting attrs = TRUE
-named_vec <- c(a = 1, b = 2)
-h5_write(file, "named_vector", named_vec, attrs = TRUE)
-
-# Write a nested list, which creates groups and datasets
+# 3. Writing Complex Structures (Lists/Groups)
 my_list <- list(
-  config = list(version = 1.2, user = "test"),
-  data = matrix(1:4, 2)
+  meta = list(id = 1, name = "Experiment A"),
+  results = matrix(runif(9), 3, 3),
+  valid = TRUE
 )
-attr(my_list, "info") <- "Session data"
-h5_write(file, "session_data", my_list)
+h5_write(my_list, file, "experiment_1")
 
-h5_ls(file, recursive = TRUE)
-#>  [1] "vec1"                        "scalar"                     
-#>  [3] "named_vector"                "group"                      
-#>  [5] "group/mat"                   "session_data"               
-#>  [7] "session_data/config"         "session_data/config/version"
-#>  [9] "session_data/config/user"    "session_data/data"          
+# 4. Writing Data Frames (Compound Datasets)
+df <- data.frame(
+  id = 1:5,
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  grade = factor(c("A", "A", "B", "C", "D"))
+)
+h5_write(df, file, "records/scores")
+
+# 5. Controlling Data Types (Compression)
+# Store integers as 8-bit unsigned
+h5_write(1:5, file, "compressed/small_ints", as = "uint8")
 
 unlink(file)
 ```

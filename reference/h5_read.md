@@ -1,126 +1,136 @@
-# Read an HDF5 Object
+# Read an HDF5 Object or Attribute
 
-Reads a dataset or group from an HDF5 file into an R object.
+Reads a dataset, a group, or a specific attribute from an HDF5 file into
+an R object.
 
 ## Usage
 
 ``` r
-h5_read(file, name, attrs = FALSE)
+h5_read(file, name = "/", attr = NULL, as = "auto")
 ```
 
 ## Arguments
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
-  Name of the dataset or group to read (e.g., `"/data/matrix"`).
+  The full path of the dataset or group to read (e.g.,
+  `"/data/matrix"`).
 
-- attrs:
+- attr:
 
-  Controls which HDF5 attributes are read and attached to the R object.
-  Can be `FALSE` (the default), `TRUE` (all attributes), a character
-  vector of attribute names to include (e.g., `c("info", "version")`),
-  or a character vector of names to exclude, prefixed with `-` (e.g.,
-  `c("-class")`). Non-existent attributes are silently skipped.
+  The name of an attribute to read.
+
+  - If `NULL` (default), the function reads the object specified by
+    `name` (and attaches its attributes to the result).
+
+  - If provided (string), the function reads *only* the specified
+    attribute from `name`.
+
+- as:
+
+  The target R data type.
+
+  - **Global:** `"auto"` (default), `"integer"`, `"double"`,
+    `"logical"`, `"bit64"`, `"null"`.
+
+  - **Specific:** A named vector mapping names or type classes to R
+    types (see Section "Type Conversion").
 
 ## Value
 
-An R object corresponding to the HDF5 object. This can be a `numeric`,
-`character`, `complex`, `factor`, `raw`, `data.frame`, a nested `list`,
-or `NULL` if the object has a null dataspace.
+An R object corresponding to the HDF5 object or attribute. Returns
+`NULL` if the object is skipped via `as = "null"`.
 
-## Reading Datasets
+## Note
 
-When `name` points to a dataset, `h5_read` converts it to the
-corresponding R object:
+The `@` prefix is **only** used to configure attached attributes when
+reading a dataset (`attr = NULL`). If you are reading a specific
+attribute directly (e.g., `h5_read(..., attr = "id")`), do **not** use
+the `@` prefix in the `as` argument.
 
-- **Numeric** datasets are read as `numeric` (double) to prevent
-  overflow.
+## Type Conversion (`as`)
 
-- **String** datasets are read as `character`.
+You can control how HDF5 data is converted to R types using the `as`
+argument.
 
-- **Complex** datasets are read as `complex`.
+**1. Mapping by Name:**
 
-- **Enum** datasets are read as `factor`.
+- `as = c("data_col" = "integer")`: Reads the dataset/column named
+  "data_col" as an integer.
 
-- **1-byte Opaque** datasets are read as `raw`.
+- `as = c("@validated" = "logical")`: When reading a dataset, this
+  forces the attached attribute "validated" to be read as logical.
 
-- **Compound** datasets are read as `data.frame`.
+**2. Mapping by HDF5 Type Class:** You can target specific HDF5 data
+types using keys prefixed with a dot (`.`). Supported classes include:
 
-Dimensions are preserved and transposed to match R's column-major order.
+- **Integer:** `.int`, `.int8`, `.int16`, `.int32`, `.int64`
 
-## Reading Groups
+- **Unsigned:** `.uint`, `.uint8`, `.uint16`, `.uint32`, `.uint64`
 
-If `name` points to a group, `h5_read` will read it recursively,
-creating a corresponding nested R `list`. This makes it easy to read
-complex, structured data in a single command.
+- **Floating Point:** `.float`, `.float16`, `.float32`, `.float64`
 
-- HDF5 **groups** are read as R `list`s.
+Example: `as = c(.uint8 = "logical", .int = "bit64")`
 
-- **Datasets** within the group are read into R objects as described
-  above.
+**3. Precedence & Attribute Config:**
 
-- HDF5 **attributes** on the group are attached as R attributes to the
-  `list`.
+- **Attributes vs Datasets:** Attribute type mappings take precedence
+  over dataset mappings. If you specify
+  `as = c(.uint = "logical", "@.uint" = "integer")`, unsigned integer
+  datasets will be read as `logical`, but unsigned integer *attributes*
+  will be read as `integer`.
 
-- The elements in the returned list are **sorted alphabetically** by
-  name.
+- **Specific vs Generic:** Specific keys (e.g., `.uint32`) take
+  precedence over generic keys (e.g., `.uint`), which take precedence
+  over the global default (`.`).
 
 ## See also
 
-[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
-[`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md),
-[`vignette("data-organization")`](https://cmmr.github.io/h5lite/articles/data-organization.md)
-for reading lists,
-[`vignette("attributes-in-depth")`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
-for the `attrs` argument.
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
 
 ## Examples
 
 ``` r
 file <- tempfile(fileext = ".h5")
 
-# --- Reading Datasets ---
-h5_write(file, "my_matrix", matrix(1:4, 2))
-h5_write(file, "my_factor", factor(c("a", "b")))
+# --- Write Data ---
+h5_write(c(10L, 20L), file, "ints")
+h5_write(I(TRUE),     file, "ints", attr = "ready")
+h5_write(c(10.5, 18), file, "floats")
+h5_write(I("meters"), file, "floats", attr = "unit")
 
-mat <- h5_read(file, "my_matrix")
-fac <- h5_read(file, "my_factor")
+# --- Read Data ---
+# Read dataset
+x <- h5_read(file, "ints")
+print(x)
+#> [1] 10 20
+#> attr(,"ready")
+#> [1] 1
 
-# --- Reading Groups ---
-h5_write(file, "/config/version", 1.2)
-h5_write(file, "/config/user", "test")
-h5_write_attr(file, "/config", "info", "settings")
+# Read dataset with attributes
+y <- h5_read(file, "floats")
+print(attr(y, "unit"))
+#> [1] "meters"
 
-# Read the 'config' group into a list
-config_list <- h5_read(file, "config")
-str(config_list)
-#> List of 2
-#>  $ user   : chr "test"
-#>  $ version: num 1.2
+# Read a specific attribute directly
+unit <- h5_read(file, "floats", attr = "unit")
+print(unit)
+#> [1] "meters"
 
-# Read the entire file from the root
-all_content <- h5_read(file, "/")
-str(all_content)
-#> List of 3
-#>  $ config   :List of 2
-#>   ..$ user   : chr "test"
-#>   ..$ version: num 1.2
-#>  $ my_factor: Factor w/ 2 levels "a","b": 1 2
-#>  $ my_matrix: num [1:2, 1:2] 1 2 3 4
+# --- Type Conversion Examples ---
 
-# --- Round-tripping with Attributes ---
-named_vec <- c(a = 1, b = 2)
-h5_write(file, "named_vec", named_vec, attrs = TRUE)
+# Force integer dataset to be read as numeric (double)
+x_dbl <- h5_read(file, "ints", as = "double")
+class(x_dbl)
+#> [1] "numeric"
 
-# Read back with attrs = TRUE to restore names
-vec_rt <- h5_read(file, "named_vec", attrs = TRUE)
-all.equal(named_vec, vec_rt)
-#> [1] TRUE
+# Force attached attribute to be read as logical
+# Note the "@" prefix to target the attribute
+# h5_read(file, "ints", as = c("@ready" = "logical"))
 
 unlink(file)
 ```

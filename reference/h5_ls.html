@@ -15,18 +15,7 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/h5lite.html">Get started</a></li>
-<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
-    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
-    <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
-  </ul></li>
+      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -48,7 +37,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, name <span class="op">=</span> <span class="st">"/"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, full.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, name <span class="op">=</span> <span class="st">"/"</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span>, full.names <span class="op">=</span> <span class="cn">FALSE</span>, scales <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -56,7 +45,7 @@
 
 
 <dl><dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>
-<dd><p>Path to the HDF5 file.</p></dd>
+<dd><p>The path to the HDF5 file.</p></dd>
 
 
 <dt id="arg-name">name<a class="anchor" aria-label="anchor" href="#arg-name"></a></dt>
@@ -72,6 +61,11 @@ under <code>name</code>. If <code>FALSE</code>, lists only the immediate childre
 <dd><p>If <code>TRUE</code>, the full paths from the file's root are
 returned. If <code>FALSE</code> (the default), names are relative to <code>name</code>.</p></dd>
 
+
+<dt id="arg-scales">scales<a class="anchor" aria-label="anchor" href="#arg-scales"></a></dt>
+<dd><p>If <code>TRUE</code>, also returns datasets that are dimensions scales for
+other datasets.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -81,24 +75,26 @@ the paths are relative to that group (unless <code>full.names = TRUE</code>).</p
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="h5_ls_attr.html">h5_ls_attr()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="h5_attr_names.html">h5_attr_names()</a></code>, <code><a href="h5_str.html">h5_str()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"foo/bar"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="va">file</span>, <span class="st">"foo/data"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Create some nested objects</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"g1/d1"</span>, <span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"g1/g2/d2"</span>, <span class="fl">2</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># List everything recursively</span></span></span>
+<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "foo"      "foo/bar"  "foo/data"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># List recursively from the root (default)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span><span class="op">)</span> <span class="co"># c("g1", "g1/d1", "g1/g2", "g1/g2/d2")</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "g1"       "g1/d1"    "g1/g2"    "g1/g2/d2"</span>
+<span class="r-in"><span><span class="co"># List only top-level objects</span></span></span>
+<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "foo"</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># List recursively from a subgroup</span></span></span>
-<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, name <span class="op">=</span> <span class="st">"g1"</span><span class="op">)</span> <span class="co"># c("d1", "g2", "g2/d2")</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d1"    "g2"    "g2/d2"</span>
+<span class="r-in"><span><span class="co"># List relative to a sub-group</span></span></span>
+<span class="r-in"><span><span class="fu">h5_ls</span><span class="op">(</span><span class="va">file</span>, <span class="st">"foo"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "bar"  "data"</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

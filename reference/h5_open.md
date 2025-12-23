@@ -28,16 +28,18 @@ multiple operations on the same file.
 
 For example, instead of writing:
 
-    h5_write(file, "dset1", 1:10)
-    h5_write(file, "dset2", 2:20)
+    h5_write(1:10, file, "dset1")
+    h5_write(2:20, file, "dset2")
     h5_ls(file)
 
-You can create a handle and use its methods:
+You can create a handle and use its methods. Note that the `file`
+argument is omitted from the method calls:
 
     h5 <- h5_open("my_file.h5")
-    h5$write("dset1", 1:10)
-    h5$write("dset2", 2:20)
+    h5$write(1:10, "dset1")
+    h5$write(2:20, "dset2")
     h5$ls()
+    h5$close()
 
 ## Pass-by-Reference Behavior
 
@@ -53,22 +55,19 @@ The `h5` object provides several ways to interact with the HDF5 file:
 ### Standard `h5lite` Functions as Methods
 
 Most `h5lite` functions (e.g., `h5_read`, `h5_write`, `h5_ls`) are
-available as methods on the `h5` object, without the `h5_` prefix. The
-`file` argument is automatically supplied.
+available as methods on the `h5` object, without the `h5_` prefix.
 
-For example, `h5$write("dset", data)` is equivalent to
-`h5_write(file, "dset", data)`.
+For example, `h5$write(data, "dset")` is equivalent to
+`h5_write(data, file, "dset")`.
 
-The available methods are: `read`, `read_attr`, `write`, `write_attr`,
-`class`, `class_attr`, `dim`, `dim_attr`, `exists`, `exists_attr`,
-`is_dataset`, `is_group`, `ls`, `ls_attr`, `str`, `typeof`,
-`typeof_attr`, `create_file`, `create_group`, `delete`, `delete_attr`,
-`move`.
+The available methods are: `read`, `write`, `class`, `dim`, `exists`,
+`is_dataset`, `is_group`, `ls`, `names`, `str`, `typeof`,
+`create_group`, `attr_names`, `delete`, `move`.
 
 ### Navigation (`$cd()`, `$pwd()`)
 
-The handle maintains an internal working directory (`_wd`) to simplify
-path management.
+The handle maintains an internal working directory to simplify path
+management.
 
 - `h5$cd(group)`: Changes the handle's internal working directory. This
   is a stateful, pass-by-reference operation. It understands absolute
@@ -81,22 +80,6 @@ When you call a method like `h5$read("dset")`, the handle automatically
 prepends the current working directory to any relative path. If you
 provide an absolute path (e.g., `h5$read("/path/to/dset")`), the working
 directory is ignored.
-
-### Subsetting with `[[` and `[[<-`
-
-The `h5` handle also supports `[[` for reading and writing, providing a
-convenient, list-like syntax.
-
-- **Reading Datasets/Groups:** `h5[["my_dataset"]]` is a shortcut for
-  `h5$read("my_dataset")`.
-
-- **Writing Datasets/Groups:** `h5[["my_dataset"]] <- value` is a
-  shortcut for `h5$write("my_dataset", value)`.
-
-- **Accessing Attributes:** You can access attributes by separating the
-  object name and attribute name with an `@` symbol. For example: -
-  `h5[["my_dataset@my_attribute"]]` reads an attribute. -
-  `h5[["my_dataset@my_attribute"]] <- "new value"` writes an attribute.
 
 ### Closing the Handle (`$close()`)
 
@@ -112,46 +95,31 @@ subsequent method call (e.g., `h5$ls()`) will throw an error.
 
 ``` r
 file <- tempfile(fileext = ".h5")
+
+# Open the handle
 h5 <- h5_open(file)
 
-h5$write("a", 1:10)
-h5$write("b", c("x", "y"))
+# Write data (note: 'data' is the first argument, 'file' is implicit)
+h5$write(1:5, "vector")
+h5$write(matrix(1:9, 3, 3), "matrix")
+
+# Create a group and navigate to it
+h5$create_group("simulations")
+h5$cd("simulations")
+print(h5$pwd()) # "/simulations"
+#> [1] "/simulations"
+
+# Write data relative to the current working directory
+h5$write(rnorm(10), "run1") # Writes to /simulations/run1
+
+# Read data
+dat <- h5$read("run1")
+
+# List contents of current WD
 h5$ls()
-#> [1] "a" "b"
+#> [1] "run1"
 
-# --- Subsetting for Read/Write ---
-h5[["c"]] <- matrix(1:4, 2)
-h5[["c@units"]] <- "m/s"
-print(h5[["c"]])
-#>      [,1] [,2]
-#> [1,]    1    3
-#> [2,]    2    4
-print(h5[["c@units"]])
-#> [1] "m/s"
-
-# --- Navigation ---
-h5$cd("/g1/g2")
-h5$pwd() # "/g1/g2"
-#> [1] "/g1/g2"
-h5$write("d1", 1:5) # Writes to /g1/g2/d1
-h5$cd("..")
-h5$ls() # Lists 'g2'
-#> [1] "g2"    "g2/d1"
-
-# Write and read using subsetting
-h5[["c"]] <- matrix(1:4, 2)
-h5[["c@units"]] <- "m/s"
-print(h5[["c"]])
-#>      [,1] [,2]
-#> [1,]    1    3
-#> [2,]    2    4
-print(h5[["c@units"]])
-#> [1] "m/s"
-
-
-# Invalidate the handle
+# Close the handle
 h5$close()
-# try(h5$ls()) # This would now throw an error
-
 unlink(file)
 ```

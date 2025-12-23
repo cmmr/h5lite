@@ -5,18 +5,24 @@ Checks if the object at a given path is a dataset.
 ## Usage
 
 ``` r
-h5_is_dataset(file, name)
+h5_is_dataset(file, name, attr = NULL)
 ```
 
 ## Arguments
 
 - file:
 
-  Path to the HDF5 file.
+  The path to the HDF5 file.
 
 - name:
 
   The full path of the object to check.
+
+- attr:
+
+  The name of an attribute. If provided, the function returns `TRUE` if
+  the attribute exists, as all attributes are considered datasets in
+  HDF5 context. (Default: `NULL`)
 
 ## Value
 
@@ -32,15 +38,8 @@ otherwise (if it is a group, or does not exist).
 
 ``` r
 file <- tempfile(fileext = ".h5")
-h5_create_group(file, "my_group")
-h5_write(file, "my_dataset", 1)
-
-h5_is_dataset(file, "my_dataset") # TRUE
+h5_write(1, file, "dset")
+h5_is_dataset(file, "dset") # TRUE
 #> [1] TRUE
-h5_is_dataset(file, "my_group") # FALSE
-#> [1] FALSE
-h5_is_dataset(file, "nonexistent") # FALSE
-#> [1] FALSE
-
 unlink(file)
 ```
