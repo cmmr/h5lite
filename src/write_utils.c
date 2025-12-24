@@ -221,11 +221,12 @@ hid_t create_r_memory_type(SEXP data) {
     case LGLSXP:  return H5Tcopy(H5T_NATIVE_INT);
     case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE);
     case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
-    case STRSXP:
+    case STRSXP: {
       hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
       H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
       return vl_string_mem_type;
+    }
   }
   
   return -1; // # nocov
@@ -261,11 +262,12 @@ hid_t create_h5_file_type(SEXP data, const char *dtype) {
   switch (TYPEOF(data)) {
     case CPLXSXP: return H5Tcomplex_create(H5T_IEEE_F64LE);
     case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
-    case STRSXP:
+    case STRSXP: {
       hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
       H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
       H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
       return vl_string_mem_type;
+    }
   }
   
   /* integer64 class from bit64 package */
