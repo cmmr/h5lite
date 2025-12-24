@@ -261,7 +261,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
     }
   }
 
-  if (TYPEOF(errmsg) == CHARSXP) error(CHAR(errmsg));
+  if (TYPEOF(errmsg) == CHARSXP) error("%s", CHAR(errmsg));
   
   return R_NilValue;
 }
@@ -303,7 +303,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   H5Oclose(obj_id);
   H5Fclose(file_id);
 
-  if (TYPEOF(errmsg) == CHARSXP) error(CHAR(errmsg));
+  if (TYPEOF(errmsg) == CHARSXP) error("%s", CHAR(errmsg));
 
   return R_NilValue;
 }
