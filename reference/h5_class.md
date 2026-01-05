@@ -28,9 +28,10 @@ h5_class(file, name, attr = NULL)
 
 ## Value
 
-A character string representing the R class (e.g., `"numeric"`,
-`"complex"`, `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
-Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
+A character string representing the R class (e.g., `"integer"`,
+`"numeric"`, `"complex"`, `"character"`, `"factor"`, `"raw"`, `"list"`,
+`"NULL"`). Returns `NA_character_` for HDF5 types that `h5lite` cannot
+read.
 
 ## Details
 
@@ -39,7 +40,9 @@ metadata.
 
 - **Groups** are reported as `"list"`.
 
-- **Integer/Float** datasets/attributes are reported as `"numeric"`.
+- **Integer** datasets/attributes are reported as `"integer"`.
+
+- **Floating Point** datasets/attributes are reported as `"numeric"`.
 
 - **String** datasets/attributes are reported as `"character"`.
 
@@ -65,6 +68,6 @@ metadata.
 file <- tempfile(fileext = ".h5")
 h5_write(1:10, file, "dset")
 h5_class(file, "dset") # "numeric"
-#> [1] "numeric"
+#> [1] "integer"
 unlink(file)
 ```

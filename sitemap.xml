@@ -4,8 +4,6 @@
 <url><loc>https://cmmr.github.io/h5lite/LICENSE.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/authors.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/index.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/get_as_mapping.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/get_attribute_map.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_attr_names.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_class.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_create_file.html</loc></url>
@@ -26,10 +24,5 @@
 <url><loc>https://cmmr.github.io/h5lite/reference/h5_write.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/h5lite-package.html</loc></url>
 <url><loc>https://cmmr.github.io/h5lite/reference/index.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/resolve_h5_type.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/validate_strings.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/write_attributes.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/write_data.html</loc></url>
-<url><loc>https://cmmr.github.io/h5lite/reference/write_group.html</loc></url>
 </urlset>
 

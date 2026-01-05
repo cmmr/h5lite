@@ -41,8 +41,9 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
   The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`,
   `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The
-  default, `"auto"`, selects the most space-efficient type for the data.
-  See details below.
+  default, `"auto"`, selects `"int32"` for integers without
+  `NA`s,`"uint8"` for logicals without `NA`s, and `"float64"` for
+  everything else. See details below.
 
 - compress:
 
@@ -89,7 +90,8 @@ This is a dataset with a null dataspace, which contains no data.
 
 `data.frame` objects are written as HDF5 **compound datasets**. This is
 a native HDF5 table-like structure that is highly efficient and
-portable.
+portable. If the data.frame has row names, they will be written as an
+HDF5 dimension scale at **\_rownames**.
 
 ## Writing Complex Numbers
 
@@ -106,17 +108,29 @@ stored in a human-readable and unambiguous way. This conversion applies
 to standalone `POSIXt` objects, as well as to columns within a
 `data.frame`.
 
+## Dimension Scales
+
+`h5lite` automatically writes `names`, `row.names`, and `dimnames` as
+HDF5 dimension scales. Named vectors will generate an `<name>_names`
+dataset. A data.frame with row names will generate an `<name>_rownames`
+dataset (column names are saved internally in the original dataset).
+Matrices will generate `<name>_rownames` and `<name>_colnames` datasets.
+Arrays will generate `<name>_dimscale_1`, `<name>_dimscale_2`, etc.
+Special HDF5 metadata attributes link the dimension scales to the
+dataset. The dimension scales can be relocated with
+[`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md)
+without breaking the link.
+
 ## Data Type Selection (`as` Argument)
 
 The `as` argument controls the on-disk storage type and only applies to
-`integer`, `numeric`, and `logical` vectors. For all other data types
-(`character`, `complex`, `factor`, `raw`), the storage type is
-determined automatically.
+`logical` and `numeric` (`integer` / `double`) vectors. For all other
+data types (`character`, `complex`, `factor`, `raw`), the storage type
+is determined automatically.
 
 The `as` argument can be one of the following:
 
-- **Global:** A single string, e.g., `"auto"` (default), `"float32"`,
-  `"int64"`.
+- **Global:** A single string, e.g., `"auto"`, `"float32"`, `"int64"`.
 
 - **Specific:** A named vector mapping names or type classes to HDF5
   types. Matches `h5_read` behavior:
@@ -130,21 +144,10 @@ The `as` argument can be one of the following:
   - `"." = "type"`: Global default fallback.
 
 If `as` is set to `"auto"` (the default), `h5lite` will automatically
-select the most space-efficient HDF5 type based on the following rules:
-
-1.  If the data contains fractional values (e.g., `1.5`), it is stored
-    as `float64`.
-
-2.  If the data contains `NA`, `NaN`, or `Inf`, it is stored using the
-    smallest floating-point type (`float16`, `float32`, or `float64`)
-    that can precisely represent all integer values in the vector.
-
-3.  If the data contains only finite integers (this includes `logical`
-    vectors, where `FALSE` is 0 and `TRUE` is 1), `h5lite` selects the
-    smallest possible integer type (e.g., `uint8`, `int16`).
-
-4.  If integer values exceed R's safe integer range (`+/- 2^53`), they
-    are automatically stored as `float64` to preserve precision.
+select `float64` for double vectors, `int32` for integer vectors, and
+`uint8` for logical vectors. If an integer or logical vector contains
+`NA`, it is stored using `float64` to enable encoding of `NA` as a
+sentinel value.
 
 To override this automatic behavior, you can specify an exact type. The
 full list of supported values is:

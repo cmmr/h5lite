@@ -70,8 +70,9 @@ and nested <code>list</code>s.</p></dd>
 <dt id="arg-as">as<a class="anchor" aria-label="anchor" href="#arg-as"></a></dt>
 <dd><p>The target HDF5 data type. Can be one of <code>"auto"</code>, <code>"float16"</code>,
 <code>"float32"</code>, <code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code>, <code>"uint8"</code>,
-<code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code>, or <code>"skip"</code>. The default, <code>"auto"</code>, selects
-the most space-efficient type for the data. See details below.</p></dd>
+<code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code>, or <code>"skip"</code>. The default, <code>"auto"</code>,
+selects <code>"int32"</code> for integers without <code>NA</code>s,<code>"uint8"</code> for logicals
+without <code>NA</code>s, and <code>"float64"</code> for everything else. See details below.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
@@ -119,7 +120,9 @@ a dataset with a null dataspace, which contains no data.</p>
 
 
 <p><code>data.frame</code> objects are written as HDF5 <strong>compound datasets</strong>. This is a
-native HDF5 table-like structure that is highly efficient and portable.</p>
+native HDF5 table-like structure that is highly efficient and portable. If the
+data.frame has row names, they will be written as an HDF5 dimension scale at
+<strong><name>_rownames</name></strong>.</p>
     </div>
     <div class="section level2">
     <h2 id="writing-complex-numbers">Writing Complex Numbers<a class="anchor" aria-label="anchor" href="#writing-complex-numbers"></a></h2>
@@ -140,14 +143,28 @@ stored in a human-readable and unambiguous way. This conversion applies to
 standalone <code>POSIXt</code> objects, as well as to columns within a <code>data.frame</code>.</p>
     </div>
     <div class="section level2">
+    <h2 id="dimension-scales">Dimension Scales<a class="anchor" aria-label="anchor" href="#dimension-scales"></a></h2>
+
+
+<p><code>h5lite</code> automatically writes <code>names</code>, <code>row.names</code>, and <code>dimnames</code> as
+HDF5 dimension scales. Named vectors will generate an <code>&lt;name&gt;_names</code>
+dataset. A data.frame with row names will generate an <code>&lt;name&gt;_rownames</code>
+dataset (column names are saved internally in the original dataset).
+Matrices will generate <code>&lt;name&gt;_rownames</code> and <code>&lt;name&gt;_colnames</code> datasets.
+Arrays will generate <code>&lt;name&gt;_dimscale_1</code>, <code>&lt;name&gt;_dimscale_2</code>, etc.
+Special HDF5 metadata attributes link the dimension scales to the dataset.
+The dimension scales can be relocated with <code><a href="h5_move.html">h5_move()</a></code> without breaking the
+link.</p>
+    </div>
+    <div class="section level2">
     <h2 id="data-type-selection-as-argument-">Data Type Selection (<code>as</code> Argument)<a class="anchor" aria-label="anchor" href="#data-type-selection-as-argument-"></a></h2>
 
 
 <p>The <code>as</code> argument controls the on-disk storage type and only applies to
-<code>integer</code>, <code>numeric</code>, and <code>logical</code> vectors. For all other data types
-(<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>), the storage type is determined
-automatically.</p>
-<p>The <code>as</code> argument can be one of the following:</p><ul><li><p><strong>Global:</strong> A single string, e.g., <code>"auto"</code> (default), <code>"float32"</code>, <code>"int64"</code>.</p></li>
+<code>logical</code> and <code>numeric</code> (<code>integer</code> / <code>double</code>) vectors. For all other data
+types (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>), the storage type is
+determined automatically.</p>
+<p>The <code>as</code> argument can be one of the following:</p><ul><li><p><strong>Global:</strong> A single string, e.g., <code>"auto"</code>, <code>"float32"</code>, <code>"int64"</code>.</p></li>
 <li><p><strong>Specific:</strong> A named vector mapping names or type classes to HDF5 types.
 Matches <code>h5_read</code> behavior:</p><ul><li><p><code>"col_name" = "type"</code>: Specific dataset/column.</p></li>
 <li><p><code>"@attr_name" = "type"</code>: Specific attached attribute.</p></li>
@@ -155,17 +172,10 @@ Matches <code>h5_read</code> behavior:</p><ul><li><p><code>"col_name" = "type"</
 <li><p><code>"." = "type"</code>: Global default fallback.</p></li>
 </ul></li>
 </ul><p>If <code>as</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
-select the most space-efficient HDF5 type based on the following rules:</p><ol><li><p>If the data contains fractional values (e.g., <code>1.5</code>), it is stored as
-<code>float64</code>.</p></li>
-<li><p>If the data contains <code>NA</code>, <code>NaN</code>, or <code>Inf</code>, it is stored using the
-smallest floating-point type (<code>float16</code>, <code>float32</code>, or <code>float64</code>) that
-can precisely represent all integer values in the vector.</p></li>
-<li><p>If the data contains only finite integers (this includes <code>logical</code>
-vectors, where <code>FALSE</code> is 0 and <code>TRUE</code> is 1), <code>h5lite</code> selects the
-smallest possible integer type (e.g., <code>uint8</code>, <code>int16</code>).</p></li>
-<li><p>If integer values exceed R's safe integer range (<code>+/- 2^53</code>), they are
-automatically stored as <code>float64</code> to preserve precision.</p></li>
-</ol><p>To override this automatic behavior, you can specify an exact type. The full
+select <code>float64</code> for double vectors, <code>int32</code> for integer vectors, and <code>uint8</code>
+for logical vectors. If an integer or logical vector contains <code>NA</code>, it is
+stored using <code>float64</code> to enable encoding of <code>NA</code> as a sentinel value.</p>
+<p>To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"skip"</code></p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>

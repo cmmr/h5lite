@@ -58,8 +58,8 @@ h5_str(file)
 #> /
 #> └── group
 #>     ├── @info <string × 1>
-#>     ├── x <uint8 × 10>
-#>     └── y <uint8 × 3 × 3>
+#>     ├── x <int32 × 10>
+#>     └── y <int32 × 3 × 3>
 
 unlink(file)
 ```

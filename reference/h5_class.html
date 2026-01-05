@@ -62,15 +62,16 @@ checks the class of the object itself.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A character string representing the R class (e.g., <code>"numeric"</code>, <code>"complex"</code>,
-<code>"character"</code>, <code>"factor"</code>, <code>"raw"</code>, <code>"list"</code>, <code>"NULL"</code>).
+    <p>A character string representing the R class (e.g., <code>"integer"</code>, <code>"numeric"</code>,
+<code>"complex"</code>, <code>"character"</code>, <code>"factor"</code>, <code>"raw"</code>, <code>"list"</code>, <code>"NULL"</code>).
 Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> cannot read.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function determines the resulting R class by inspecting the storage metadata.</p>
 <ul><li><p><strong>Groups</strong> are reported as <code>"list"</code>.</p></li>
-<li><p><strong>Integer/Float</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
+<li><p><strong>Integer</strong> datasets/attributes are reported as <code>"integer"</code>.</p></li>
+<li><p><strong>Floating Point</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
 <li><p><strong>String</strong> datasets/attributes are reported as <code>"character"</code>.</p></li>
 <li><p><strong>Complex</strong> datasets/attributes are reported as <code>"complex"</code>.</p></li>
 <li><p><strong>Enum</strong> datasets/attributes are reported as <code>"factor"</code>.</p></li>
@@ -88,7 +89,7 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"dset"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"dset"</span><span class="op">)</span> <span class="co"># "numeric"</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "numeric"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "integer"</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
