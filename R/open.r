@@ -158,6 +158,8 @@ check_open <- function(env) {
 }
 
 
+#' @noRd
+#' @keywords internal
 h5_run <- function(env, func) {
   
   check_open(env) # Ensure the handle is not closed
@@ -176,6 +178,8 @@ h5_run <- function(env, func) {
 }
 
 
+#' @noRd
+#' @keywords internal
 normalize_path <- function(wd, path) {
   # An absolute path from the user overrides the working directory
   if (startsWith(path, "/")) {

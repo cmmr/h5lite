@@ -85,42 +85,59 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
  * Checks if the SEXP has `names` or `dimnames` and creates/attaches HDF5 Dimension Scales.
  */
 void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data) {
-    
+  
+  /* Handle matrices and arrays (Detected by presence of 'dim' attribute) */
+  if (getAttrib(data, R_DimSymbol) != R_NilValue) {
     SEXP dimnames = getAttrib(data, R_DimNamesSymbol);
-    SEXP names    = getAttrib(data, R_NamesSymbol);
     
-    int rank = 0;
-    SEXP dims = getAttrib(data, R_DimSymbol);
-    if (dims != R_NilValue) {
-        rank = (int)XLENGTH(dims);
-    } else {
-        /* Atomic vector (no dim attribute) is treated as 1D */
-        rank = 1;
-    }
-    
-    if (rank == 0) return; /* Scalar */
-
-    /* Handle 1D 'names' (which is dimnames[[0]] effectively) */
-    if (rank == 1 && names != R_NilValue && TYPEOF(names) == STRSXP && XLENGTH(names) > 0) {
-        char scale_name[1024];
-        snprintf(scale_name, sizeof(scale_name), ".%s_names", dname);
-        write_single_scale(loc_id, dset_id, scale_name, names, 0);
-    }
-    
-    /* Handle multidimensional 'dimnames' */
-    else if (dimnames != R_NilValue && TYPEOF(dimnames) == VECSXP && XLENGTH(dimnames) == rank) {
-        
-        for (int i = 0; i < rank; i++) {
-            
+    if (dimnames != R_NilValue && TYPEOF(dimnames) == VECSXP) {
+      
+      SEXP dims = getAttrib(data, R_DimSymbol);
+      int rank = (int)XLENGTH(dims);
+      
+      /* Rank 2 is treated as a Matrix */
+      if (rank == 2) {
+        if (XLENGTH(dimnames) == 2) {
+          for (int i = 0; i < 2; i++) {
             char scale_name[1024];
-            if (rank > 2)    { snprintf(scale_name, sizeof(scale_name), ".%s_dimnames_%d", dname, i + 1); }
-            else if (i == 0) { snprintf(scale_name, sizeof(scale_name), ".%s_rownames",    dname); }
-            else if (i == 1) { snprintf(scale_name, sizeof(scale_name), ".%s_colnames",    dname); }
-            
             SEXP dlabels = VECTOR_ELT(dimnames, i);
+            
+            /* Skip NULL dimnames (e.g. only colnames set, rownames NULL) */
+            if (dlabels == R_NilValue) continue; 
+            
+            if      (i == 0) { snprintf(scale_name, sizeof(scale_name), "%s_rownames", dname); }
+            else if (i == 1) { snprintf(scale_name, sizeof(scale_name), "%s_colnames", dname); }
+            
             write_single_scale(loc_id, dset_id, scale_name, dlabels, (unsigned)i);
+          }
         }
+      } 
+      /* Rank != 2 is treated as an Array */
+      else {
+        if (XLENGTH(dimnames) == rank) {
+          for (int i = 0; i < rank; i++) {
+            char scale_name[1024];
+            SEXP dlabels = VECTOR_ELT(dimnames, i);
+            
+            if (dlabels == R_NilValue) continue;
+            
+            snprintf(scale_name, sizeof(scale_name), "%s_dimnames_%d", dname, i + 1);
+            write_single_scale(loc_id, dset_id, scale_name, dlabels, (unsigned)i);
+          }
+        }
+      }
     }
+  }
+  
+  else {
+    /* Handle atomic vectors */
+    SEXP names = getAttrib(data, R_NamesSymbol);
+    if (names != R_NilValue && TYPEOF(names) == STRSXP && XLENGTH(names) > 0) {
+      char scale_name[1024];
+      snprintf(scale_name, sizeof(scale_name), "%s_names", dname);
+      write_single_scale(loc_id, dset_id, scale_name, names, 0);
+    }
+  }
 }
 
 

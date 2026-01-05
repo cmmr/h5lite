@@ -13,8 +13,9 @@
 #'   * If provided (string), `data` is written as an attribute named `attr` attached to the object `name`.
 #' @param as The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
 #'   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
-#'   `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The default, `"auto"`, selects
-#'   the most space-efficient type for the data. See details below.
+#'   `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The default, `"auto"`, 
+#'   selects `"int32"` for integers without `NA`s,`"uint8"` for logicals 
+#'   without `NA`s, and `"float64"` for everything else. See details below.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
@@ -44,7 +45,9 @@
 #' 
 #' @section Writing Data Frames:
 #' `data.frame` objects are written as HDF5 **compound datasets**. This is a
-#' native HDF5 table-like structure that is highly efficient and portable.
+#' native HDF5 table-like structure that is highly efficient and portable. If the 
+#' data.frame has row names, they will be written as an HDF5 dimension scale at 
+#' **<name>_rownames**.
 #' 
 #' @section Writing Complex Numbers:
 #' `h5lite` writes R `complex` objects using the native HDF5 `H5T_COMPLEX`
@@ -58,34 +61,38 @@
 #' stored in a human-readable and unambiguous way. This conversion applies to
 #' standalone `POSIXt` objects, as well as to columns within a `data.frame`.
 #' 
+#' @section Dimension Scales:
+#' `h5lite` automatically writes `names`, `row.names`, and `dimnames` as 
+#' HDF5 dimension scales. Named vectors will generate an `<name>_names` 
+#' dataset. A data.frame with row names will generate an `<name>_rownames` 
+#' dataset (column names are saved internally in the original dataset). 
+#' Matrices will generate `<name>_rownames` and `<name>_colnames` datasets. 
+#' Arrays will generate `<name>_dimscale_1`, `<name>_dimscale_2`, etc. 
+#' Special HDF5 metadata attributes link the dimension scales to the dataset. 
+#' The dimension scales can be relocated with `h5_move()` without breaking the 
+#' link.
+#' 
+#' 
 #' @section Data Type Selection (`as` Argument):
 #' The `as` argument controls the on-disk storage type and only applies to
-#' `integer`, `numeric`, and `logical` vectors. For all other data types
-#' (`character`, `complex`, `factor`, `raw`), the storage type is determined
-#' automatically.
+#' `logical` and `numeric` (`integer` / `double`) vectors. For all other data 
+#' types (`character`, `complex`, `factor`, `raw`), the storage type is 
+#' determined automatically.
 #' 
 #' The `as` argument can be one of the following:
-#'   * **Global:** A single string, e.g., `"auto"` (default), `"float32"`, `"int64"`.
+#'   * **Global:** A single string, e.g., `"auto"`, `"float32"`, `"int64"`.
 #'   * **Specific:** A named vector mapping names or type classes to HDF5 types.
 #'     Matches `h5_read` behavior:
 #'     * `"col_name" = "type"`: Specific dataset/column.
-#'     * `"@attr_name" = "type"`: Specific attached attribute.
+#'     * `"@@attr_name" = "type"`: Specific attached attribute.
 #'     * `".int" = "type"`: Class-based (e.g., .int, .double, .logical).
 #'     * `"." = "type"`: Global default fallback.
 #' 
 #' If `as` is set to `"auto"` (the default), `h5lite` will automatically
-#' select the most space-efficient HDF5 type based on the following rules:
-#' 1.  If the data contains fractional values (e.g., `1.5`), it is stored as
-#'     `float64`.
-#' 2.  If the data contains `NA`, `NaN`, or `Inf`, it is stored using the
-#'     smallest floating-point type (`float16`, `float32`, or `float64`) that
-#'     can precisely represent all integer values in the vector.
-#' 3.  If the data contains only finite integers (this includes `logical`
-#'     vectors, where `FALSE` is 0 and `TRUE` is 1), `h5lite` selects the
-#'     smallest possible integer type (e.g., `uint8`, `int16`).
-#' 4.  If integer values exceed R's safe integer range (`+/- 2^53`), they are
-#'     automatically stored as `float64` to preserve precision.
-#'
+#' select `float64` for double vectors, `int32` for integer vectors, and `uint8`
+#' for logical vectors. If an integer or logical vector contains `NA`, it is 
+#' stored using `float64` to enable encoding of `NA` as a sentinel value.
+#' 
 #' To override this automatic behavior, you can specify an exact type. The full
 #' list of supported values is:
 #' - `"auto"`, `"skip"`
@@ -158,6 +165,7 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE
 }
 
 #' Recursively write a list as a group
+#' @noRd
 #' @keywords internal
 write_group <- function(data, file, name, as_map, compress = TRUE, dry = FALSE) {
 
@@ -179,6 +187,7 @@ write_group <- function(data, file, name, as_map, compress = TRUE, dry = FALSE) 
 }
 
 #' Write a single dataset or attribute
+#' @noRd
 #' @keywords internal
 write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = FALSE) {
   
@@ -220,6 +229,7 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
 }
 
 #' Write R attributes to HDF5
+#' @noRd
 #' @keywords internal
 write_attributes <- function(data, file, name, as_map, dry = FALSE) {
 
@@ -241,11 +251,11 @@ write_attributes <- function(data, file, name, as_map, dry = FALSE) {
 # --- Type Resolution Logic ---
 
 #' Resolves the HDF5 type based on the 'as' map and data properties
-#' 
+#' @noRd
+#' @keywords internal
 #' @param data The R object.
 #' @param name The name of the object (column name, dataset name, or attribute name).
 #' @param as_map The processed 'as' argument (named vector).
-#' @keywords internal
 resolve_h5_type <- function(data, name, as_map) {
   
   # Resolve type for *each* column
@@ -315,47 +325,19 @@ resolve_h5_type <- function(data, name, as_map) {
 }
 
 
+#' @noRd
 #' @keywords internal
 select_best_h5_type <- function (data) {
   
+  if (is.double(data))  return ("float64")
+  if (anyNA(data))      return ("float64")
+  if (is.logical(data)) return ("uint8")
+  return ("int32")
   
-  if (is.double(data) || !all(is.finite(data))) {
-    
-    if (length(data) == 0)                 return ("float32")
-    if (any(data %% 1 != 0, na.rm = TRUE)) return ("float64")
-    
-    val_range <- range(c(0, data), na.rm = TRUE, finite = TRUE)
-    min_val   <- val_range[1]
-    max_val   <- val_range[2]
-    
-    if (min_val >= -2^24 && max_val <= 2^24) return ("float32")
-    return ("float64")
-    
-  }
-  
-  else { # Finite integer data
-    
-    if (length(data) == 0) return ("uint8")
-  
-    val_range <- range(c(0L, data), na.rm = TRUE)
-    min_val   <- val_range[1]
-    max_val   <- val_range[2]
-    
-    if (min_val >= 0) {
-      if (max_val <= 2^8-1)  return ("uint8")
-      if (max_val <= 2^16-1) return ("uint16")
-      return ("uint32")
-    }
-    else {
-      if (min_val >= -2^7  && max_val <= 2^7-1)  return ("int8")
-      if (min_val >= -2^15 && max_val <= 2^15-1) return ("int16")
-      return ("int32")
-    }
-    
-  }
 }
 
 
+#' @noRd
 #' @keywords internal
 sanity_check_h5_type <- function (data, h5_type) {
 
@@ -380,6 +362,8 @@ sanity_check_h5_type <- function (data, h5_type) {
   return(h5_type)
 }
 
+
+#' @noRd
 #' @keywords internal
 validate_dims <- function (data) {
   
@@ -397,6 +381,8 @@ validate_dims <- function (data) {
   if (is.null(dim(data))) length(data) else dim(data)
 }
 
+
+#' @noRd
 #' @keywords internal
 is_list_group <- function (data) {
   # A "list group" is a list that is not a data.frame.

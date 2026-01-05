@@ -23,8 +23,9 @@ and nested \code{list}s.}
 
 \item{as}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"float16"},
 \code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
-\code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}. The default, \code{"auto"}, selects
-the most space-efficient type for the data. See details below.}
+\code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}. The default, \code{"auto"},
+selects \code{"int32"} for integers without \code{NA}s,\code{"uint8"} for logicals
+without \code{NA}s, and \code{"float64"} for everything else. See details below.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
@@ -70,7 +71,9 @@ a dataset with a null dataspace, which contains no data.
 \section{Writing Data Frames}{
 
 \code{data.frame} objects are written as HDF5 \strong{compound datasets}. This is a
-native HDF5 table-like structure that is highly efficient and portable.
+native HDF5 table-like structure that is highly efficient and portable. If the
+data.frame has row names, they will be written as an HDF5 dimension scale at
+\strong{\if{html}{\out{<name>}}_rownames}.
 }
 
 \section{Writing Complex Numbers}{
@@ -89,16 +92,29 @@ stored in a human-readable and unambiguous way. This conversion applies to
 standalone \code{POSIXt} objects, as well as to columns within a \code{data.frame}.
 }
 
+\section{Dimension Scales}{
+
+\code{h5lite} automatically writes \code{names}, \code{row.names}, and \code{dimnames} as
+HDF5 dimension scales. Named vectors will generate an \verb{<name>_names}
+dataset. A data.frame with row names will generate an \verb{<name>_rownames}
+dataset (column names are saved internally in the original dataset).
+Matrices will generate \verb{<name>_rownames} and \verb{<name>_colnames} datasets.
+Arrays will generate \verb{<name>_dimscale_1}, \verb{<name>_dimscale_2}, etc.
+Special HDF5 metadata attributes link the dimension scales to the dataset.
+The dimension scales can be relocated with \code{h5_move()} without breaking the
+link.
+}
+
 \section{Data Type Selection (\code{as} Argument)}{
 
 The \code{as} argument controls the on-disk storage type and only applies to
-\code{integer}, \code{numeric}, and \code{logical} vectors. For all other data types
-(\code{character}, \code{complex}, \code{factor}, \code{raw}), the storage type is determined
-automatically.
+\code{logical} and \code{numeric} (\code{integer} / \code{double}) vectors. For all other data
+types (\code{character}, \code{complex}, \code{factor}, \code{raw}), the storage type is
+determined automatically.
 
 The \code{as} argument can be one of the following:
 \itemize{
-\item \strong{Global:} A single string, e.g., \code{"auto"} (default), \code{"float32"}, \code{"int64"}.
+\item \strong{Global:} A single string, e.g., \code{"auto"}, \code{"float32"}, \code{"int64"}.
 \item \strong{Specific:} A named vector mapping names or type classes to HDF5 types.
 Matches \code{h5_read} behavior:
 \itemize{
@@ -110,19 +126,9 @@ Matches \code{h5_read} behavior:
 }
 
 If \code{as} is set to \code{"auto"} (the default), \code{h5lite} will automatically
-select the most space-efficient HDF5 type based on the following rules:
-\enumerate{
-\item If the data contains fractional values (e.g., \code{1.5}), it is stored as
-\code{float64}.
-\item If the data contains \code{NA}, \code{NaN}, or \code{Inf}, it is stored using the
-smallest floating-point type (\code{float16}, \code{float32}, or \code{float64}) that
-can precisely represent all integer values in the vector.
-\item If the data contains only finite integers (this includes \code{logical}
-vectors, where \code{FALSE} is 0 and \code{TRUE} is 1), \code{h5lite} selects the
-smallest possible integer type (e.g., \code{uint8}, \code{int16}).
-\item If integer values exceed R's safe integer range (\verb{+/- 2^53}), they are
-automatically stored as \code{float64} to preserve precision.
-}
+select \code{float64} for double vectors, \code{int32} for integer vectors, and \code{uint8}
+for logical vectors. If an integer or logical vector contains \code{NA}, it is
+stored using \code{float64} to enable encoding of \code{NA} as a sentinel value.
 
 To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:

@@ -15,8 +15,8 @@ h5_class(file, name, attr = NULL)
 checks the class of the object itself.}
 }
 \value{
-A character string representing the R class (e.g., \code{"numeric"}, \code{"complex"},
-\code{"character"}, \code{"factor"}, \code{"raw"}, \code{"list"}, \code{"NULL"}).
+A character string representing the R class (e.g., \code{"integer"}, \code{"numeric"},
+\code{"complex"}, \code{"character"}, \code{"factor"}, \code{"raw"}, \code{"list"}, \code{"NULL"}).
 Returns \code{NA_character_} for HDF5 types that \code{h5lite} cannot read.
 }
 \description{
@@ -28,7 +28,8 @@ This function determines the resulting R class by inspecting the storage metadat
 
 \itemize{
 \item \strong{Groups} are reported as \code{"list"}.
-\item \strong{Integer/Float} datasets/attributes are reported as \code{"numeric"}.
+\item \strong{Integer} datasets/attributes are reported as \code{"integer"}.
+\item \strong{Floating Point} datasets/attributes are reported as \code{"numeric"}.
 \item \strong{String} datasets/attributes are reported as \code{"character"}.
 \item \strong{Complex} datasets/attributes are reported as \code{"complex"}.
 \item \strong{Enum} datasets/attributes are reported as \code{"factor"}.

@@ -8,7 +8,8 @@
 #'
 #' \itemize{
 #'   \item **Groups** are reported as `"list"`.
-#'   \item **Integer/Float** datasets/attributes are reported as `"numeric"`.
+#'   \item **Integer** datasets/attributes are reported as `"integer"`.
+#'   \item **Floating Point** datasets/attributes are reported as `"numeric"`.
 #'   \item **String** datasets/attributes are reported as `"character"`.
 #'   \item **Complex** datasets/attributes are reported as `"complex"`.
 #'   \item **Enum** datasets/attributes are reported as `"factor"`.
@@ -21,8 +22,8 @@
 #' @param name The full path of the object (group or dataset) to check.
 #' @param attr The name of an attribute to check. If `NULL` (default), the function
 #'   checks the class of the object itself.
-#' @return A character string representing the R class (e.g., `"numeric"`, `"complex"`,
-#'   `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
+#' @return A character string representing the R class (e.g., `"integer"`, `"numeric"`, 
+#'   `"complex"`, `"character"`, `"factor"`, `"raw"`, `"list"`, `"NULL"`).
 #'   Returns `NA_character_` for HDF5 types that `h5lite` cannot read.
 #'
 #' @seealso [h5_typeof()], [h5_read()]
@@ -40,9 +41,9 @@ h5_class <- function (file, name, attr = NULL) {
   hdf5_type <- h5_typeof(file, name, attr)
 
   if (!is.character(hdf5_type)) return(NA_character_) # nocov
-  if (startsWith(hdf5_type, "int"))     return("numeric")
+  if (startsWith(hdf5_type, "int"))     return("integer")
+  if (startsWith(hdf5_type, "uint"))    return("integer")
   if (startsWith(hdf5_type, "float"))   return("numeric")
-  if (startsWith(hdf5_type, "uint"))    return("numeric")
   if (identical(hdf5_type, "string"))   return("character")
   if (identical(hdf5_type, "compound")) return("data.frame")
   if (identical(hdf5_type, "enum"))     return("factor")

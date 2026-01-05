@@ -57,17 +57,3 @@ test_that("Precision control (float32)", {
   expect_false(read_val == val)
   expect_equal(read_val, val, tolerance = 1e-7)
 })
-
-test_that("Auto-selection of float size edge cases", {
-  
-  file <- tempfile(fileext = ".h5")
-  on.exit(unlink(file))
-  
-  h5_write(as.double(-2^24), file, 'float32_lo')
-  h5_write(as.double(2^24),  file, 'float32_hi')
-  h5_write(as.double(2^25),  file, 'float64')
-  
-  expect_equal(h5_typeof(file, "float32_lo"), "float32")
-  expect_equal(h5_typeof(file, "float32_lo"), "float32")
-  expect_equal(h5_typeof(file, "float64"),    "float64")
-})

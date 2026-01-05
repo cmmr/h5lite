@@ -21,13 +21,14 @@ assert_scalar_character <- function(...) {
 
 
 #' Validates string inputs
+#' @noRd
 #' @keywords internal
 #' @param file Path to the HDF5 file.
 #' @param name The full path of the object (group or dataset).
 #' @param attr The name of an attribute to check. If provided, the length of the attribute is returned.
 #' @param must_exist Logical. If `TRUE`, the function will stop if the object does not exist.
 #' @return The expanded path to the file.
-validate_strings <- function (file, name, attr = NULL, must_exist = FALSE) {
+validate_strings <- function (file, name = "/", attr = NULL, must_exist = FALSE) {
 
   assert_scalar_character(file, name)
   if (!is.null(attr)) assert_scalar_character(attr)

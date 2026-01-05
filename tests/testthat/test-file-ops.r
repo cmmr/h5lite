@@ -12,9 +12,14 @@ test_that("Group creation", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
-  h5_create_group(file, "foo/bar")
+  expect_null(h5_create_group(file, "foo/bar"))
+  expect_null(h5_create_group(file, "foo/bar"))
   expect_true(h5_is_group(file, "foo"))
   expect_true(h5_is_group(file, "foo/bar"))
+  
+  
+  h5_write(1, file, "a")
+  expect_error(h5_create_group(file, "a"))
 })
 
 test_that("Move and Delete", {

@@ -6,7 +6,7 @@ test_that("Integer scalars and vectors work", {
   vec <- 1:10
   h5_write(vec, file, "vec")
   expect_equal(h5_read(file, "vec"), vec)
-  expect_equal(h5_class(file, "vec"), "numeric") # Stored as integer, read as numeric by default
+  expect_equal(h5_class(file, "vec"), "integer")
   expect_equal(h5_read(file, "vec", as = "integer"), vec)
 
   # 2. Integer Scalar (1D array of length 1)
@@ -18,13 +18,13 @@ test_that("Integer scalars and vectors work", {
   expect_equal(h5_dim(file, "scalar_I"), integer(0)) # Rank 0
   expect_equal(h5_read(file, "scalar_I"), 42L)
 
-  # 4. Integers with NA (Auto-promoted to float to store NaN)
+  # 4. Integers with NA (Auto-promoted to float to store NA)
   vec_na <- c(1L, NA_integer_, 3L)
   h5_write(vec_na, file, "vec_na")
-  expect_true(startsWith(h5_typeof(file, "vec_na"), "float")) # Promoted
+  expect_equal(h5_typeof(file, "vec_na"), "float64")
   read_back <- h5_read(file, "vec_na")
   expect_true(is.double(read_back))
-  expect_true(is.nan(read_back[2]))
+  expect_true(is.na(read_back[2]))
   
   # 5. Named vector
   vec_named <- structure(c(1:5), names = letters[1:5])
@@ -100,34 +100,6 @@ test_that("Specific integer types (int8-int64) can be forced", {
 
   # Can't write -100 to a uint
   expect_error(h5_write(val, file, "u8", as = "uint8"))
-})
-
-test_that("Auto-selection of int size edge cases", {
-  
-  file <- tempfile(fileext = ".h5")
-  on.exit(unlink(file))
-  
-  h5_write(as.integer(c(0, 0)),         file, 'uint8_lo')
-  h5_write(as.integer(c(0, 2^8 - 1)),   file, 'uint8_hi')
-  h5_write(as.integer(c(0, 2^8)),       file, 'uint16_lo')
-  h5_write(as.integer(c(0, 2^16 - 1)),  file, 'uint16_hi')
-  h5_write(as.integer(c(0, 2^16)),      file, 'uint32_lo')
-  h5_write(as.integer(c(-1, -2^7)),     file, 'int8_lo')
-  h5_write(as.integer(c(-1, 2^7 - 1)),  file, 'int8_hi')
-  h5_write(as.integer(c(-1, -2^15)),    file, 'int16_lo')
-  h5_write(as.integer(c(-1, 2^15 - 1)), file, 'int16_hi')
-  h5_write(as.integer(c(-1, 2^15)),     file, 'int32_lo')
-  
-  expect_equal(h5_typeof(file, "uint8_lo"),  "uint8")
-  expect_equal(h5_typeof(file, "uint8_hi"),  "uint8")
-  expect_equal(h5_typeof(file, "uint16_lo"), "uint16")
-  expect_equal(h5_typeof(file, "uint16_hi"), "uint16")
-  expect_equal(h5_typeof(file, "uint32_lo"), "uint32")
-  expect_equal(h5_typeof(file, "int8_lo"),   "int8")
-  expect_equal(h5_typeof(file, "int8_hi"),   "int8")
-  expect_equal(h5_typeof(file, "int16_lo"),  "int16")
-  expect_equal(h5_typeof(file, "int16_hi"),  "int16")
-  expect_equal(h5_typeof(file, "int32_lo"),  "int32")
 })
 
 test_that("Compression", {

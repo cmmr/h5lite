@@ -404,7 +404,7 @@ SEXP write_dataframe(
        * R uses a special "compact" integer form for implicit row names (1:n), which we ignore. */
       if (row_names != R_NilValue && TYPEOF(row_names) == STRSXP) {
           char scale_name[1024];
-          snprintf(scale_name, sizeof(scale_name), ".%s_rownames", obj_name);
+          snprintf(scale_name, sizeof(scale_name), "%s_rownames", obj_name);
           
           /* Use helper to write scale to Dim 0 */
           write_single_scale(loc_id, obj_id, scale_name, row_names, 0);

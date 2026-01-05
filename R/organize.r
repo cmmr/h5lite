@@ -23,6 +23,7 @@ h5_create_group <- function (file, name) {
   invisible(NULL)
 }
 
+
 #' Create an HDF5 File
 #'
 #' Explicitly creates a new, empty HDF5 file.

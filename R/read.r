@@ -121,6 +121,7 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto") {
 
 #' Sanity check the 'as' argument
 #' Ensures all values are valid and that multiple values are named.
+#' @noRd
 #' @keywords internal
 get_as_mapping <- function (as, choices) {
   
@@ -149,6 +150,7 @@ get_as_mapping <- function (as, choices) {
 
 
 #' Prepare the 'as' map for attributes
+#' @noRd
 #' @keywords internal
 get_attribute_map <- function(as_map) {
   

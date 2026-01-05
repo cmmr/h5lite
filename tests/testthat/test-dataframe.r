@@ -61,7 +61,7 @@ test_that("Data frames work (Compound)", {
   
   # Zero columns = error
   no_cols <- mtcars[,integer(0),drop = FALSE]
-  expect_error(h5_write(no_cols, "file", "no_cols"))
+  expect_error(h5_write(no_cols, file, "no_cols"))
 })
 
 test_that("Data frame columns with POSIXt are converted", {
