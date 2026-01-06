@@ -40,9 +40,10 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       mem_member_types[c] = H5Tcopy(file_member_type);
     }
     else if (file_class == H5T_STRING) {
+      H5T_cset_t cset     = H5Tget_cset(file_member_type);
       mem_member_types[c] = H5Tcopy(H5T_C_S1);
       H5Tset_size(mem_member_types[c], H5T_VARIABLE);
-      H5Tset_cset(mem_member_types[c], H5T_CSET_UTF8);
+      H5Tset_cset(mem_member_types[c], cset);
     }
     else if (file_class == H5T_OPAQUE) {
       mem_member_types[c] = H5Tcopy(file_member_type);
@@ -278,7 +279,7 @@ SEXP write_dataframe(
 
     /* Now determine HDF5 types based on the (possibly coerced) column */
     ft_members[c] = create_h5_file_type(r_column, dtype_str);
-    mt_members[c] = create_r_memory_type(r_column);
+    mt_members[c] = create_r_memory_type(r_column, dtype_str);
     if (ft_members[c] < 0 || mt_members[c] < 0) { // # nocov start
       for (int i = 0; i < c; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
       UNPROTECT(2); // data, col_names
@@ -349,7 +350,7 @@ SEXP write_dataframe(
         }
         case STRSXP: {
           SEXP s = STRING_ELT(r_col, r);
-          const char *ptr = (s == NA_STRING) ? NULL : CHAR(s);
+          const char *ptr = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
           memcpy(dest, &ptr, sizeof(const char *));
           break;
         }

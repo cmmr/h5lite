@@ -35,6 +35,9 @@ test_that("UTF-8 characters are preserved", {
   utf8_str <- "Zürich"
   h5_write(utf8_str, file, "city")
   expect_equal(h5_read(file, "city"), utf8_str)
+  
+  h5_write(utf8_str, file, "city", as = 'ascii')
+  expect_equal(h5_read(file, "city"), "Zurich")
 })
 
 test_that("Reading fixed-length strings works", {

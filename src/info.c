@@ -35,16 +35,21 @@ SEXP h5_type_to_rstr(hid_t type_id) {
   
   /* Handle other classes */
   switch(class_id) {
-  case H5T_STRING:    return mkString("string");
-  case H5T_COMPLEX:   return mkString("complex");
-  case H5T_OPAQUE:    return mkString("opaque");
-  case H5T_COMPOUND:  return mkString("compound");
-  case H5T_ENUM:      return mkString("enum");
-  case H5T_BITFIELD:  return mkString("bitfield");  // # nocov
-  case H5T_REFERENCE: return mkString("reference"); // # nocov
-  case H5T_VLEN:      return mkString("vlen");      // # nocov
-  case H5T_ARRAY:     return mkString("array");     // # nocov
-  default:            return mkString("unknown");   // # nocov
+    case H5T_STRING: {
+      H5T_cset_t cset = H5Tget_cset(type_id);
+      if (cset == H5T_CSET_ASCII) return mkString("ascii");
+      if (cset == H5T_CSET_UTF8)  return mkString("utf8");
+      return mkString("string"); // # nocov
+    }
+    case H5T_COMPLEX:   return mkString("complex");
+    case H5T_OPAQUE:    return mkString("opaque");
+    case H5T_COMPOUND:  return mkString("compound");
+    case H5T_ENUM:      return mkString("enum");
+    case H5T_BITFIELD:  return mkString("bitfield");  // # nocov
+    case H5T_REFERENCE: return mkString("reference"); // # nocov
+    case H5T_VLEN:      return mkString("vlen");      // # nocov
+    case H5T_ARRAY:     return mkString("array");     // # nocov
+    default:            return mkString("unknown");   // # nocov
   }
   
   return mkString("unknown"); // # nocov

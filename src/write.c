@@ -22,21 +22,19 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
     
     /* Create a buffer of C-style strings from the R vector, handling NA values. */
     const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
-    if (!f_buffer) return errmsg_1("Memory allocation failed for string buffer for %s.", dtype_str);
+    if (!f_buffer) return mkChar("Memory allocation failed for string buffer.");
     for (hsize_t i = 0; i < n; i++) {
       SEXP s = STRING_ELT(data, i);
-      f_buffer[i] = (s == NA_STRING) ? NULL : CHAR(s);
+      f_buffer[i] = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
     }
     
     /* Transpose from R's column-major to C's row-major order. */
     const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
-    if (!c_buffer) { free(f_buffer); return errmsg_1("Memory allocation failed for string buffer for %s.", dtype_str); }
+    if (!c_buffer) { free(f_buffer); return mkChar("Memory allocation failed for string buffer"); }
     h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
 
     /* Create a variable-length string memory type for writing. */
-    hid_t mem_type_id = H5Tcopy(H5T_C_S1);
-    H5Tset_size(mem_type_id, H5T_VARIABLE);
-    H5Tset_cset(mem_type_id, H5T_CSET_UTF8);
+    hid_t mem_type_id = create_vl_string_type(dtype_str);
 
     /* Write the C buffer to the HDF5 object (dataset or attribute). */
     status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
@@ -69,7 +67,7 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
     void *r_data_ptr = get_R_data_ptr(data);
     if (!r_data_ptr) return errmsg_1("Failed to get data pointer for %s.", dtype_str);
 
-    hid_t mem_type_id = create_r_memory_type(data);
+    hid_t mem_type_id = create_r_memory_type(data, dtype_str);
     if (mem_type_id < 0) return errmsg_1("Failed to get memory for %s.", dtype_str);
     
     /* Allocate a C buffer and transpose the R data into it. */
@@ -251,7 +249,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
         
         /* --- Write Dimension Scales if present --- */
         if (errmsg == R_NilValue) {
-             write_r_dimscales(file_id, dset_id, dname, data);
+          write_r_dimscales(file_id, dset_id, dname, data);
         }
         
         H5Dclose(dset_id);

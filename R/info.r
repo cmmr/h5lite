@@ -44,7 +44,9 @@ h5_class <- function (file, name, attr = NULL) {
   if (startsWith(hdf5_type, "int"))     return("integer")
   if (startsWith(hdf5_type, "uint"))    return("integer")
   if (startsWith(hdf5_type, "float"))   return("numeric")
-  if (identical(hdf5_type, "string"))   return("character")
+  if (identical(hdf5_type, "utf8"))     return("character")
+  if (identical(hdf5_type, "ascii"))    return("character")
+  if (identical(hdf5_type, "string"))   return("character") # nocov
   if (identical(hdf5_type, "compound")) return("data.frame")
   if (identical(hdf5_type, "enum"))     return("factor")
   if (identical(hdf5_type, "complex"))  return("complex")

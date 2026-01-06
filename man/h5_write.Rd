@@ -21,11 +21,12 @@ and nested \code{list}s.}
 \item If provided (string), \code{data} is written as an attribute named \code{attr} attached to the object \code{name}.
 }}
 
-\item{as}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"float16"},
-\code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
-\code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}. The default, \code{"auto"},
-selects \code{"int32"} for integers without \code{NA}s,\code{"uint8"} for logicals
-without \code{NA}s, and \code{"float64"} for everything else. See details below.}
+\item{as}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"utf8"}, \code{"ascii"},
+\code{"float16"}, \code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"},
+\code{"int64"}, \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}.
+The default, \code{"auto"}, selects \code{"int32"} for integers without \code{NA}s, \code{"uint8"}
+for logicals without \code{NA}s, \code{"utf8"} for character strings, and \code{"float64"}
+for everything else. See details below.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
@@ -107,33 +108,40 @@ link.
 
 \section{Data Type Selection (\code{as} Argument)}{
 
-The \code{as} argument controls the on-disk storage type and only applies to
-\code{logical} and \code{numeric} (\code{integer} / \code{double}) vectors. For all other data
-types (\code{character}, \code{complex}, \code{factor}, \code{raw}), the storage type is
-determined automatically.
+The \code{as} argument controls the on-disk storage type.
 
 The \code{as} argument can be one of the following:
 \itemize{
-\item \strong{Global:} A single string, e.g., \code{"auto"}, \code{"float32"}, \code{"int64"}.
+\item \strong{Global:} A single string, e.g., \code{"auto"}, \code{"float32"}, \code{"ascii"}.
 \item \strong{Specific:} A named vector mapping names or type classes to HDF5 types.
 Matches \code{h5_read} behavior:
 \itemize{
 \item \code{"col_name" = "type"}: Specific dataset/column.
 \item \code{"@attr_name" = "type"}: Specific attached attribute.
-\item \code{".int" = "type"}: Class-based (e.g., .int, .double, .logical).
-\item \code{"." = "type"}: Global default fallback.
+\item \code{".integer" = "type"}: Class-based (e.g., \code{.integer}, \code{.double}, \code{.logical}, \code{.character}, \code{.numeric}).
+\item \code{"." = "type"}: Global default fallback (applies to all supported types).
 }
 }
 
+\strong{Class-based Priority:}
+When selecting a type based on class, specific selectors override general ones:
+\enumerate{
+\item \code{.integer} and \code{.double} (Highest Priority)
+\item \code{.numeric} (Targets both integer and double)
+\item \code{.} (Lowest Priority)
+}
+
 If \code{as} is set to \code{"auto"} (the default), \code{h5lite} will automatically
-select \code{float64} for double vectors, \code{int32} for integer vectors, and \code{uint8}
-for logical vectors. If an integer or logical vector contains \code{NA}, it is
-stored using \code{float64} to enable encoding of \code{NA} as a sentinel value.
+select \code{float64} for double vectors, \code{int32} for integer vectors, \code{uint8}
+for logical vectors, and \code{utf8} for character vectors. If an integer or
+logical vector contains \code{NA}, it is stored using \code{float64} to enable encoding
+of \code{NA} as a sentinel value.
 
 To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:
 \itemize{
 \item \code{"auto"}, \code{"skip"}
+\item \code{"utf8"}, \code{"ascii"} (for character data)
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}

@@ -210,7 +210,7 @@ static hid_t create_enum_type(SEXP data) {
  * Gets the native HDF5 memory type corresponding to an R vector's C-level type.
  * For example, REALSXP -> H5T_NATIVE_DOUBLE.
  */
-hid_t create_r_memory_type(SEXP data) {
+hid_t create_r_memory_type(SEXP data, const char *dtype) {
 
   if (Rf_inherits(data, "integer64")) return H5Tcopy(H5T_NATIVE_INT64);
   if (Rf_inherits(data, "factor"))    return create_enum_type(data);
@@ -221,12 +221,7 @@ hid_t create_r_memory_type(SEXP data) {
     case LGLSXP:  return H5Tcopy(H5T_NATIVE_INT);
     case CPLXSXP: return H5Tcomplex_create(H5T_NATIVE_DOUBLE);
     case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
-    case STRSXP: {
-      hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
-      H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
-      H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
-      return vl_string_mem_type;
-    }
+    case STRSXP:  return create_vl_string_type(dtype);
   }
   
   return -1; // # nocov
@@ -257,24 +252,28 @@ hid_t create_h5_file_type(SEXP data, const char *dtype) {
   if (strcmp(dtype, "uint16") == 0) return H5Tcopy(H5T_STD_U16LE);
   if (strcmp(dtype, "uint32") == 0) return H5Tcopy(H5T_STD_U32LE);
   if (strcmp(dtype, "uint64") == 0) return H5Tcopy(H5T_STD_U64LE);
-
-  /* R Types */
-  switch (TYPEOF(data)) {
-    case CPLXSXP: return H5Tcomplex_create(H5T_IEEE_F64LE);
-    case RAWSXP:  return H5Tcreate(H5T_OPAQUE, 1);
-    case STRSXP: {
-      hid_t vl_string_mem_type = H5Tcopy(H5T_C_S1);
-      H5Tset_size(vl_string_mem_type, H5T_VARIABLE);
-      H5Tset_cset(vl_string_mem_type, H5T_CSET_UTF8);
-      return vl_string_mem_type;
-    }
-  }
   
-  /* integer64 class from bit64 package */
-  if (strcmp(dtype, "bit64") == 0) return H5Tcopy(H5T_STD_I64LE);
-
-  /* Factor Type */
-  if (Rf_inherits(data, "factor")) return create_enum_type(data);
+  /* String Types */
+  if (TYPEOF(data) == STRSXP) return create_vl_string_type(dtype);
+  
+  /* Other Types */
+  if (strcmp(dtype, "raw")     == 0) return H5Tcreate(H5T_OPAQUE, 1);
+  if (strcmp(dtype, "factor")  == 0) return create_enum_type(data);
+  if (strcmp(dtype, "complex") == 0) return H5Tcomplex_create(H5T_IEEE_F64LE);
+  if (strcmp(dtype, "bit64")   == 0) return H5Tcopy(H5T_STD_I64LE);
 
   return -1; // # nocov
 }
+
+
+hid_t create_vl_string_type(const char *dtype) {
+  
+  H5T_cset_t cset = (strcmp(dtype, "utf8") == 0) ? H5T_CSET_UTF8 : H5T_CSET_ASCII;
+  
+  hid_t vl_string_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(vl_string_type, H5T_VARIABLE);
+  H5Tset_cset(vl_string_type, cset);
+  
+  return vl_string_type;
+}
+

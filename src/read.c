@@ -58,6 +58,9 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
                            int ndims, hsize_t *dims, hsize_t total_elements) {
   SEXP result = R_NilValue;
   
+  /* 1. Detect the character set of the file dataset */
+  H5T_cset_t file_cset = H5Tget_cset(file_type_id);
+  
   if (H5Tis_variable_str(file_type_id)) {
     char **c_buffer = (char **)malloc(total_elements * sizeof(char *));
     char **f_buffer = (char **)malloc(total_elements * sizeof(char *));
@@ -68,7 +71,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
     
     hid_t mem_type = H5Tcopy(H5T_C_S1);
     H5Tset_size(mem_type, H5T_VARIABLE); 
-    H5Tset_cset(mem_type, H5T_CSET_UTF8);
+    H5Tset_cset(mem_type, file_cset);
     
     if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset) < 0) {
       result = PROTECT(mkChar("Failed to read variable-length strings")); // # nocov
@@ -94,6 +97,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
     
     hid_t mem_type = H5Tcopy(H5T_C_S1);
     H5Tset_size(mem_type, type_size);
+    H5Tset_cset(mem_type, file_cset);
     
     if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset) < 0) {
       result = PROTECT(mkChar("Failed to read fixed-length strings")); // # nocov

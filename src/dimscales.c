@@ -147,33 +147,33 @@ void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data
  * Used by both atomic datasets and compound data frames.
  */
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx) {
-  
-    if (labels == R_NilValue || TYPEOF(labels) != STRSXP || XLENGTH(labels) == 0) return;
 
-    /* 1. Remove existing scale if we are overwriting */
-    handle_overwrite(loc_id, scale_name);
+  if (labels == R_NilValue || TYPEOF(labels) != STRSXP || XLENGTH(labels) == 0) return;
+
+  /* 1. Remove existing scale if we are overwriting */
+  handle_overwrite(loc_id, scale_name);
+  
+  /* 2. Create the dataset for the labels */
+  hsize_t scale_dim  = (hsize_t)XLENGTH(labels);
+  hid_t space_id     = H5Screate_simple(1, &scale_dim, NULL);
+  hid_t file_type_id = H5Tcopy(H5T_C_S1);
+  H5Tset_size(file_type_id, H5T_VARIABLE);
+  H5Tset_cset(file_type_id, H5T_CSET_UTF8);
+  
+  hid_t scale_dset_id = H5Dcreate2(loc_id, scale_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  
+  if (scale_dset_id >= 0) {
+    /* 3. Write the strings */
+    write_atomic_dataset(scale_dset_id, labels, "utf8", 1, &scale_dim);
     
-    /* 2. Create the dataset for the labels */
-    hsize_t scale_dim  = (hsize_t)XLENGTH(labels);
-    hid_t space_id     = H5Screate_simple(1, &scale_dim, NULL);
-    hid_t file_type_id = H5Tcopy(H5T_C_S1);
-    H5Tset_size(file_type_id, H5T_VARIABLE);
-    H5Tset_cset(file_type_id, H5T_CSET_UTF8);
+    /* 4. Convert to Dimension Scale */
+    H5DSset_scale(scale_dset_id, NULL);
     
-    hid_t scale_dset_id = H5Dcreate2(loc_id, scale_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    /* 5. Attach to main dataset */
+    H5DSattach_scale(dset_id, scale_dset_id, dim_idx);
     
-    if (scale_dset_id >= 0) {
-        /* 3. Write the strings */
-        write_atomic_dataset(scale_dset_id, labels, "character", 1, &scale_dim);
-        
-        /* 4. Convert to Dimension Scale */
-        H5DSset_scale(scale_dset_id, NULL);
-        
-        /* 5. Attach to main dataset */
-        H5DSattach_scale(dset_id, scale_dset_id, dim_idx);
-        
-        H5Dclose(scale_dset_id);
-    }
-    H5Tclose(file_type_id);
-    H5Sclose(space_id);
+    H5Dclose(scale_dset_id);
+  }
+  H5Tclose(file_type_id);
+  H5Sclose(space_id);
 }

@@ -11,11 +11,12 @@
 #' @param attr The name of an attribute to write.
 #'   * If `NULL` (default), `data` is written as a dataset or group at the path `name`.
 #'   * If provided (string), `data` is written as an attribute named `attr` attached to the object `name`.
-#' @param as The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
-#'   `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
-#'   `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The default, `"auto"`, 
-#'   selects `"int32"` for integers without `NA`s,`"uint8"` for logicals 
-#'   without `NA`s, and `"float64"` for everything else. See details below.
+#' @param as The target HDF5 data type. Can be one of `"auto"`, `"utf8"`, `"ascii"`,
+#'   `"float16"`, `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, 
+#'   `"int64"`, `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. 
+#'   The default, `"auto"`, selects `"int32"` for integers without `NA`s, `"uint8"` 
+#'   for logicals without `NA`s, `"utf8"` for character strings, and `"float64"` 
+#'   for everything else. See details below.
 #' @param compress A logical or an integer from 0-9. If `TRUE`, 
 #'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
 #'   An integer `1-9` specifies the zlib compression level directly.
@@ -74,28 +75,33 @@
 #' 
 #' 
 #' @section Data Type Selection (`as` Argument):
-#' The `as` argument controls the on-disk storage type and only applies to
-#' `logical` and `numeric` (`integer` / `double`) vectors. For all other data 
-#' types (`character`, `complex`, `factor`, `raw`), the storage type is 
-#' determined automatically.
+#' The `as` argument controls the on-disk storage type.
 #' 
 #' The `as` argument can be one of the following:
-#'   * **Global:** A single string, e.g., `"auto"`, `"float32"`, `"int64"`.
+#'   * **Global:** A single string, e.g., `"auto"`, `"float32"`, `"ascii"`.
 #'   * **Specific:** A named vector mapping names or type classes to HDF5 types.
 #'     Matches `h5_read` behavior:
 #'     * `"col_name" = "type"`: Specific dataset/column.
 #'     * `"@@attr_name" = "type"`: Specific attached attribute.
-#'     * `".int" = "type"`: Class-based (e.g., .int, .double, .logical).
-#'     * `"." = "type"`: Global default fallback.
+#'     * `".integer" = "type"`: Class-based (e.g., `.integer`, `.double`, `.logical`, `.character`, `.numeric`).
+#'     * `"." = "type"`: Global default fallback (applies to all supported types).
+#' 
+#' **Class-based Priority:**
+#' When selecting a type based on class, specific selectors override general ones:
+#' 1. `.integer` and `.double` (Highest Priority)
+#' 2. `.numeric` (Targets both integer and double)
+#' 3. `.` (Lowest Priority)
 #' 
 #' If `as` is set to `"auto"` (the default), `h5lite` will automatically
-#' select `float64` for double vectors, `int32` for integer vectors, and `uint8`
-#' for logical vectors. If an integer or logical vector contains `NA`, it is 
-#' stored using `float64` to enable encoding of `NA` as a sentinel value.
+#' select `float64` for double vectors, `int32` for integer vectors, `uint8`
+#' for logical vectors, and `utf8` for character vectors. If an integer or 
+#' logical vector contains `NA`, it is stored using `float64` to enable encoding 
+#' of `NA` as a sentinel value.
 #' 
 #' To override this automatic behavior, you can specify an exact type. The full
 #' list of supported values is:
 #' - `"auto"`, `"skip"`
+#' - `"utf8"`, `"ascii"` (for character data)
 #' - `"float16"`, `"float32"`, `"float64"`
 #' - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 #' - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
@@ -148,7 +154,7 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE
   as_map <- get_as_mapping(
     as      = as , 
     choices = c(
-      "auto", "skip", "float16", "float32", "float64", 
+      "auto", "skip", "ascii", "utf8", "float16", "float32", "float64", 
       "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64" ) )
 
   # Write the data
@@ -210,6 +216,9 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
       data    <- data[, h5_type != "skip", drop = FALSE]
       h5_type <- h5_type[h5_type != "skip"]
     }
+    
+    for (i in which(h5_type == "ascii"))
+      data[[i]] <- iconv(data[[i]], to = "ASCII//TRANSLIT")
     
     dims <- validate_dims(data)
 
@@ -274,7 +283,6 @@ resolve_h5_type <- function(data, name, as_map) {
   
   if (is.null(data))               return ("null")
   if (is.raw(data))                return ("raw")
-  if (is.character(data))          return ("character")
   if (is.complex(data))            return ("complex")
   if (inherits(data, "integer64")) return ("bit64")
   if (inherits(data, "factor")) {
@@ -298,68 +306,73 @@ resolve_h5_type <- function(data, name, as_map) {
   } else {
   
     # Generate type keys for lookup (e.g., .integer, .double)
-    r_data_type <- paste0(".", storage.mode(data))
+    mode <- paste0(".", storage.mode(data))
+    if (is.numeric(data)) { keys <- c(name, mode, ".numeric", ".") }
+    else                  { keys <- c(name, mode,             ".") }
     
-    # Lookup Priority
-    h5_type <- if (name             %in% names(as_map)) { as_map[[name]] } 
-               else if (r_data_type %in% names(as_map)) { as_map[[r_data_type]] } 
-               else if ("."         %in% names(as_map)) { as_map[["."]] }
-               else                                     { "auto" }
-  }
-  
-  if (identical(h5_type, "skip"))  return ("skip")
-  
-  if (!is.numeric(data) && !is.logical(data)) {
-    stop("Cannot write data of class ", paste(class(data), collapse = "/"), " to HDF5.", call. = FALSE) # nocov
-  }
-  
-  supported_h5_types <- c(
-    "auto", "float16", "float32", "float64", 
-    "int8", "int16", "int32", "int64",
-    "uint8", "uint16", "uint32", "uint64")
-  
-  h5_type <- match.arg(tolower(h5_type), supported_h5_types)
-  
-  if (h5_type == "auto") select_best_h5_type(data)
-  else                   sanity_check_h5_type(data, h5_type)
-}
-
-
-#' @noRd
-#' @keywords internal
-select_best_h5_type <- function (data) {
-  
-  if (is.double(data))  return ("float64")
-  if (anyNA(data))      return ("float64")
-  if (is.logical(data)) return ("uint8")
-  return ("int32")
-  
-}
-
-
-#' @noRd
-#' @keywords internal
-sanity_check_h5_type <- function (data, h5_type) {
-
-  if (length(data) == 0) return(h5_type)
-  if (any(!is.finite(data)) && !startsWith(h5_type, "float"))
-    stop("Data contains NA/NaN/Inf; requires float type.", call. = FALSE)
-    
-  if (any(is.finite(data)) && h5_type != "float64") {
-    type_ranges <- list(
-      int8    = c(-2^7,  2^7-1),  uint8  = c(0, 2^8-1),   
-      int16   = c(-2^15, 2^15-1), uint16 = c(0, 2^16-1),
-      int32   = c(-2^31, 2^31-1), uint32 = c(0, 2^32-1),  
-      int64   = c(-2^63, 2^63-1), uint64 = c(0, 2^64-1),
-      float16 = c(-65504,  65504),
-      float32 = c(-3.4e38, 3.4e38) )
-    val_range <- range(data, na.rm = TRUE, finite = TRUE)
-    rng <- type_ranges[[h5_type]]
-    if (!is.null(rng) && (val_range[1] < rng[1] || val_range[2] > rng[2])) {
-      stop("Data range [", val_range[1], ", ", val_range[2], "] exceeds '", h5_type, "'", call. = FALSE)
+    h5_type <- "auto"
+    for (key in keys) {
+      if (key %in% names(as_map)) {
+        h5_type <- as_map[[key]]
+        break
+      }
     }
+    
   }
-  return(h5_type)
+  
+  
+  if (is.character(data)) {
+    
+    choices <- c("auto", "ascii", "skip", "utf8")
+    h5_type <- match.arg(tolower(h5_type), choices)
+    if (h5_type == "auto") return ("utf8")
+    return (h5_type)
+  }
+  
+  if (is.numeric(data) || is.logical(data)) {
+    
+    choices <- c(
+      "auto", "skip", 
+      "float16", "float32", "float64", 
+      "int8", "int16", "int32", "int64",
+      "uint8", "uint16", "uint32", "uint64")
+    
+    h5_type <- match.arg(tolower(h5_type), choices)
+    
+    if (h5_type == "skip") return ("skip")
+    
+    if (h5_type == "auto") {
+      if (is.double(data))  return ("float64")
+      if (anyNA(data))      return ("float64")
+      if (is.logical(data)) return ("uint8")
+      return ("int32")
+    }
+    
+    # Sanity check user's requested HDF5 numeric type
+    
+    if (length(data) == 0) return(h5_type)
+    if (any(!is.finite(data)) && !startsWith(h5_type, "float"))
+      stop("Data contains NA/NaN/Inf; requires float type.", call. = FALSE)
+    
+    if (any(is.finite(data)) && h5_type != "float64") {
+      type_ranges <- list(
+        'int8'    = c(-2^7,  2^7-1),  'uint8'  = c(0, 2^8-1),   
+        'int16'   = c(-2^15, 2^15-1), 'uint16' = c(0, 2^16-1),
+        'int32'   = c(-2^31, 2^31-1), 'uint32' = c(0, 2^32-1),  
+        'int64'   = c(-2^63, 2^63-1), 'uint64' = c(0, 2^64-1),
+        'float16' = c(-65504,  65504),
+        'float32' = c(-3.4e38, 3.4e38) )
+      val_range <- range(data, na.rm = TRUE, finite = TRUE)
+      rng <- type_ranges[[h5_type]]
+      if (!is.null(rng) && (val_range[1] < rng[1] || val_range[2] > rng[2])) {
+        stop("Data range [", val_range[1], ", ", val_range[2], "] exceeds '", h5_type, "'", call. = FALSE)
+      }
+    }
+    
+    return(h5_type)
+  }
+  
+  stop("Cannot write data of class ", paste(class(data), collapse = "/"), " to HDF5.", call. = FALSE) # nocov
 }
 
 
