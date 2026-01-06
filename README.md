@@ -25,7 +25,6 @@ so you can focus on your data.
     -   Writing to an existing dataset path overwrites it, just like re-assigning a variable.
 -   **Safe and Efficient:**
     -   Auto-selects a safe R data type for numeric data to prevent overflow.
-    -   Automatic data type selection saves space by default (e.g., `1:100` is stored as an 8-bit integer).
     -   Built-in, easy-to-use compression (`compress = TRUE`).
 -   **Easy Installation:** `h5lite` bundles its HDF5 dependency, so installation is a simple `install.packages("h5lite")`. No need to manage system libraries.
 
@@ -151,7 +150,7 @@ print(units)
 
 For more detailed guides on specific topics, see the package vignettes:
 
--   **[Getting Started with h5lite](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
+-   **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
 -   **[Working with Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
 -   **[Working with Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
 -   **[Working with Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.

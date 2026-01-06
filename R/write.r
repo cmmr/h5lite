@@ -217,8 +217,13 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
     h5_type <- h5_type[h5_type != "skip"]
   }
   
-  for (i in which(h5_type == "ascii"))
-    data[[i]] <- iconv(enc2utf8(data[[i]]), "UTF-8", "ASCII//TRANSLIT", "?")
+  for (i in which(h5_type == "ascii")) {
+    data[[i]] <- enc2utf8(data[[i]])
+    unwanted  <- enc2utf8("ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðñòóôõöùúûüýÿ")
+    wanted    <- enc2utf8("AAAAAACEEEEIIIIDNOOOOOUUUUYaaaaaaceeeeiiiidnooooouuuuyy")
+    data[[i]] <- enc2utf8(chartr(unwanted, wanted, data[[i]]))
+    data[[i]] <- iconv(data[[i]], "UTF-8", "ASCII//TRANSLIT", "?")
+  }
   
   dims <- validate_dims(data)
 
