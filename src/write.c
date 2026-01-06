@@ -175,8 +175,8 @@ static SEXP write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_n
 
 /* --- WRITER: DATASET --- */
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *dname = CHAR(STRING_ELT(dset_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   int compress = asInteger(compress_level);
   
   hid_t file_id = open_or_create_file(fname);
@@ -267,9 +267,9 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
 
 /* --- WRITER: ATTRIBUTE --- */
 SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP data, SEXP dtype, SEXP dims) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   if (file_id < 0) error("File must exist to write attributes: %s", fname);

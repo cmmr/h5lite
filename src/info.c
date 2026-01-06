@@ -57,8 +57,8 @@ SEXP h5_type_to_rstr(hid_t type_id) {
 
 /* --- TYPEOF DATASET --- */
 SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *dname = CHAR(STRING_ELT(dset_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -87,9 +87,9 @@ SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
 
 /* --- TYPEOF ATTRIBUTE --- */
 SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -118,8 +118,8 @@ SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
 
 /* --- DIM DATASET --- */
 SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *dname = CHAR(STRING_ELT(dset_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -167,9 +167,9 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
 
 /* --- DIM ATTRIBUTE --- */
 SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -212,8 +212,8 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
 
 /* --- EXISTS --- */
 SEXP C_h5_exists(SEXP filename, SEXP obj_name, SEXP attr_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   
   /* Suppress all HDF5 errors for this function */
   herr_t (*old_func)(hid_t, void*);
@@ -233,7 +233,7 @@ SEXP C_h5_exists(SEXP filename, SEXP obj_name, SEXP attr_name) {
   if (file_id >= 0) { /* File is valid HDF5 */
   
   if (attr_name != R_NilValue) { /* Check if the attribute exists */
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
     result = H5Aexists_by_name(file_id, oname, aname, H5P_DEFAULT);
   }
   else { /* Check if the link exists (dataset, group, etc.) */
@@ -280,8 +280,8 @@ static int check_obj_type(const char *fname, const char *oname, H5O_type_t check
 
 /* --- IS GROUP --- */
 SEXP C_h5_is_group(SEXP filename, SEXP name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(name, 0));
   
   int is_group = check_obj_type(fname, oname, H5O_TYPE_GROUP);
   
@@ -290,8 +290,8 @@ SEXP C_h5_is_group(SEXP filename, SEXP name) {
 
 /* --- IS DATASET --- */
 SEXP C_h5_is_dataset(SEXP filename, SEXP name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(name, 0));
   
   int is_dataset = check_obj_type(fname, oname, H5O_TYPE_DATASET);
   
@@ -300,8 +300,8 @@ SEXP C_h5_is_dataset(SEXP filename, SEXP name) {
 
 /* --- NAMES --- */
 SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *dname = CHAR(STRING_ELT(dset_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -312,7 +312,7 @@ SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
   
   /* --- 1. Open Object (Dataset or Attribute) --- */
   if (attr_name != R_NilValue) {
-    const char *aname = CHAR(STRING_ELT(attr_name, 0));
+    const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
     loc_id = H5Aopen_by_name(file_id, dname, aname, H5P_DEFAULT, H5P_DEFAULT);
     if (loc_id < 0) { H5Fclose(file_id); error("Failed to open attribute: %s", aname); }
     type_id = H5Aget_type(loc_id);
@@ -335,7 +335,7 @@ SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
       result = PROTECT(allocVector(STRSXP, n_members));
       for (int i = 0; i < n_members; i++) {
         char *name = H5Tget_member_name(type_id, i);
-        if (name) { SET_STRING_ELT(result, i, mkChar(name)); }
+        if (name) { SET_STRING_ELT(result, i, mkCharCE(name, CE_UTF8)); }
         else      { SET_STRING_ELT(result, i, NA_STRING); } // # nocov
         H5free_memory(name);
       }
@@ -413,7 +413,7 @@ SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
 static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_info_t *ainfo, void *op_data) {
   h5_op_data_t *data = (h5_op_data_t *)op_data;
   if (data->names != R_NilValue) {
-    SET_STRING_ELT(data->names, data->idx, mkChar(attr_name));
+    SET_STRING_ELT(data->names, data->idx, mkCharCE(attr_name, CE_UTF8));
     data->idx++;
   }
   return 0;
@@ -425,8 +425,8 @@ static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_inf
  * Lists the names of all attributes on a given object.
  */
 SEXP C_h5_attr_names(SEXP filename, SEXP obj_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);

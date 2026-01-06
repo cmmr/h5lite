@@ -79,7 +79,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
       result = PROTECT(allocVector(STRSXP, (R_xlen_t)total_elements));
       h5_transpose(c_buffer, f_buffer, ndims, dims, sizeof(char*), 1);
       for (hsize_t i = 0; i < total_elements; i++) {
-        if (f_buffer[i]) { SET_STRING_ELT(result, i, mkChar(f_buffer[i])); }
+        if (f_buffer[i]) { SET_STRING_ELT(result, i, mkCharCE(f_buffer[i], CE_UTF8)); }
         else             { SET_STRING_ELT(result, i, NA_STRING); } // # nocov
       }
     }
@@ -108,7 +108,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
       for (hsize_t i = 0; i < total_elements; i++) {
         memcpy(single_str, f_buffer + (i * type_size), type_size);
         single_str[type_size] = '\0';
-        SET_STRING_ELT(result, i, mkChar(single_str));
+        SET_STRING_ELT(result, i, mkCharCE(single_str, CE_UTF8));
       }
     }
     free(c_buffer); free(f_buffer); H5Tclose(mem_type);
@@ -165,7 +165,7 @@ static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id,
   setAttrib(result, R_LevelsSymbol, levels);
   for (int i = 0; i < n_members; i++) {
     char *level_name = H5Tget_member_name(file_type_id, i);
-    if (level_name) { SET_STRING_ELT(levels, i, mkChar(level_name)); }
+    if (level_name) { SET_STRING_ELT(levels, i, mkCharCE(level_name, CE_UTF8)); }
     else            { SET_STRING_ELT(levels, i, NA_STRING); } // # nocov
     H5free_memory(level_name);
   }
@@ -182,9 +182,9 @@ static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id,
 /* --- DATASET READ ENTRY POINT --- */
 
 SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name) {
-  const char *fname   = CHAR(STRING_ELT(filename,     0));
-  const char *dname   = CHAR(STRING_ELT(dataset_name, 0));
-  const char *el_name = CHAR(STRING_ELT(element_name, 0));
+  const char *fname   = Rf_translateCharUTF8(STRING_ELT(filename,     0));
+  const char *dname   = Rf_translateCharUTF8(STRING_ELT(dataset_name, 0));
+  const char *el_name = Rf_translateCharUTF8(STRING_ELT(element_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -254,9 +254,9 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element
 /* --- ATTRIBUTE READ ENTRY POINT --- */
 
 SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP rmap) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);

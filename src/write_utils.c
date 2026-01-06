@@ -199,7 +199,7 @@ static hid_t create_enum_type(SEXP data) {
     R_xlen_t n_levels = XLENGTH(levels);
     for (R_xlen_t i = 0; i < n_levels; i++) {
       int val = i + 1; /* R factors are 1-based, so value is i+1 */
-      H5Tenum_insert(type_id, CHAR(STRING_ELT(levels, i)), &val);
+      H5Tenum_insert(type_id, Rf_translateCharUTF8(STRING_ELT(levels, i)), &val);
     }
 
     UNPROTECT(1);

@@ -6,21 +6,21 @@ SEXP errmsg_1(const char *fmt, const char *str1) {
     int   len    = snprintf(NULL, 0, fmt, str1);
     char *buffer = (char *) R_alloc(len + 1, sizeof(char));
     snprintf(buffer, len + 1, fmt, str1);
-    return mkChar(buffer);
+    return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_2(const char *fmt, const char *str1, const char *str2) {
     int   len    = snprintf(NULL, 0, fmt, str1, str2);
     char *buffer = (char *) R_alloc(len + 1, sizeof(char));
     snprintf(buffer, len + 1, fmt, str1, str2);
-    return mkChar(buffer);
+    return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_3(const char *fmt, const char *str1, const char *str2, const char *str3) {
     int   len    = snprintf(NULL, 0, fmt, str1, str2, str3);
     char *buffer = (char *) R_alloc(len + 1, sizeof(char));
     snprintf(buffer, len + 1, fmt, str1, str2, str3);
-    return mkChar(buffer);
+    return mkCharCE(buffer, CE_UTF8);
 }
 // # nocov end
 
@@ -160,7 +160,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
 
   /* Check if el_name matches a specific entry in rmap. */
   for (int i = 0; i < LENGTH(rmap); i++) {
-    const char *key = CHAR(STRING_ELT(names_vec, i));
+    const char *key = Rf_translateCharUTF8(STRING_ELT(names_vec, i));
     if (strcmp(key, el_name) == 0) {
       const char *value = CHAR(STRING_ELT(rmap, i));
       if (strcmp(value, "logical") == 0) return R_TYPE_LOGICAL;
@@ -199,7 +199,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
   /* Iterate through mappings to find type-based keys or the default "." key. */
   for (int i = 0; i < LENGTH(rmap); i++) {
     
-    const char *key = CHAR(STRING_ELT(names_vec, i));
+    const char *key = Rf_translateCharUTF8(STRING_ELT(names_vec, i));
     
     /* Check for matches: specific type (.int32), general type (.int), or default (.) */
     if (strcmp(key, needle_full) == 0 || strcmp(key, needle_type) == 0 || strcmp(key, ".") == 0) {

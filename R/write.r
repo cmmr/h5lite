@@ -207,33 +207,33 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
         data[[i]] <- format(data[[i]], format = "%Y-%m-%dT%H:%M:%OSZ")
   }
 
-  map_key <- if (is.null(attr)) name else attr
+  map_key <- if (is.null(attr)) basename(name) else attr
   h5_type <- resolve_h5_type(data, map_key, as_map)
   
-  if (!all(h5_type == "skip")) {
+  if (all(h5_type == "skip")) return (NULL)
+  
+  if (is.data.frame(data) && any(h5_type == "skip")) {
+    data    <- data[, h5_type != "skip", drop = FALSE]
+    h5_type <- h5_type[h5_type != "skip"]
+  }
+  
+  for (i in which(h5_type == "ascii"))
+    data[[i]] <- iconv(enc2utf8(data[[i]]), "UTF-8", "ASCII//TRANSLIT", "?")
+  
+  dims <- validate_dims(data)
 
-    if (any(h5_type == "skip") && is.data.frame(data)) {
-      data    <- data[, h5_type != "skip", drop = FALSE]
-      h5_type <- h5_type[h5_type != "skip"]
-    }
+  if (is.null(attr)) {
+    level <- if (isTRUE(compress)) 5L else as.integer(compress)
     
-    for (i in which(h5_type == "ascii"))
-      data[[i]] <- iconv(data[[i]], to = "ASCII//TRANSLIT")
+    if (!dry)
+      .Call("C_h5_write_dataset", file, name, data, h5_type, dims, level, PACKAGE = "h5lite")
     
-    dims <- validate_dims(data)
-
-    if (is.null(attr)) {
-      level <- if (isTRUE(compress)) 5L else as.integer(compress)
-      
-      if (!dry)
-        .Call("C_h5_write_dataset", file, name, data, h5_type, dims, level, PACKAGE = "h5lite")
-      
-      write_attributes(data, file, name, as_map, dry = dry)
-    }
-    else {
-      if (!dry)
-        .Call("C_h5_write_attribute", file, name, attr, data, h5_type, dims, PACKAGE = "h5lite")
-    }
+    write_attributes(data, file, name, as_map, dry = dry)
+  }
+  else {
+    
+    if (!dry)
+      .Call("C_h5_write_attribute", file, name, attr, data, h5_type, dims, PACKAGE = "h5lite")
   }
 }
 

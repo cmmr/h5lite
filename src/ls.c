@@ -214,7 +214,7 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) 
     }
     
     /* Recurse if Group */
-    if (is_group) {
+    if (is_group || show_attrs) {
       /* Create new prefix */
       /* If this node was last, children get empty space, else vertical pipe */
       char new_prefix[1024]; 
@@ -237,8 +237,8 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs) 
  * @param attrs      Logical TRUE to list attributes, FALSE to hide them.
  */
 SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *gname = CHAR(STRING_ELT(group_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
   int show_attrs = LOGICAL(attrs)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
@@ -302,10 +302,10 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
       } else {
         snprintf(full_name, len, "%s/%s", data->gname, name);
       }
-      SET_STRING_ELT(data->names, data->idx, mkChar(full_name));
+      SET_STRING_ELT(data->names, data->idx, mkCharCE(full_name, CE_UTF8));
       free(full_name);
     } else {
-      SET_STRING_ELT(data->names, data->idx, mkChar(name));
+      SET_STRING_ELT(data->names, data->idx, mkCharCE(name, CE_UTF8));
     }
     data->idx++;
   } else {
@@ -343,10 +343,10 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
       } else {
         snprintf(full_name, len, "%s/%s", data->gname, name);
       }
-      SET_STRING_ELT(data->names, data->idx, mkChar(full_name));
+      SET_STRING_ELT(data->names, data->idx, mkCharCE(full_name, CE_UTF8));
       free(full_name);
     } else {
-      SET_STRING_ELT(data->names, data->idx, mkChar(name));
+      SET_STRING_ELT(data->names, data->idx, mkCharCE(name, CE_UTF8));
     }
     data->idx++;
   } else {
@@ -361,8 +361,8 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
  * It uses a two-pass approach: first pass counts items, second pass allocates and fills the R vector.
  */
 SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *gname = CHAR(STRING_ELT(group_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
   int is_recursive = LOGICAL(recursive)[0];
   int use_full_names = LOGICAL(full_names)[0];
   int show_scales = LOGICAL(scales)[0];

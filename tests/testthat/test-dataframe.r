@@ -11,6 +11,7 @@ test_that("Data frames work (Compound)", {
     raw = as.raw(1:3),
     cnv = c(1:2, NA_integer_),
     lgl = c(TRUE, FALSE, TRUE),
+    skp = 1:3,
     stringsAsFactors = FALSE
   )
   
@@ -19,11 +20,12 @@ test_that("Data frames work (Compound)", {
   
   # As a dataset ---------------------------------
   
-  h5_write(df, file, "df")
+  h5_write(df, file, "df", as = c('skp' = "skip"))
   expect_equal(h5_class(file, "df"), "data.frame")
   expect_equal(h5_typeof(file, "df"), "compound")
   
   res <- h5_read(file, "df")
+  expect_null(res$skp)
   expect_equal(res$int, df$int)
   expect_equal(res$dbl, df$dbl)
   expect_equal(res$chr, df$chr)

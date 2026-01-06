@@ -23,7 +23,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   /* 1. Setup Types */
   for (int c = 0; c < n_cols; c++) {
     char *member_name = H5Tget_member_name(file_type_id, c);
-    if (member_name) { SET_STRING_ELT(col_names_sexp, c, mkChar(member_name)); }
+    if (member_name) { SET_STRING_ELT(col_names_sexp, c, mkCharCE(member_name, CE_UTF8)); }
     else             { SET_STRING_ELT(col_names_sexp, c, NA_STRING); } // # nocov
     
     hid_t file_member_type = H5Tget_member_type(file_type_id, c);
@@ -54,7 +54,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     else { // # nocov start
       for (int i = 0; i < c; i++) H5Tclose(mem_member_types[i]);
       H5Tclose(file_member_type); UNPROTECT(1);
-      return errmsg_1("Unsupported member type in compound dataset: %s", CHAR(STRING_ELT(col_names_sexp, c)));
+      return errmsg_1("Unsupported member type in compound dataset: %s", Rf_translateCharUTF8(STRING_ELT(col_names_sexp, c)));
     } // # nocov end
     total_mem_size += H5Tget_size(mem_member_types[c]);
     H5free_memory(member_name);
@@ -130,7 +130,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       SEXP levels = PROTECT(allocVector(STRSXP, n_levels));
       for (int i = 0; i < n_levels; i++) {
         char *lname = H5Tget_member_name(file_member_type, i);
-        SET_STRING_ELT(levels, i, mkChar(lname));
+        SET_STRING_ELT(levels, i, mkCharCE(lname, CE_UTF8));
         H5free_memory(lname);
       }
       setAttrib(r_column, R_LevelsSymbol, levels);
@@ -146,7 +146,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       for (hsize_t r = 0; r < n_rows; r++) {
         char *src = buffer + (r * total_mem_size) + member_offset;
         char *str_ptr; memcpy(&str_ptr, src, sizeof(char *)); 
-        if (str_ptr) { SET_STRING_ELT(r_column, r, mkChar(str_ptr)); }
+        if (str_ptr) { SET_STRING_ELT(r_column, r, mkCharCE(str_ptr, CE_UTF8)); }
         else         { SET_STRING_ELT(r_column, r, NA_STRING); }
       }
     } 
@@ -283,7 +283,7 @@ SEXP write_dataframe(
     if (ft_members[c] < 0 || mt_members[c] < 0) { // # nocov start
       for (int i = 0; i < c; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
       UNPROTECT(2); // data, col_names
-      const char *col_name = CHAR(STRING_ELT(col_names, c));
+      const char *col_name = Rf_translateCharUTF8(STRING_ELT(col_names, c));
       return errmsg_3("Could not resolve %s data type for column '%s' of object '%s'.", dtype_str, col_name, obj_name);
     } // # nocov end
     
@@ -297,7 +297,7 @@ SEXP write_dataframe(
   size_t mem_offset  = 0;
   
   for (R_xlen_t c = 0; c < n_cols; c++) {
-    const char *col_name = CHAR(STRING_ELT(col_names, c));
+    const char *col_name = Rf_translateCharUTF8(STRING_ELT(col_names, c));
     H5Tinsert(file_type_id, col_name, file_offset, ft_members[c]);
     H5Tinsert(mem_type_id,  col_name, mem_offset,  mt_members[c]);
     file_offset += H5Tget_size(ft_members[c]);
@@ -350,7 +350,7 @@ SEXP write_dataframe(
         }
         case STRSXP: {
           SEXP s = STRING_ELT(r_col, r);
-          const char *ptr = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
+          const char *ptr = (s == NA_STRING) ? NULL : CHAR(s);
           memcpy(dest, &ptr, sizeof(const char *));
           break;
         }

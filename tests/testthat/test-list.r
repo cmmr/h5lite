@@ -31,15 +31,18 @@ test_that("Mappings apply per list element/attr", {
     a = "alpha",
     b = bit64::as.integer64(10),
     c = data.frame(x = 1:5, y = letters[1:5]),
-    d = NULL
+    d = NULL,
+    e = 123,
+    z = list(z1 = "omega")
   )
   attr(lst$a, "f") <- data.frame(i = 6:9, j = letters[6:9])
   attr(lst$a, "g") <- NA_integer_
   attr(lst$a, "h") <- 20L
   
-  h5_write(lst, file, "lst", as = c('@integer' = "uint8"))
+  h5_write(lst, file, "lst", as = c('@integer' = "uint8", 'e' = "skip"))
   
   res <- h5_read(file, "lst", as = c('.int64' = "bit64"))
+  lst$e <- NULL
   expect_equal(res, lst)
   
 })

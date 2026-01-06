@@ -5,8 +5,8 @@
  * Recursively creates groups to ensure the full path exists.
  */
 SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *gname = CHAR(STRING_ELT(group_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
   
   /* 1. Root Group Optimization
    * The root group "/" always exists in a valid HDF5 file. 
@@ -74,9 +74,9 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
  * Wraps H5Lmove to rename/move objects.
  */
 SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *src   = CHAR(STRING_ELT(from_name, 0));
-  const char *dest  = CHAR(STRING_ELT(to_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *src   = Rf_translateCharUTF8(STRING_ELT(from_name, 0));
+  const char *dest  = Rf_translateCharUTF8(STRING_ELT(to_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -100,8 +100,8 @@ SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
  * Deletes a link (Group or Dataset) using H5Ldelete.
  */
 SEXP C_h5_delete(SEXP filename, SEXP name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *obj   = CHAR(STRING_ELT(name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *obj   = Rf_translateCharUTF8(STRING_ELT(name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -120,9 +120,9 @@ SEXP C_h5_delete(SEXP filename, SEXP name) {
  * Deletes an attribute using H5Adelete.
  */
 SEXP C_h5_delete_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
-  const char *fname = CHAR(STRING_ELT(filename, 0));
-  const char *oname = CHAR(STRING_ELT(obj_name, 0));
-  const char *aname = CHAR(STRING_ELT(attr_name, 0));
+  const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
+  const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
+  const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDWR, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
