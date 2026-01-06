@@ -218,9 +218,17 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
   }
   
   for (i in which(h5_type == "ascii")) {
+    
+    # Converts from:      ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðñòóôõöùúûüýÿ
+    wanted   <- enc2utf8("AAAAAACEEEEIIIIDNOOOOOUUUUYaaaaaaceeeeiiiidnooooouuuuyy")
+    unwanted <- enc2utf8(intToUtf8(c(
+      192L, 193L, 194L, 195L, 196L, 197L, 199L, 200L, 201L, 202L, 203L, 
+      204L, 205L, 206L, 207L, 208L, 209L, 210L, 211L, 212L, 213L, 214L, 
+      217L, 218L, 219L, 220L, 221L, 224L, 225L, 226L, 227L, 228L, 229L, 
+      231L, 232L, 233L, 234L, 235L, 236L, 237L, 238L, 239L, 240L, 241L, 
+      242L, 243L, 244L, 245L, 246L, 249L, 250L, 251L, 252L, 253L, 255L )))
+    
     data[[i]] <- enc2utf8(data[[i]])
-    unwanted  <- enc2utf8("ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðñòóôõöùúûüýÿ")
-    wanted    <- enc2utf8("AAAAAACEEEEIIIIDNOOOOOUUUUYaaaaaaceeeeiiiidnooooouuuuyy")
     data[[i]] <- enc2utf8(chartr(unwanted, wanted, data[[i]]))
     data[[i]] <- iconv(data[[i]], "UTF-8", "ASCII//TRANSLIT", "?")
   }
