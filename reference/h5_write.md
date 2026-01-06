@@ -38,12 +38,13 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
 - as:
 
-  The target HDF5 data type. Can be one of `"auto"`, `"float16"`,
-  `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`,
-  `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. The
-  default, `"auto"`, selects `"int32"` for integers without
-  `NA`s,`"uint8"` for logicals without `NA`s, and `"float64"` for
-  everything else. See details below.
+  The target HDF5 data type. Can be one of `"auto"`, `"utf8"`,
+  `"ascii"`, `"float16"`, `"float32"`, `"float64"`, `"int8"`, `"int16"`,
+  `"int32"`, `"int64"`, `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`,
+  or `"skip"`. The default, `"auto"`, selects `"int32"` for integers
+  without `NA`s, `"uint8"` for logicals without `NA`s, `"utf8"` for
+  character strings, and `"float64"` for everything else. See details
+  below.
 
 - compress:
 
@@ -123,14 +124,11 @@ without breaking the link.
 
 ## Data Type Selection (`as` Argument)
 
-The `as` argument controls the on-disk storage type and only applies to
-`logical` and `numeric` (`integer` / `double`) vectors. For all other
-data types (`character`, `complex`, `factor`, `raw`), the storage type
-is determined automatically.
+The `as` argument controls the on-disk storage type.
 
 The `as` argument can be one of the following:
 
-- **Global:** A single string, e.g., `"auto"`, `"float32"`, `"int64"`.
+- **Global:** A single string, e.g., `"auto"`, `"float32"`, `"ascii"`.
 
 - **Specific:** A named vector mapping names or type classes to HDF5
   types. Matches `h5_read` behavior:
@@ -139,20 +137,33 @@ The `as` argument can be one of the following:
 
   - `"@attr_name" = "type"`: Specific attached attribute.
 
-  - `".int" = "type"`: Class-based (e.g., .int, .double, .logical).
+  - `".integer" = "type"`: Class-based (e.g., `.integer`, `.double`,
+    `.logical`, `.character`, `.numeric`).
 
-  - `"." = "type"`: Global default fallback.
+  - `"." = "type"`: Global default fallback (applies to all supported
+    types).
+
+**Class-based Priority:** When selecting a type based on class, specific
+selectors override general ones:
+
+1.  `.integer` and `.double` (Highest Priority)
+
+2.  `.numeric` (Targets both integer and double)
+
+3.  `.` (Lowest Priority)
 
 If `as` is set to `"auto"` (the default), `h5lite` will automatically
-select `float64` for double vectors, `int32` for integer vectors, and
-`uint8` for logical vectors. If an integer or logical vector contains
-`NA`, it is stored using `float64` to enable encoding of `NA` as a
-sentinel value.
+select `float64` for double vectors, `int32` for integer vectors,
+`uint8` for logical vectors, and `utf8` for character vectors. If an
+integer or logical vector contains `NA`, it is stored using `float64` to
+enable encoding of `NA` as a sentinel value.
 
 To override this automatic behavior, you can specify an exact type. The
 full list of supported values is:
 
 - `"auto"`, `"skip"`
+
+- `"utf8"`, `"ascii"` (for character data)
 
 - `"float16"`, `"float32"`, `"float64"`
 

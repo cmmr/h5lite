@@ -68,11 +68,12 @@ and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-as">as<a class="anchor" aria-label="anchor" href="#arg-as"></a></dt>
-<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code>, <code>"float16"</code>,
-<code>"float32"</code>, <code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code>, <code>"uint8"</code>,
-<code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code>, or <code>"skip"</code>. The default, <code>"auto"</code>,
-selects <code>"int32"</code> for integers without <code>NA</code>s,<code>"uint8"</code> for logicals
-without <code>NA</code>s, and <code>"float64"</code> for everything else. See details below.</p></dd>
+<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code>, <code>"utf8"</code>, <code>"ascii"</code>,
+<code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>,
+<code>"int64"</code>, <code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code>, or <code>"skip"</code>.
+The default, <code>"auto"</code>, selects <code>"int32"</code> for integers without <code>NA</code>s, <code>"uint8"</code>
+for logicals without <code>NA</code>s, <code>"utf8"</code> for character strings, and <code>"float64"</code>
+for everything else. See details below.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
@@ -160,23 +161,26 @@ link.</p>
     <h2 id="data-type-selection-as-argument-">Data Type Selection (<code>as</code> Argument)<a class="anchor" aria-label="anchor" href="#data-type-selection-as-argument-"></a></h2>
 
 
-<p>The <code>as</code> argument controls the on-disk storage type and only applies to
-<code>logical</code> and <code>numeric</code> (<code>integer</code> / <code>double</code>) vectors. For all other data
-types (<code>character</code>, <code>complex</code>, <code>factor</code>, <code>raw</code>), the storage type is
-determined automatically.</p>
-<p>The <code>as</code> argument can be one of the following:</p><ul><li><p><strong>Global:</strong> A single string, e.g., <code>"auto"</code>, <code>"float32"</code>, <code>"int64"</code>.</p></li>
+<p>The <code>as</code> argument controls the on-disk storage type.</p>
+<p>The <code>as</code> argument can be one of the following:</p><ul><li><p><strong>Global:</strong> A single string, e.g., <code>"auto"</code>, <code>"float32"</code>, <code>"ascii"</code>.</p></li>
 <li><p><strong>Specific:</strong> A named vector mapping names or type classes to HDF5 types.
 Matches <code>h5_read</code> behavior:</p><ul><li><p><code>"col_name" = "type"</code>: Specific dataset/column.</p></li>
 <li><p><code>"@attr_name" = "type"</code>: Specific attached attribute.</p></li>
-<li><p><code>".int" = "type"</code>: Class-based (e.g., .int, .double, .logical).</p></li>
-<li><p><code>"." = "type"</code>: Global default fallback.</p></li>
+<li><p><code>".integer" = "type"</code>: Class-based (e.g., <code>.integer</code>, <code>.double</code>, <code>.logical</code>, <code>.character</code>, <code>.numeric</code>).</p></li>
+<li><p><code>"." = "type"</code>: Global default fallback (applies to all supported types).</p></li>
 </ul></li>
-</ul><p>If <code>as</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
-select <code>float64</code> for double vectors, <code>int32</code> for integer vectors, and <code>uint8</code>
-for logical vectors. If an integer or logical vector contains <code>NA</code>, it is
-stored using <code>float64</code> to enable encoding of <code>NA</code> as a sentinel value.</p>
+</ul><p><strong>Class-based Priority:</strong>
+When selecting a type based on class, specific selectors override general ones:</p><ol><li><p><code>.integer</code> and <code>.double</code> (Highest Priority)</p></li>
+<li><p><code>.numeric</code> (Targets both integer and double)</p></li>
+<li><p><code>.</code> (Lowest Priority)</p></li>
+</ol><p>If <code>as</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
+select <code>float64</code> for double vectors, <code>int32</code> for integer vectors, <code>uint8</code>
+for logical vectors, and <code>utf8</code> for character vectors. If an integer or
+logical vector contains <code>NA</code>, it is stored using <code>float64</code> to enable encoding
+of <code>NA</code> as a sentinel value.</p>
 <p>To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"skip"</code></p></li>
+<li><p><code>"utf8"</code>, <code>"ascii"</code> (for character data)</p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>

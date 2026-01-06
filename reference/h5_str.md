@@ -57,7 +57,7 @@ h5_write("metadata", file, "group", attr = "info")
 h5_str(file)
 #> /
 #> └── group
-#>     ├── @info <string × 1>
+#>     ├── @info <utf8 × 1>
 #>     ├── x <int32 × 10>
 #>     └── y <int32 × 3 × 3>
 
