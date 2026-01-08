@@ -15,12 +15,14 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   R_TYPE      *member_rtypes    = (R_TYPE *)     R_alloc(n_cols, sizeof(R_TYPE));
   hid_t       *mem_member_types = (hid_t *)      R_alloc(n_cols, sizeof(hid_t));
   size_t       total_mem_size   = 0;
+  size_t       max_fixed_width  = 0;
   
   SEXP result         = PROTECT(allocVector(VECSXP, n_cols));
   SEXP col_names_sexp = allocVector(STRSXP, n_cols);
   setAttrib(result, R_NamesSymbol, col_names_sexp);
   
   /* 1. Setup Types */
+  /* Iterate through each member (column) of the compound type */
   for (int c = 0; c < n_cols; c++) {
     char *member_name = H5Tget_member_name(file_type_id, c);
     if (member_name) { SET_STRING_ELT(col_names_sexp, c, mkCharCE(member_name, CE_UTF8)); }
@@ -29,6 +31,8 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     hid_t file_member_type = H5Tget_member_type(file_type_id, c);
     H5T_class_t file_class = H5Tget_class(file_member_type);
     member_classes[c] = file_class;
+    
+    /* Determine the target R type based on user 'as' map */
     member_rtypes[c] = rtype_from_map(file_member_type, rmap, member_name);
     
     if (file_class == H5T_INTEGER || file_class == H5T_FLOAT) {
@@ -40,9 +44,18 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       mem_member_types[c] = H5Tcopy(file_member_type);
     }
     else if (file_class == H5T_STRING) {
-      H5T_cset_t cset     = H5Tget_cset(file_member_type);
+      H5T_cset_t cset = H5Tget_cset(file_member_type);
       mem_member_types[c] = H5Tcopy(H5T_C_S1);
-      H5Tset_size(mem_member_types[c], H5T_VARIABLE);
+      
+      /* Check if the file has Variable or Fixed length strings. */
+      if (H5Tis_variable_str(file_member_type)) {
+        H5Tset_size(mem_member_types[c], H5T_VARIABLE);
+      } else {
+        size_t fixed_width = H5Tget_size(file_member_type);
+        H5Tset_size(mem_member_types[c], fixed_width);
+        if (max_fixed_width < fixed_width) max_fixed_width = fixed_width;
+      }
+      
       H5Tset_cset(mem_member_types[c], cset);
     }
     else if (file_class == H5T_OPAQUE) {
@@ -61,6 +74,10 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     H5Tclose(file_member_type);
   }
   
+  /* Temporary buffer for copying and null-terminating fixed length strings */
+  char *fixed_width_buffer = (char *) R_alloc(max_fixed_width + 1, sizeof(char));
+  
+  
   /* 2. Create Compound Memory Type */
   hid_t mem_type_id = H5Tcreate(H5T_COMPOUND, total_mem_size);
   size_t mem_offset = 0;
@@ -75,8 +92,8 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   char *buffer = (char *)malloc(n_rows * total_mem_size);
   if (!buffer) { // # nocov start
     H5Tclose(mem_type_id); UNPROTECT(1); /* result */
-    for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
-    return mkChar("Memory allocation failed"); 
+  for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
+  return mkChar("Memory allocation failed"); 
   } // # nocov end
   
   herr_t status;
@@ -85,8 +102,8 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   
   if (status < 0) {  // # nocov start
     free(buffer); H5Tclose(mem_type_id); UNPROTECT(1); /* result */
-    for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
-    return mkChar("Failed to read compound data"); 
+  for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
+  return mkChar("Failed to read compound data"); 
   } // # nocov end
   
   /* 4. Unpack Buffer */
@@ -143,11 +160,26 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     } 
     else if (mclass == H5T_STRING) {
       r_column = PROTECT(allocVector(STRSXP, n_rows));
-      for (hsize_t r = 0; r < n_rows; r++) {
-        char *src = buffer + (r * total_mem_size) + member_offset;
-        char *str_ptr; memcpy(&str_ptr, src, sizeof(char *)); 
-        if (str_ptr) { SET_STRING_ELT(r_column, r, mkCharCE(str_ptr, CE_UTF8)); }
-        else         { SET_STRING_ELT(r_column, r, NA_STRING); }
+      
+      /* VARIABLE LENGTH: The buffer contains 'char*' pointers */
+      if (H5Tis_variable_str(mem_member_types[c])) {
+        for (hsize_t r = 0; r < n_rows; r++) {
+          char *src = buffer + (r * total_mem_size) + member_offset;
+          char *str_ptr; memcpy(&str_ptr, src, sizeof(char *)); 
+          if (str_ptr) { SET_STRING_ELT(r_column, r, mkCharCE(str_ptr, CE_UTF8)); }
+          else         { SET_STRING_ELT(r_column, r, NA_STRING); }
+        }
+      }
+      
+      /* FIXED LENGTH: The buffer contains raw bytes (inline) */
+      else {
+        size_t str_size = H5Tget_size(mem_member_types[c]);
+        for (hsize_t r = 0; r < n_rows; r++) {
+          char *src = buffer + (r * total_mem_size) + member_offset;
+          memcpy(fixed_width_buffer, src, str_size);
+          fixed_width_buffer[str_size] = '\0';
+          SET_STRING_ELT(r_column, r, mkCharCE(fixed_width_buffer, CE_UTF8));
+        }
       }
     } 
     else if (mclass == H5T_OPAQUE) {
@@ -216,7 +248,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   
   setAttrib(result, R_RowNamesSymbol, row_names_attr);
   UNPROTECT(1); /* row_names_attr */
-              
+  
   if (is_dataset) { H5Dvlen_reclaim(mem_type_id, space_id, H5P_DEFAULT, buffer); }
   else            { H5Treclaim(mem_type_id, space_id, H5P_DEFAULT, buffer);      }
   free(buffer);
@@ -227,6 +259,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   UNPROTECT(1);
   return result;
 }
+
 
 /*
  * Writes an R data.frame as a compound HDF5 object (dataset or attribute).
@@ -245,17 +278,17 @@ SEXP write_dataframe(
   if (n_cols == 0) return errmsg_1("Cannot write empty data.frame '%s'", obj_name);
   R_xlen_t n_rows = (n_cols > 0) ? XLENGTH(VECTOR_ELT(data, 0)) : 0;
   
-  /* Create and protect a shallow copy of `data` so we can modify it without affecting the original R object. */
   data = PROTECT(duplicate(data));
   SEXP col_names = PROTECT(getAttrib(data, R_NamesSymbol));
   
   /* --- 2. Prepare Columns, Types, and Coercion --- */
-  /* We use col_ptrs to store the columns we will actually write. 
-     If type promotion is needed (int -> float), we coerce here and store the result in col_ptrs. */
   SEXP *col_ptrs = (SEXP *) R_alloc(n_cols, sizeof(SEXP));
 
   hid_t *ft_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
   hid_t *mt_members = (hid_t *) R_alloc(n_cols, sizeof(hid_t));
+  
+  /* Array to store the fixed byte width for each column (0 = variable length) */
+  size_t *col_fixed_widths = (size_t *) R_alloc(n_cols, sizeof(size_t));
   
   size_t total_file_size = 0;
   size_t total_mem_size = 0;
@@ -264,22 +297,25 @@ SEXP write_dataframe(
     SEXP r_column = VECTOR_ELT(data, c);
     const char *dtype_str = CHAR(STRING_ELT(dtypes, c));
     
-    /* Check if we need to promote Integer/Logical to Double to handle NAs correctly. */
+    /* Pre-calculate string width. 
+     * If dtype_str is e.g. "ascii[10]", this returns 10. 
+     * If "ascii" or "double", returns 0. */
+    col_fixed_widths[c] = get_fixed_byte_width(dtype_str);
+    
     if (TYPEOF(r_column) == INTSXP || TYPEOF(r_column) == LGLSXP) {
       if (strcmp(dtype_str, "float64") == 0 ||
           strcmp(dtype_str, "float32") == 0 ||
           strcmp(dtype_str, "float16") == 0) {
-        /* Coerce to REAL. This handles NA_INTEGER -> NA_REAL conversion automatically. */
         r_column = coerceVector(r_column, REALSXP);
-        SET_VECTOR_ELT(data, c, r_column); // Update the data copy with the coerced column
+        SET_VECTOR_ELT(data, c, r_column);
       }
     }
     
     col_ptrs[c] = r_column;
 
-    /* Now determine HDF5 types based on the (possibly coerced) column */
     ft_members[c] = create_h5_file_type(r_column, dtype_str);
     mt_members[c] = create_r_memory_type(r_column, dtype_str);
+    
     if (ft_members[c] < 0 || mt_members[c] < 0) { // # nocov start
       for (int i = 0; i < c; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
       UNPROTECT(2); // data, col_names
@@ -305,6 +341,8 @@ SEXP write_dataframe(
   }
   
   /* --- 3. Create C Buffer and Serialize Data --- */
+  /* malloc ensures we have a block, but content is undefined. 
+   * We must zero-out memory for fixed-length strings to ensure padding is clean. */
   char *buffer = (char *) malloc(n_rows * total_mem_size);
   if (!buffer) { // # nocov start
     for (int c = 0; c < n_cols; c++) { H5Tclose(ft_members[c]); H5Tclose(mt_members[c]); }
@@ -317,13 +355,10 @@ SEXP write_dataframe(
     for (R_xlen_t c = 0; c < n_cols; c++) {
       size_t col_offset = H5Tget_member_offset(mem_type_id, c);
       char *dest = row_ptr + col_offset;
-      
-      /* Use the pointer from col_ptrs, which may be a coerced SEXP */
       SEXP r_col = col_ptrs[c];
       
       switch (TYPEOF(r_col)) {
         case REALSXP: {
-          /* Handles doubles, bit64, and promoted integers/logicals */
           double val = REAL(r_col)[r];
           memcpy(dest, &val, sizeof(double));
           break;
@@ -349,9 +384,29 @@ SEXP write_dataframe(
           break;
         }
         case STRSXP: {
+          size_t width = col_fixed_widths[c];
           SEXP s = STRING_ELT(r_col, r);
-          const char *ptr = (s == NA_STRING) ? NULL : CHAR(s);
-          memcpy(dest, &ptr, sizeof(const char *));
+          
+          /* Check if this column is Fixed Length or Variable Length */
+          if (width > 0) {
+            /* FIXED LENGTH LOGIC */
+            /* 1. Zero out the destination buffer (padding) */
+            memset(dest, 0, width);
+            
+            /* 2. Copy data if not NA */
+            if (s != NA_STRING) {
+              const char *utf8_s = Rf_translateCharUTF8(s);
+              /* Copy up to 'width' bytes. 
+               * strncpy does not guarantee null-termination if string >= width, 
+               * which is exactly what HDF5 expects for full fixed-width strings. */
+              strncpy(dest, utf8_s, width);
+            }
+          }
+          else {
+            /* VARIABLE LENGTH LOGIC (POINTER) */
+            const char *ptr = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
+            memcpy(dest, &ptr, sizeof(const char *));
+          }
           break;
         }
         default: { // # nocov start
@@ -370,10 +425,17 @@ SEXP write_dataframe(
   hid_t obj_id = -1;
   
   if (is_attribute) {
-    obj_id = H5Acreate2(loc_id, obj_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
-  } else {
+    hid_t acpl_id = H5Pcreate(H5P_ATTRIBUTE_CREATE);
+    H5Pset_char_encoding(acpl_id, H5T_CSET_UTF8);
+    
+    obj_id = H5Acreate2(loc_id, obj_name, file_type_id, space_id, acpl_id, H5P_DEFAULT);
+    H5Pclose(acpl_id);
+  }
+  else {
     hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
     H5Pset_create_intermediate_group(lcpl_id, 1);
+    H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
+    
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     if (compress_level > 0 && n_rows > 0) {
       hsize_t chunk_dims = 0;
@@ -398,16 +460,11 @@ SEXP write_dataframe(
   herr_t status = write_buffer_to_object(obj_id, mem_type_id, buffer);
   
   /* Attach Row Names as Dimension Scale (if Dataset) */
-  /* Only done if this is a dataset (not an attribute) and success so far */
   if (!is_attribute && status >= 0) {
       SEXP row_names = getAttrib(data, R_RowNamesSymbol);
-      /* Only write row names if they are explicit strings.
-       * R uses a special "compact" integer form for implicit row names (1:n), which we ignore. */
       if (row_names != R_NilValue && TYPEOF(row_names) == STRSXP) {
           char scale_name[1024];
           snprintf(scale_name, sizeof(scale_name), "%s_rownames", obj_name);
-          
-          /* Use helper to write scale to Dim 0 */
           write_single_scale(loc_id, obj_id, scale_name, row_names, 0);
       }
   }

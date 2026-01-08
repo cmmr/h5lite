@@ -16,7 +16,9 @@ void set_r_dimensions(SEXP result, int ndims, hsize_t *dims) {
   }
 }
 
-/* Callback function to iterate over scales */
+/* * Callback function to iterate over attached dimension scales.
+ * We stop at the first one found, assuming it's the primary label set.
+ */
 herr_t visitor_find_scale(hid_t dset, unsigned dim, hid_t scale, void *visitor_data) {
   scale_visitor_t *data = (scale_visitor_t *)visitor_data;
   H5Iinc_ref(scale); /* Increment ref count to keep ID valid after return */
@@ -27,18 +29,25 @@ return 1; /* Stop iteration after finding the first scale */
 
 
 /* --- ATOMIC DATASET DIMENSION SCALES READER --- */
-
+/*
+ * Reads Dimension Scales attached to a dataset and converts them into R 
+ * dimnames (list of character vectors).
+ */
 void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
   if (rank == 0) return; 
   
   SEXP dimnames_list = R_NilValue;
   int has_any_scale = 0;
   
+  /* Allocate list of length 'rank' (e.g., 2 for a matrix) */
   if (rank == 1) { dimnames_list = PROTECT(allocVector(VECSXP, 1)); } 
   else           { dimnames_list = PROTECT(allocVector(VECSXP, rank)); }
   
+  /* Iterate through each dimension (0 to rank-1) */
   for (int i = 0; i < rank; i++) {
+    /* Check if this dimension has any scales attached */
     if (H5DSget_num_scales(dset_id, (unsigned)i) > 0) {
+      
       scale_visitor_t vis_data = { -1, 0 };
       H5DSiterate_scales(dset_id, (unsigned)i, NULL, visitor_find_scale, &vis_data);
       
@@ -54,8 +63,11 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
         hsize_t total = 1;
         for(int k=0; k<s_ndims; k++) total *= s_dims[k];
         
+        /* Only use string scales as R dimnames */
         if (H5Tget_class(ftype) == H5T_STRING) {
           SEXP names_vec = PROTECT(read_character(scale_id, 1, ftype, space, s_ndims, s_dims, total));
+          
+          /* Validate length matches expected dimension length */
           if (TYPEOF(names_vec) == STRSXP && (hsize_t)XLENGTH(names_vec) == total) {
             SET_VECTOR_ELT(dimnames_list, i, names_vec);
             has_any_scale = 1;
@@ -67,7 +79,9 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
     }
   }
   
+  /* Attach to R object */
   if (has_any_scale) {
+    /* Special case: 1D vector uses "names" attribute, not "dimnames" list */
     if (rank == 1 && getAttrib(result, R_DimSymbol) == R_NilValue) {
       SEXP names = VECTOR_ELT(dimnames_list, 0);
       if (names != R_NilValue) { setAttrib(result, R_NamesSymbol, names); }
@@ -83,6 +97,7 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
 
 /*
  * Checks if the SEXP has `names` or `dimnames` and creates/attaches HDF5 Dimension Scales.
+ * Used for atomic vectors, matrices, and arrays.
  */
 void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data) {
   
@@ -95,7 +110,7 @@ void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data
       SEXP dims = getAttrib(data, R_DimSymbol);
       int rank = (int)XLENGTH(dims);
       
-      /* Rank 2 is treated as a Matrix */
+      /* Rank 2 is treated as a Matrix (rownames, colnames) */
       if (rank == 2) {
         if (XLENGTH(dimnames) == 2) {
           for (int i = 0; i < 2; i++) {
@@ -130,7 +145,7 @@ void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data
   }
   
   else {
-    /* Handle atomic vectors */
+    /* Handle atomic vectors (names) */
     SEXP names = getAttrib(data, R_NamesSymbol);
     if (names != R_NilValue && TYPEOF(names) == STRSXP && XLENGTH(names) > 0) {
       char scale_name[1024];
@@ -143,14 +158,16 @@ void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data
 
 /* --- DIMENSION SCALES HELPER --- */
 /*
- * Creates a string dataset and attaches it as a Dimension Scale.
- * Used by both atomic datasets and compound data frames.
+ * Creates a string dataset and attaches it as a Dimension Scale to the parent dataset.
+ * * 1. Creates a new dataset (e.g., "dset_rownames") with UTF-8 strings.
+ * 2. Marks it as a Dimension Scale using H5DSset_scale.
+ * 3. Attaches it to the main dataset using H5DSattach_scale.
  */
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx) {
-
+  
   if (labels == R_NilValue || TYPEOF(labels) != STRSXP || XLENGTH(labels) == 0) return;
-
-  /* 1. Remove existing scale if we are overwriting */
+  
+  /* 1. Remove existing scale if we are overwriting to prevent stale data */
   handle_overwrite(loc_id, scale_name);
   
   /* 2. Create the dataset for the labels */
@@ -160,7 +177,13 @@ void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEX
   H5Tset_size(file_type_id, H5T_VARIABLE);
   H5Tset_cset(file_type_id, H5T_CSET_UTF8);
   
-  hid_t scale_dset_id = H5Dcreate2(loc_id, scale_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  /* Create property list to ensure the SCALE NAME is UTF-8 */
+  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
+  
+  hid_t scale_dset_id = H5Dcreate2(loc_id, scale_name, file_type_id, space_id, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
+  
+  H5Pclose(lcpl_id);
   
   if (scale_dset_id >= 0) {
     /* 3. Write the strings */

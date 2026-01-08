@@ -3,6 +3,7 @@
 /*
  * C implementation of h5_create_group().
  * Recursively creates groups to ensure the full path exists.
+ * * Uses H5Pset_create_intermediate_group(1) to act like `mkdir -p`.
  */
 SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
@@ -20,15 +21,14 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
   
   hid_t file_id = open_or_create_file(fname);
   
-  /* Create Link Creation Property List */
+  /* Create Link Creation Property List to enable intermediate group creation */
   hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
-  
-  /* Enable creating intermediate groups (mkdir -p behavior) */
   H5Pset_create_intermediate_group(lcpl_id, 1);
+  H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
   
   /* 2. Error Suppression
    * We expect H5Gcreate2 to fail if the group already exists.
-   * We must turn off HDF5's auto-error printing so the user doesn't see the
+   * We turn off HDF5's auto-error printing so the user doesn't see the
    * "name already exists" traceback in the console.
    */
   H5E_auto2_t old_func;
@@ -56,7 +56,7 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
       H5Gclose(check_id); /* It exists and is a group. Success. */
     } else {
       H5Fclose(file_id);
-      /* Now we allow the error to be raised to R */
+      /* Now we allow the error to be raised to R (e.g. file permission, or it's a Dataset) */
       error("Failed to create group (or object exists and is not a group): %s", gname);
     }
   }
@@ -71,7 +71,7 @@ SEXP C_h5_create_group(SEXP filename, SEXP group_name) {
 
 /*
  * C implementation of h5_move().
- * Wraps H5Lmove to rename/move objects.
+ * Wraps H5Lmove to rename or move objects within the file.
  */
 SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
@@ -84,6 +84,7 @@ SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name) {
   /* Create Link Creation Property List to auto-create parent groups for destination */
   hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl_id, 1);
+  H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
   
   herr_t status = H5Lmove(file_id, src, file_id, dest, lcpl_id, H5P_DEFAULT);
   

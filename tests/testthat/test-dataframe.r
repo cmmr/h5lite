@@ -5,35 +5,58 @@ test_that("Data frames work (Compound)", {
   df <- data.frame(
     int = 1:3,
     dbl = c(1.1, 2.2, 3.3),
-    chr = c("a", "b", NA),
+    chr0 = c("a", "b", NA),
+    chr1 = c("a", "b", NA),
+    chr2 = c("a", "b", NA),
+    chr3 = c("a", "b", "c"),
+    chr4 = c("a", "b", "c"),
+    chr5 = c("a", "b", "c"),
+    chr6 = c("a", "b", "c"),
     fac = factor(c("a", "b", "c")),
     cpx = c(1+1i, 1+2i, 3+4i),
     raw = as.raw(1:3),
     cnv = c(1:2, NA_integer_),
     lgl = c(TRUE, FALSE, TRUE),
-    skp = 1:3,
+    int_skp = 1:3,
+    chr_skp = c("a", "b", "c"),
     stringsAsFactors = FALSE
   )
   
   rownames(df) <- LETTERS[1:3]
   
+  col_map <- c(
+    int_skp = "skip",
+    chr_skp = "skip",
+    chr1    = "utf",
+    chr2    = "ascii",
+    chr3    = "utf[]",
+    chr4    = "utf[3]",
+    chr5    = "ascii[]",
+    chr6    = "ascii[3]" )
+  
   
   # As a dataset ---------------------------------
   
-  h5_write(df, file, "df", as = c('skp' = "skip"))
+  h5_write(df, file, "df", as = col_map)
   expect_equal(h5_class(file, "df"), "data.frame")
   expect_equal(h5_typeof(file, "df"), "compound")
   
   res <- h5_read(file, "df")
   expect_null(res$skp)
-  expect_equal(res$int, df$int)
-  expect_equal(res$dbl, df$dbl)
-  expect_equal(res$chr, df$chr)
-  expect_equal(res$fac, df$fac)
-  expect_equal(res$cpx, df$cpx)
-  expect_equal(res$raw, df$raw)
-  expect_equal(res$lgl, c(1, 0, 1))       # Default int
-  expect_equal(res$cnv, c(1:2, NA_real_)) # Default float
+  expect_equal(res$int,  df$int)
+  expect_equal(res$dbl,  df$dbl)
+  expect_equal(res$chr0, df$chr0)
+  expect_equal(res$chr1, df$chr1)
+  expect_equal(res$chr2, df$chr2)
+  expect_equal(res$chr3, df$chr3)
+  expect_equal(res$chr4, df$chr4)
+  expect_equal(res$chr5, df$chr5)
+  expect_equal(res$chr6, df$chr6)
+  expect_equal(res$fac,  df$fac)
+  expect_equal(res$cpx,  df$cpx)
+  expect_equal(res$raw,  df$raw)
+  expect_equal(res$lgl,  c(1, 0, 1))       # Default int
+  expect_equal(res$cnv,  c(1:2, NA_real_)) # Default float
   expect_equal(rownames(res), rownames(df))
   
   # Read with mapping

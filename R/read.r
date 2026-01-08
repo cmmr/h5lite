@@ -82,98 +82,63 @@
 h5_read <- function(file, name = "/", attr = NULL, as = "auto") {
   
   file   <- validate_strings(file, name, attr, must_exist = TRUE)
-  as_map <- get_as_mapping(
-    as      = as , 
-    choices = c("auto", "integer", "double", "logical", "bit64", "null") )
+  obj_as <- validate_as(as)
 
-  
+  # Validate choices
+  choices <- c("auto", "integer", "double", "logical", "bit64", "null")
+  if (!missing(choices))
+    for (i in seq_along(obj_as))
+      obj_as[i] <- tryCatch(
+        expr  = match.arg(tolower(obj_as[[i]]), choices),
+        error = function (e) { 
+          stop(
+            call. = FALSE,
+            "Invalid `as` argument: '", obj_as[[i]], "'\n", 
+            "Valid options are: '", paste(collapse = "', '", choices), "'.") })
+
+  # Prepare the 'as' map for attributes
+  # Example: obj_as  = c("@ready" = "logical", ".uint" = "integer", "@." = "null")
+  #          attr_as = c("ready" = "logical",  ".uint" = "integer", "."  = "null")
+  attr_as <- obj_as
+  if (!is.null(names(attr_as))) {
+    attr_as <- attr_as[grepl("^[.@]", names(attr_as))] 
+    if (length(attr_as) > 0) {
+      attr_as <- attr_as[rev(order(names(attr_as)))]     
+      names(attr_as) <- sub("^@", "", names(attr_as))
+      attr_as <- attr_as[!duplicated(names(attr_as))]
+    }
+    if (is.null(attr_as) || length(attr_as) == 0) attr_as <- "auto"
+  }
+
   # --- Perform Read Operation ---
+  read_data(file, name, attr, obj_as, attr_as)
+}
+
+
+read_data <- function (file, name, attr = NULL, obj_as, attr_as) {
   
   # Case 1: Read Specific Attribute directly
   if (!is.null(attr))
-    return(.Call("C_h5_read_attribute", file, name, attr, as_map, PACKAGE = "h5lite"))
+    return(.Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite"))
   
   # Case 2: Read Group (Recursive)
   if (h5_is_group(file, name)) {
     children <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
-    res      <- lapply(children, h5_read, file = file, as = as_map)
+    res      <- lapply(children, read_data, file = file, obj_as = obj_as, attr_as = attr_as)
     names(res) <- if (length(res) == 0) NULL else basename(children)
   }
   
   # Case 3: Read Dataset
   else {
-    res <- .Call("C_h5_read_dataset", file, name, as_map, basename(name), PACKAGE = "h5lite")
+    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), PACKAGE = "h5lite")
   }
 
-  # --- Attach Attributes (Recursive) ---
-  attr_names <- h5_attr_names(file, name)
-  attr_names <- setdiff(attr_names, c("DIMENSION_LIST", "REFERENCE_LIST"))
-  if (length(attr_names) > 0) {
-    attr_map <- get_attribute_map(as_map)
-    for (attr_name in attr_names)
-      if (!is.na(h5_class(file, name, attr_name)))
-        attr(res, attr_name) <- h5_read(file, name, attr_name, as = attr_map)
-  }
+  # --- Attach Attributes ---
+  obj_attr_names <- h5_attr_names(file, name)
+  obj_attr_names <- setdiff(obj_attr_names, c("DIMENSION_LIST", "REFERENCE_LIST"))
+  for (attr in obj_attr_names)
+    if (!is.na(h5_class(file, name, attr)))
+      base::attr(res, attr) <- .Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite")
   
   return(res)
-}
-
-
-#' Sanity check the 'as' argument
-#' Ensures all values are valid and that multiple values are named.
-#' @noRd
-#' @keywords internal
-get_as_mapping <- function (as, choices) {
-  
-  if (is.null(as))       return ("auto")
-  if (!is.character(as)) stop('`as` must be a character vector.')
-  
-  if (length(as) > 1 && is.null(names(as)))
-    stop("When 'as' has multiple values, they must be named.")
-  
-  if (!is.null(names(as)) && (any(is.na(names(as))) || any(names(as) == "")))
-    stop("The 'as' argument's names cannot be NA or an empty string.")
-  
-  as_map <- as
-  
-  for (i in seq_along(as_map))
-    as_map[i] <- tryCatch(
-      expr  = match.arg(tolower(as_map[[i]]), choices),
-      error = function (e) { 
-        stop(
-          call. = FALSE,
-          "Invalid `as` argument: '", as_map[[i]], "'\n", 
-          "Valid options are: '", paste(collapse = "', '", choices), "'.") })
-  
-  return (as_map)
-}
-
-
-#' Prepare the 'as' map for attributes
-#' @noRd
-#' @keywords internal
-get_attribute_map <- function(as_map) {
-  
-  if (is.null(names(as_map))) return (as_map)
-
-  # 1. Keep only keys starting with "." (type classes) or "@" (attribute specifics)
-  #    (This removes dataset specific names like "data_col")
-  as_map <- as_map[grepl("^[.@]", names(as_map))] 
-  
-  if (length(as_map) > 0) {
-    # 2. Sort: Reverse order places "@" keys before "." keys 
-    #    (e.g., "@.uint" comes before ".uint")
-    as_map <- as_map[rev(order(names(as_map)))]     
-    
-    # 3. Strip: Remove the "@" prefix so they match the attribute types/names
-    names(as_map) <- sub("^@", "", names(as_map)) 
-    
-    # 4. Dedup: Keep the first occurrence. 
-    #    Since we reverse-sorted, the original "@"-prefixed keys override the standard ones.
-    as_map <- as_map[!duplicated(names(as_map))]    
-  }
-  
-  if (is.null(as_map) || length(as_map) == 0) return ("auto")
-  
-  return(as_map)
 }

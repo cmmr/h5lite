@@ -75,6 +75,7 @@ test_that("Coercion on write", {
   h5_write(Sys.time(), file, 'now')
   h5_write(data.frame(x=1:5, y=6:10), file, "df", as = c(x = "skip"))
   h5_write(integer(0), file, "zerolen", as = "float16")
+  h5_write(integer(0), file, "zerolen", as = "bfloat16")
   
   lst <- list(vec = 1:5, nil = NULL)
   attr(lst$vec, 'attr_lst') <- list(z = 1)

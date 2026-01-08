@@ -3,24 +3,24 @@
 
 // # nocov start
 SEXP errmsg_1(const char *fmt, const char *str1) {
-    int   len    = snprintf(NULL, 0, fmt, str1);
-    char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-    snprintf(buffer, len + 1, fmt, str1);
-    return mkCharCE(buffer, CE_UTF8);
+  int   len    = snprintf(NULL, 0, fmt, str1);
+  char *buffer = (char *) R_alloc(len + 1, sizeof(char));
+  snprintf(buffer, len + 1, fmt, str1);
+  return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_2(const char *fmt, const char *str1, const char *str2) {
-    int   len    = snprintf(NULL, 0, fmt, str1, str2);
-    char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-    snprintf(buffer, len + 1, fmt, str1, str2);
-    return mkCharCE(buffer, CE_UTF8);
+  int   len    = snprintf(NULL, 0, fmt, str1, str2);
+  char *buffer = (char *) R_alloc(len + 1, sizeof(char));
+  snprintf(buffer, len + 1, fmt, str1, str2);
+  return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_3(const char *fmt, const char *str1, const char *str2, const char *str3) {
-    int   len    = snprintf(NULL, 0, fmt, str1, str2, str3);
-    char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-    snprintf(buffer, len + 1, fmt, str1, str2, str3);
-    return mkCharCE(buffer, CE_UTF8);
+  int   len    = snprintf(NULL, 0, fmt, str1, str2, str3);
+  char *buffer = (char *) R_alloc(len + 1, sizeof(char));
+  snprintf(buffer, len + 1, fmt, str1, str2, str3);
+  return mkCharCE(buffer, CE_UTF8);
 }
 // # nocov end
 
@@ -42,6 +42,9 @@ void* get_R_data_ptr(SEXP data) {
  * Transposes a multi-dimensional array between R's column-major order and
  * HDF5's row-major (C) order.
  *
+ * This function uses an "odometer" approach to iterate through multi-dimensional
+ * coordinates, mapping the linear index from source to destination.
+ *
  * @param src Pointer to the source data buffer.
  * @param dest Pointer to the destination data buffer.
  * @param rank The number of dimensions of the array.
@@ -49,6 +52,7 @@ void* get_R_data_ptr(SEXP data) {
  * @param el_size The size in bytes of a single element.
  * @param direction_to_r If 1, transposes from HDF5 to R. If 0, transposes from R to HDF5.
  * direction_to_r = 0 : R (Col-Major) -> HDF5 (Row-Major)
+ * direction_to_r = 1 : HDF5 (Row-Major) -> R (Col-Major)
  */
 void h5_transpose(void *src, void *dest, int rank, hsize_t *dims, size_t el_size, int direction_to_r) {
   /* For scalars (rank=0) or vectors (rank=1), no transposition is needed, just a direct copy. */
@@ -62,14 +66,16 @@ void h5_transpose(void *src, void *dest, int rank, hsize_t *dims, size_t el_size
   hsize_t total_elements = 1;
   for (int i = 0; i < rank; i++) total_elements *= dims[i];
   
-  /* Calculate strides for C (row-major) order. */
-  /* The last dimension is contiguous (stride=1). */
+  /* Calculate strides for C (row-major) order. 
+   * Last dimension varies fastest (stride = 1).
+   */
   hsize_t *c_strides = (hsize_t *)malloc(rank * sizeof(hsize_t));
   c_strides[rank - 1] = 1;
   for (int i = rank - 2; i >= 0; i--) c_strides[i] = c_strides[i + 1] * dims[i + 1];
   
-  /* Calculate strides for R (column-major) order. */
-  /* The first dimension is contiguous (stride=1). */
+  /* Calculate strides for R (column-major) order. 
+   * First dimension varies fastest (stride = 1).
+   */
   hsize_t *r_strides = (hsize_t *)malloc(rank * sizeof(hsize_t));
   r_strides[0] = 1;
   for (int i = 1; i < rank; i++) r_strides[i] = r_strides[i - 1] * dims[i - 1];
@@ -123,7 +129,7 @@ void h5_transpose(void *src, void *dest, int rank, hsize_t *dims, size_t el_size
  *
  * Matching Logic & Precedence:
  * 1. Global Override: If `rmap` is a single unnamed string (e.g., "bit64"),
- *    it applies to all integer/float data.
+ * it applies to all integer/float data.
  * 2. Element Name: If `el_name` matches a name in `rmap`, that type is used.
  * 3. Specific Type: Checks for keys like ".int32", ".uint64", ".float32".
  * 4. Generic Category: Checks for keys like ".int" (signed), ".uint" (unsigned), ".float".
@@ -137,13 +143,13 @@ void h5_transpose(void *src, void *dest, int rank, hsize_t *dims, size_t el_size
  * @return               The target R_TYPE enum.
  */
 R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
-
+  
   if (rmap == R_NilValue || LENGTH(rmap) == 0) return R_TYPE_AUTO;
   
   /* Retrieve the names attribute and HDF5 class. */
   SEXP        names_vec = getAttrib(rmap, R_NamesSymbol);
   H5T_class_t class_id  = H5Tget_class(file_type_id);
-
+  
   /* Check for global type coercion (length 1, unnamed). */
   if (LENGTH(rmap) == 1 && names_vec == R_NilValue) {
     const char *rtype = CHAR(STRING_ELT(rmap, 0));
@@ -155,9 +161,9 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
     if (class_id == H5T_FLOAT)         return R_TYPE_DOUBLE;
     return R_TYPE_AUTO;
   }
-
+  
   if (names_vec == R_NilValue) return R_TYPE_AUTO;
-
+  
   /* Check if el_name matches a specific entry in rmap. */
   for (int i = 0; i < LENGTH(rmap); i++) {
     const char *key = Rf_translateCharUTF8(STRING_ELT(names_vec, i));
@@ -172,12 +178,12 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
       return R_TYPE_AUTO;
     }
   }
-
+  
   /* Search for type-specific and general type mappings. */
-
+  
   char needle_full[12];
   char needle_type[12];
-
+  
   /* Construct type keys (e.g., ".int32", ".uint") based on HDF5 class and sign. */
   int bitwidth = (int)H5Tget_size(file_type_id) * 8;
   if (class_id == H5T_FLOAT) {
@@ -192,7 +198,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
     snprintf(needle_type, sizeof(needle_type), ".int");
     snprintf(needle_full, sizeof(needle_full), ".int%d", bitwidth);
   }
-
+  
   R_TYPE dot_match  = R_TYPE_NOMATCH;
   R_TYPE type_match = R_TYPE_NOMATCH;
   
@@ -203,9 +209,9 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
     
     /* Check for matches: specific type (.int32), general type (.int), or default (.) */
     if (strcmp(key, needle_full) == 0 || strcmp(key, needle_type) == 0 || strcmp(key, ".") == 0) {
-    
+      
       const char *value = CHAR(STRING_ELT(rmap, i));
-
+      
       R_TYPE result = R_TYPE_DOUBLE;
       if (strcmp(value, "logical") == 0) result = R_TYPE_LOGICAL;
       if (strcmp(value, "integer") == 0) result = R_TYPE_INTEGER;
@@ -218,11 +224,11 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
       else                                    { dot_match  = result; }
     }
   }
-
+  
   if (type_match != R_TYPE_NOMATCH) return type_match;
   if (dot_match  != R_TYPE_NOMATCH) return dot_match;
   if (class_id == H5T_FLOAT)        return R_TYPE_DOUBLE;
-
+  
   return R_TYPE_AUTO;
 }
 
@@ -233,7 +239,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
  * This function handles the final conversion step after reading data from HDF5.
  * It supports:
  * 1. "auto": Checks if double values fit within R's integer range. If so, converts
- *    to integer. Otherwise, leaves as double. Only checks H5T_INTEGER file classes.
+ * to integer. Otherwise, leaves as double. Only checks H5T_INTEGER file classes.
  * 2. "bit64": Adds the "integer64" class attribute for 64-bit integers.
  * 3. "logical" / "integer": Forces coercion using R's standard coercion functions.
  *
@@ -243,7 +249,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
  * @return             The coerced R vector (protected).
  */
 SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id) {
-
+  
   PROTECT(data);
   
   H5T_class_t data_class = H5Tget_class(file_type_id);
@@ -284,7 +290,7 @@ SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id) {
   else if (rtype == R_TYPE_INTEGER) {
     data = coerceVector(data, INTSXP);
   }
-
+  
   UNPROTECT(1);
   return data;
 }

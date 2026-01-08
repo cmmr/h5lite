@@ -11,14 +11,15 @@
 #' @param attr The name of an attribute to write.
 #'   * If `NULL` (default), `data` is written as a dataset or group at the path `name`.
 #'   * If provided (string), `data` is written as an attribute named `attr` attached to the object `name`.
-#' @param as The target HDF5 data type. Can be one of `"auto"`, `"utf8"`, `"ascii"`,
-#'   `"float16"`, `"float32"`, `"float64"`, `"int8"`, `"int16"`, `"int32"`, 
-#'   `"int64"`, `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`, or `"skip"`. 
-#'   The default, `"auto"`, selects `"int32"` for integers without `NA`s, `"uint8"` 
-#'   for logicals without `NA`s, `"utf8"` for character strings, and `"float64"` 
-#'   for everything else. See details below.
-#' @param compress A logical or an integer from 0-9. If `TRUE`, 
-#'   compression level 5 is used. If `FALSE` or `0`, no compression is used. 
+#' @param as The target HDF5 data type. Can be one of `"auto"` (default),
+#'   `"skip"`, `"utf8"`, `"ascii"`, `"bfloat16"`, `"float16"`, `"float32"`,
+#'   `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
+#'   `"uint16"`, `"uint32"`, or `"uint64"`. To use fixed length strings,
+#'   suffix `"utf8"` or `"ascii"` with `"[<int>]"` (e.g., `"ascii[100]"`). Omit
+#'   `"<int>"` (e.g. `"utf8[]"`) to use the longest string's length. `NA` can
+#'   only be stored in a floating point or variable width string data type.
+#' @param compress A logical or an integer from 0-9. If `TRUE`,
+#'   compression level 5 is used. If `FALSE` or `0`, no compression is used.
 #'   An integer `1-9` specifies the zlib compression level directly.
 #' 
 #' @section Writing Scalars:
@@ -101,7 +102,9 @@
 #' To override this automatic behavior, you can specify an exact type. The full
 #' list of supported values is:
 #' - `"auto"`, `"skip"`
-#' - `"utf8"`, `"ascii"` (for character data)
+#' - `"utf8"`, `"ascii"` (variable length strings)
+#' - `"utf8[<int>]"`, `"ascii[<int>]"` (fixed length strings - `<int>` bytes wide)
+#' - `"utf8[]"`, `"ascii[]"` (fixed length strings - auto-selected byte width)
 #' - `"float16"`, `"float32"`, `"float64"`
 #' - `"int8"`, `"int16"`, `"int32"`, `"int64"`
 #' - `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
@@ -148,23 +151,33 @@
 h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE) {
   
   file <- validate_strings(file, name, attr)
+  
   if (!is.null(attr) && !h5_exists(file, name))
     stop("Cannot write attribute '", attr, "' to non-existent object '", name, "'.", call. = FALSE)
-  
-  as_map <- get_as_mapping(
-    as      = as , 
-    choices = c(
-      "auto", "skip", "ascii", "utf8", "float16", "float32", "float64", 
-      "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64" ) )
+
+  # Prepare the 'as' map for objects and attributes
+  # Example: obj_as  = c("@ready" = "logical", ".uint" = "integer", "@." = "null")
+  #          attr_as = c("ready" = "logical",  ".uint" = "integer", "."  = "null")
+  obj_as  <- validate_as(as)
+  attr_as <- obj_as
+  if (!is.null(names(attr_as))) {
+    attr_as <- attr_as[grepl("^[.@]", names(attr_as))] 
+    if (length(attr_as) > 0) {
+      attr_as <- attr_as[rev(order(names(attr_as)))]     
+      names(attr_as) <- sub("^@", "", names(attr_as))
+      attr_as <- attr_as[!duplicated(names(attr_as))]
+    }
+    if (is.null(attr_as) || length(attr_as) == 0) attr_as <- "auto"
+  }
 
   # Write the data
   h5_create_group(file, name = "/")
   if (is_list_group(data)) {
-    write_group(data, file, name, as_map, compress, dry = TRUE)
-    write_group(data, file, name, as_map, compress, dry = FALSE)
+    write_group(data, file, name, obj_as, attr_as, compress, dry = TRUE)
+    write_group(data, file, name, obj_as, attr_as, compress, dry = FALSE)
   } else {
-    write_data(data, file, name, attr, as_map, compress, dry = TRUE)
-    write_data(data, file, name, attr, as_map, compress, dry = FALSE)
+    write_data(data, file, name, attr, obj_as, attr_as, compress, dry = TRUE)
+    write_data(data, file, name, attr, obj_as, attr_as, compress, dry = FALSE)
   }
   
   invisible(file)
@@ -173,21 +186,21 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE
 #' Recursively write a list as a group
 #' @noRd
 #' @keywords internal
-write_group <- function(data, file, name, as_map, compress = TRUE, dry = FALSE) {
+write_group <- function(data, file, name, obj_as, attr_as, compress = TRUE, dry = FALSE) {
 
   if (!dry) h5_delete(file, name, warn = FALSE)
   if (!dry) h5_create_group(file, name)
   
-  write_attributes(data, file, name, as_map, dry = dry)
+  write_attributes(data, file, name, attr_as, dry = dry)
   
   # Recursively write children
   for (child_name in names(data)) {
     child_path <- paste(name, child_name, sep = "/")
     child_data <- data[[child_name]]
     if (is_list_group(child_data)) {
-      write_group(child_data, file, child_path, as_map, compress, dry = dry)
+      write_group(child_data, file, child_path, obj_as, attr_as, compress, dry = dry)
     } else {
-      write_data(child_data, file, child_path, attr = NULL, as_map, compress, dry = dry)
+      write_data(child_data, file, child_path, attr = NULL, obj_as, attr_as, compress, dry = dry)
     }
   }
 }
@@ -195,7 +208,7 @@ write_group <- function(data, file, name, as_map, compress = TRUE, dry = FALSE) 
 #' Write a single dataset or attribute
 #' @noRd
 #' @keywords internal
-write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = FALSE) {
+write_data <- function(data, file, name, attr, obj_as, attr_as, compress = FALSE, dry = FALSE) {
   
   # Convert POSIXt vectors/columns to ISO 8601 character strings.
   if (inherits(data, "POSIXt")) {
@@ -208,7 +221,7 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
   }
 
   map_key <- if (is.null(attr)) basename(name) else attr
-  h5_type <- resolve_h5_type(data, map_key, as_map)
+  h5_type <- resolve_h5_type(data, map_key, obj_as)
   
   if (all(h5_type == "skip")) return (NULL)
   
@@ -217,7 +230,7 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
     h5_type <- h5_type[h5_type != "skip"]
   }
   
-  for (i in which(h5_type == "ascii")) {
+  for (i in which(startsWith(h5_type, "ascii"))) {
     
     # Converts from:      ÀÁÂÃÄÅÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖÙÚÛÜÝàáâãäåçèéêëìíîïðñòóôõöùúûüýÿ
     wanted   <- enc2utf8("AAAAAACEEEEIIIIDNOOOOOUUUUYaaaaaaceeeeiiiidnooooouuuuyy")
@@ -241,7 +254,7 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
     if (!dry)
       .Call("C_h5_write_dataset", file, name, data, h5_type, dims, level, PACKAGE = "h5lite")
     
-    write_attributes(data, file, name, as_map, dry = dry)
+    write_attributes(data, file, name, attr_as, dry = dry)
   }
   else {
     
@@ -253,19 +266,15 @@ write_data <- function(data, file, name, attr, as_map, compress = FALSE, dry = F
 #' Write R attributes to HDF5
 #' @noRd
 #' @keywords internal
-write_attributes <- function(data, file, name, as_map, dry = FALSE) {
+write_attributes <- function(data, file, name, attr_as, dry = FALSE) {
 
   attr_names <- names(attributes(data))
   attr_names <- setdiff(attr_names, c("class", "dim", "dimnames", "names", "row.names"))
 
-  if (length(attr_names) > 0) {
-    attr_map <- get_attribute_map(as_map)
-    for (attr_name in attr_names) {
-      attr_data <- attr(data, attr_name, exact = TRUE)
-      if (is_list_group(attr_data)) next # skip dimnames, etc
-      if (!dry)
-        write_data(attr_data, file, name, attr_name, attr_map, dry = dry)
-    }
+  for (attr in attr_names) {
+    attr_data <- base::attr(data, attr, exact = TRUE)
+    if (is_list_group(attr_data)) next
+    write_data(attr_data, file, name, attr, attr_as, attr_as, dry = dry)
   }
 }
 
@@ -314,7 +323,7 @@ resolve_h5_type <- function(data, name, as_map) {
   
   
   if (is.null(names(as_map))) {
-    h5_type <- as_map
+    h5_type <- tolower(as_map)
     
   } else {
   
@@ -326,7 +335,7 @@ resolve_h5_type <- function(data, name, as_map) {
     h5_type <- "auto"
     for (key in keys) {
       if (key %in% names(as_map)) {
-        h5_type <- as_map[[key]]
+        h5_type <- tolower(as_map[[key]])
         break
       }
     }
@@ -335,18 +344,61 @@ resolve_h5_type <- function(data, name, as_map) {
   
   
   if (is.character(data)) {
+
+    arg_errmsg <- paste("Invalid `as` argument for character vector:", h5_type)
+    na_errmsg  <- paste("`NA` cannot be encoded by fixed length strings.")
     
-    choices <- c("auto", "ascii", "skip", "utf8")
-    h5_type <- match.arg(tolower(h5_type), choices)
-    if (h5_type == "auto") return ("utf8")
+    h5_type <- tolower(h5_type)
+    size    <- NULL
+    
+    # Auto-select fixed length
+    if (endsWith(h5_type, "[]")) {
+      h5_type <- sub('[]', '', h5_type, fixed = TRUE)
+      size    <- max(c(1L, nchar(data, type = "bytes")))
+      if (is.na(size)) stop(na_errmsg, call. = FALSE)
+    }
+    
+    # See if length is provided
+    else {
+      parts <- strsplit(h5_type, "[^a-z0-9]")[[1]]
+      
+      if (length(parts) == 1) {
+        h5_type <- parts[[1]]
+      }
+      
+      else if (length(parts) == 2) {
+        h5_type <- parts[[1]]
+        size    <- parts[[2]]
+        
+        if (anyNA(data)) stop(na_errmsg, call. = FALSE)
+        
+        size <- try(suppressWarnings(as.integer(size)), silent = TRUE)
+        if (!inherits(size, "integer") || is.na(size) || size < 1)
+          stop(arg_errmsg, call. = FALSE)
+      }
+      
+      else {
+        stop(arg_errmsg, call. = FALSE)
+      }
+    }
+    
+    cset <- tryCatch(
+      expr  = match.arg(h5_type, c("auto", "ascii", "skip", "utf8")), 
+      error = function (e) { stop(arg_errmsg, call. = FALSE) })
+    
+    if (cset == "skip") return ("skip")
+    if (cset == "auto") return ("utf8")
+    
+    h5_type <- ifelse(is.null(size), cset, paste0(cset, "[", size, "]"))
     return (h5_type)
   }
   
+
   if (is.numeric(data) || is.logical(data)) {
     
     choices <- c(
       "auto", "skip", 
-      "float16", "float32", "float64", 
+      "bfloat16", "float16", "float32", "float64", 
       "int8", "int16", "int32", "int64",
       "uint8", "uint16", "uint32", "uint64")
     

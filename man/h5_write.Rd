@@ -21,12 +21,13 @@ and nested \code{list}s.}
 \item If provided (string), \code{data} is written as an attribute named \code{attr} attached to the object \code{name}.
 }}
 
-\item{as}{The target HDF5 data type. Can be one of \code{"auto"}, \code{"utf8"}, \code{"ascii"},
-\code{"float16"}, \code{"float32"}, \code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"},
-\code{"int64"}, \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}, or \code{"skip"}.
-The default, \code{"auto"}, selects \code{"int32"} for integers without \code{NA}s, \code{"uint8"}
-for logicals without \code{NA}s, \code{"utf8"} for character strings, and \code{"float64"}
-for everything else. See details below.}
+\item{as}{The target HDF5 data type. Can be one of \code{"auto"} (default),
+\code{"skip"}, \code{"utf8"}, \code{"ascii"}, \code{"bfloat16"}, \code{"float16"}, \code{"float32"},
+\code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
+\code{"uint16"}, \code{"uint32"}, or \code{"uint64"}. To use fixed length strings,
+suffix \code{"utf8"} or \code{"ascii"} with \code{"[<int>]"} (e.g., \code{"ascii[100]"}). Omit
+\code{"<int>"} (e.g. \code{"utf8[]"}) to use the longest string's length. \code{NA} can
+only be stored in a floating point or variable width string data type.}
 
 \item{compress}{A logical or an integer from 0-9. If \code{TRUE},
 compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
@@ -141,7 +142,9 @@ To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:
 \itemize{
 \item \code{"auto"}, \code{"skip"}
-\item \code{"utf8"}, \code{"ascii"} (for character data)
+\item \code{"utf8"}, \code{"ascii"} (variable length strings)
+\item \code{"utf8[<int>]"}, \code{"ascii[<int>]"} (fixed length strings - \verb{<int>} bytes wide)
+\item \code{"utf8[]"}, \code{"ascii[]"} (fixed length strings - auto-selected byte width)
 \item \code{"float16"}, \code{"float32"}, \code{"float64"}
 \item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}

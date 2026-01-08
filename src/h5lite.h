@@ -103,6 +103,7 @@ herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer);
 void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims);
 hid_t create_r_memory_type(SEXP data, const char *dtype);
 hid_t create_h5_file_type(SEXP data, const char *dtype);
-hid_t create_vl_string_type(const char *dtype);
+hid_t create_string_type(const char *dtype);
+size_t get_fixed_byte_width(const char *dtype);
 
 #endif

@@ -49,3 +49,22 @@ validate_strings <- function (file, name = "/", attr = NULL, must_exist = FALSE)
 
   return (file)
 }
+
+
+#' Sanity check the 'as' argument
+#' Ensures a character vector and that multiple values are named.
+#' @noRd
+#' @keywords internal
+validate_as <- function (as) {
+  
+  if (is.null(as))       return ("auto")
+  if (!is.character(as)) stop('`as` must be a character vector.')
+  
+  if (length(as) > 1 && is.null(names(as)))
+    stop("When `as` has multiple values, they must be named.")
+  
+  if (!is.null(names(as)) && (any(is.na(names(as))) || any(names(as) == "")))
+    stop("The `as` argument's names cannot be NA or an empty string.")
+
+  return (as)
+}

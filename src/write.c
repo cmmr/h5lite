@@ -15,31 +15,71 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
   if (obj_type != H5I_DATASET && obj_type != H5I_ATTR)
     return errmsg_1("Invalid object type provided to write_atomic_dataset for %s.", dtype_str); // # nocov
 
-  /* --- Handle Character Data (Variable-Length Strings) --- */
+  /* --- Handle Character Data (Strings) --- */
   if (TYPEOF(data) == STRSXP) {
 
-    hsize_t n = (hsize_t)XLENGTH(data);
-    
-    /* Create a buffer of C-style strings from the R vector, handling NA values. */
-    const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
-    if (!f_buffer) return mkChar("Memory allocation failed for string buffer.");
-    for (hsize_t i = 0; i < n; i++) {
-      SEXP s = STRING_ELT(data, i);
-      f_buffer[i] = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
+    hsize_t n           = (hsize_t)XLENGTH(data);
+    size_t  fixed_width = get_fixed_byte_width(dtype_str);
+
+    /* BRANCH A: Fixed-Length Strings (e.g. "ascii[10]", "utf8[50]") */
+    if (fixed_width > 0) {
+      
+      /* 1. Allocate a flat buffer for the strings in R order (Col-Major) 
+       * using calloc to ensure zero-padding for short strings/NA. */
+      char *f_buffer = (char *)calloc(n, fixed_width);
+      if (!f_buffer) return mkChar("Memory allocation failed for fixed-length string buffer.");
+
+      /* 2. Fill Buffer */
+      for (hsize_t i = 0; i < n; i++) {
+        SEXP s = STRING_ELT(data, i);
+        if (s != NA_STRING) {
+          const char *utf8_s = Rf_translateCharUTF8(s);
+          /* Copy up to fixed_width. 
+           * If src < width, strncpy pads with nulls (safety).
+           * If src > width, it truncates (standard behavior).
+           * Note: We do not force a null-terminator at [width-1]. HDF5 allows fully filled strings. */
+          strncpy(f_buffer + (i * fixed_width), utf8_s, fixed_width);
+        }
+        /* If NA_STRING, we leave it as 0 (from calloc) which is an empty string in HDF5 */
+      }
+
+      /* 3. Transpose from R (Col-Major) to C (Row-Major) */
+      /* For fixed strings, the "element size" for transposition is the string width in bytes. */
+      char *c_buffer = (char *)malloc(n * fixed_width);
+      if (!c_buffer) { free(f_buffer); return mkChar("Memory allocation failed for string buffer"); }
+      
+      h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, fixed_width, 0);
+
+      /* 4. Write */
+      /* create_string_type handles fixed widths based on the slash syntax */
+      hid_t mem_type_id = create_string_type(dtype_str);
+      status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
+
+      free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
     }
     
-    /* Transpose from R's column-major to C's row-major order. */
-    const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
-    if (!c_buffer) { free(f_buffer); return mkChar("Memory allocation failed for string buffer"); }
-    h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
+    /* BRANCH B: Variable-Length Strings (Default, e.g. "ascii", "utf8") */
+    else {
+      /* Create a buffer of C-style strings (pointers) */
+      const char **f_buffer = (const char **)malloc(n * sizeof(const char *));
+      if (!f_buffer) return mkChar("Memory allocation failed for string buffer.");
+      
+      for (hsize_t i = 0; i < n; i++) {
+        SEXP s = STRING_ELT(data, i);
+        f_buffer[i] = (s == NA_STRING) ? NULL : Rf_translateCharUTF8(s);
+      }
+      
+      /* Transpose pointers */
+      const char **c_buffer = (const char **)malloc(n * sizeof(const char *));
+      if (!c_buffer) { free(f_buffer); return mkChar("Memory allocation failed for string buffer"); }
+      
+      h5_transpose((void*)f_buffer, (void*)c_buffer, rank, h5_dims, sizeof(char*), 0);
 
-    /* Create a variable-length string memory type for writing. */
-    hid_t mem_type_id = create_vl_string_type(dtype_str);
+      hid_t mem_type_id = create_string_type(dtype_str);
+      status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
 
-    /* Write the C buffer to the HDF5 object (dataset or attribute). */
-    status = write_buffer_to_object(obj_id, mem_type_id, c_buffer);
-
-    free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
+      free(f_buffer); free(c_buffer); H5Tclose(mem_type_id);
+    }
   }
   
   /* --- Handle Numeric, Logical, Opaque, Factor Data --- */
@@ -50,9 +90,6 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
     }
     
     /* --- Special Handling for Integer/Logical to Double Promotion --- */
-    /* If we are writing an integer/logical vector to a float file type,
-     * we must coerce it to a REALSXP. This correctly handles NA_INTEGER -> R_NaReal.
-     */
     if (TYPEOF(data) == INTSXP || TYPEOF(data) == LGLSXP) {
       if (strcmp(dtype_str, "float64") == 0 ||
           strcmp(dtype_str, "float32") == 0 ||
@@ -65,10 +102,16 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
 
     /* Get a direct pointer to the R object's data. */
     void *r_data_ptr = get_R_data_ptr(data);
-    if (!r_data_ptr) return errmsg_1("Failed to get data pointer for %s.", dtype_str);
+    if (!r_data_ptr) { // # nocov start
+      if (must_unprotect_data) UNPROTECT(1);
+      return errmsg_1("Failed to get data pointer for %s.", dtype_str);
+    } // # nocov end
 
     hid_t mem_type_id = create_r_memory_type(data, dtype_str);
-    if (mem_type_id < 0) return errmsg_1("Failed to get memory for %s.", dtype_str);
+    if (mem_type_id < 0) { // # nocov start
+      if (must_unprotect_data) UNPROTECT(1);
+      return errmsg_1("Failed to get memory for %s.", dtype_str);
+    } // # nocov end
     
     /* Allocate a C buffer and transpose the R data into it. */
     size_t el_size = H5Tget_size(mem_type_id);
@@ -117,14 +160,23 @@ static SEXP write_atomic_attribute(hid_t file_id, hid_t obj_id, const char *attr
     return errmsg_1("Failed to get file type for attribute '%s'", attr_name);
   } // # nocov end
   
-  /* 3. Create the attribute on the specified object. */
-  hid_t attr_id = H5Acreate2(obj_id, attr_name, file_type_id, space_id, H5P_DEFAULT, H5P_DEFAULT);
+  /* 3. Create Attribute Creation Property List (ACPL). 
+   * We must set the character encoding to UTF-8 so the attribute NAME is stored correctly. 
+   */
+  hid_t acpl_id = H5Pcreate(H5P_ATTRIBUTE_CREATE);
+  H5Pset_char_encoding(acpl_id, H5T_CSET_UTF8);
+
+  /* 4. Create the attribute on the specified object. */
+  hid_t attr_id = H5Acreate2(obj_id, attr_name, file_type_id, space_id, acpl_id, H5P_DEFAULT);
+  
+  H5Pclose(acpl_id); /* Always close the property list */
+
   if (attr_id < 0) { // # nocov start
     H5Sclose(space_id); H5Tclose(file_type_id);
     return errmsg_1("Failed to create attribute '%s'", attr_name);
   } // # nocov end
   
-  /* 4. Write the data to the newly created attribute. */
+  /* 5. Write the data to the newly created attribute. */
   SEXP errmsg = write_atomic_dataset(attr_id, data, dtype_str, rank, h5_dims);
   
   H5Aclose(attr_id); H5Tclose(file_type_id); H5Sclose(space_id);
@@ -140,8 +192,11 @@ static SEXP write_atomic_attribute(hid_t file_id, hid_t obj_id, const char *attr
  */
 static SEXP write_null_dataset(hid_t file_id, const char *dname) {
   hid_t space_id = H5Screate(H5S_NULL);
+  
+  /* Create Link Creation Property List (LCPL) */
   hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
   H5Pset_create_intermediate_group(lcpl_id, 1);
+  H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8); /* Explicitly set UTF-8 for the dataset name */
   
   herr_t status = handle_overwrite(file_id, dname);
   if (status < 0) { // # nocov start
@@ -163,8 +218,14 @@ static SEXP write_null_dataset(hid_t file_id, const char *dname) {
  */
 static SEXP write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_name) {
   hid_t space_id = H5Screate(H5S_NULL);
-  hid_t attr_id = H5Acreate2(obj_id, attr_name, H5T_STD_I32LE, space_id, H5P_DEFAULT, H5P_DEFAULT);
   
+  /* Create Attribute Creation Property List (ACPL) */
+  hid_t acpl_id = H5Pcreate(H5P_ATTRIBUTE_CREATE);
+  H5Pset_char_encoding(acpl_id, H5T_CSET_UTF8); /* Explicitly set UTF-8 for the attribute name */
+  
+  hid_t attr_id = H5Acreate2(obj_id, attr_name, H5T_STD_I32LE, space_id, acpl_id, H5P_DEFAULT);
+  
+  H5Pclose(acpl_id);
   H5Sclose(space_id);
   if (attr_id < 0) return errmsg_1("Failed to create null attribute '%s'", attr_name);
   
@@ -192,7 +253,8 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
   
   /* --- Dispatch for Compound Types (Data Frames) --- */
   if (TYPEOF(data) == VECSXP) {
-    /* Now creates Dimension Scale for row.names inside this function */
+    /* Now creates Dimension Scale for row.names inside this function.
+       write_dataframe creates its own property lists, so we don't need to do it here. */
     errmsg = write_dataframe(file_id, file_id, dname, data, dtype, compress, 0);
     H5Fclose(file_id);
   }
@@ -213,14 +275,29 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       hid_t space_id     = create_dataspace(dims, data, &rank, &h5_dims);
       hid_t file_type_id = create_h5_file_type(data, dtype_str);
       
-      /* Create Link Creation Property List to auto-create groups (like mkdir -p) */
+      /* Create Link Creation Property List (LCPL)
+       * 1. create_intermediate_group = 1: Auto-create parents (like mkdir -p).
+       * 2. char_encoding = UTF8: Store the dataset name as UTF-8. 
+       */
       hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
       H5Pset_create_intermediate_group(lcpl_id, 1);
+      H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
       
-      /* Create Dataset Creation Property List for compression */
+      /* N-Bit Filter for Logicals Written as Unsigned Integers */
+      int use_nbit_strategy = 0;
+      
+      if (TYPEOF(data) == LGLSXP && H5Tget_class(file_type_id) == H5T_INTEGER) {
+        if (H5Tget_sign(file_type_id) == H5T_SGN_NONE) {
+          H5Tset_precision(file_type_id, 1);
+          H5Tset_offset(file_type_id, 0);
+          use_nbit_strategy = 1;
+        }
+      }
+      
+      /* Create Dataset Creation Property List (DCPL) for compression */
       hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
       
-      /* Only chunk if compression is requested */
+      /* Only apply chunking/compression if requested and applicable */
       if (compress > 0 && rank > 0 && XLENGTH(data) > 0) {
         
         /* Get element size (e.g., 4 bytes for int, 8 for double) */
@@ -231,12 +308,17 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
         calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
         H5Pset_chunk(dcpl_id, rank, chunk_dims);
         
-        /* Enable Shuffle: Only useful if element size > 1 byte */
-        if (type_size > 1) H5Pset_shuffle(dcpl_id);
+        if (use_nbit_strategy) {
+          H5Pset_nbit(dcpl_id);      /* Pack bits (removes padding) */
+        }
+        else if (type_size > 1) {
+          H5Pset_shuffle(dcpl_id);   /* Standard shuffle for Signed Ints / Floats */
+        }
         
         H5Pset_deflate(dcpl_id, (unsigned int)compress);
       }
       
+      /* Create the dataset passing both LCPL (name encoding) and DCPL (compression) */
       hid_t dset_id = H5Dcreate2(file_id, dname, file_type_id, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
       H5Pclose(lcpl_id);
       H5Pclose(dcpl_id);
@@ -286,7 +368,8 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
     errmsg = errmsg_1("Failed to overwrite existing attribute '%s'", aname); // # nocov
   }
   else if (TYPEOF(data) == VECSXP) { /* a data.frame */
-    /* Attribute writing mode: is_attribute = 1. Scales will NOT be written. */
+    /* Attribute writing mode: is_attribute = 1. Scales will NOT be written.
+       write_dataframe handles internal ACPL creation for UTF-8 names. */
     errmsg = write_dataframe(file_id, obj_id, aname, data, dtype, 0, 1);
   }
   else { /* an atomic type or NULL */
