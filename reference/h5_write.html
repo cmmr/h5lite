@@ -68,12 +68,13 @@ and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-as">as<a class="anchor" aria-label="anchor" href="#arg-as"></a></dt>
-<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code>, <code>"utf8"</code>, <code>"ascii"</code>,
-<code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>,
-<code>"int64"</code>, <code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code>, or <code>"skip"</code>.
-The default, <code>"auto"</code>, selects <code>"int32"</code> for integers without <code>NA</code>s, <code>"uint8"</code>
-for logicals without <code>NA</code>s, <code>"utf8"</code> for character strings, and <code>"float64"</code>
-for everything else. See details below.</p></dd>
+<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code> (default),
+<code>"skip"</code>, <code>"utf8"</code>, <code>"ascii"</code>, <code>"bfloat16"</code>, <code>"float16"</code>, <code>"float32"</code>,
+<code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code>, <code>"uint8"</code>,
+<code>"uint16"</code>, <code>"uint32"</code>, or <code>"uint64"</code>. To use fixed length strings,
+suffix <code>"utf8"</code> or <code>"ascii"</code> with <code>"[&lt;int&gt;]"</code> (e.g., <code>"ascii[100]"</code>). Omit
+<code>"&lt;int&gt;"</code> (e.g. <code>"utf8[]"</code>) to use the longest string's length. <code>NA</code> can
+only be stored in a floating point or variable width string data type.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
@@ -180,7 +181,9 @@ logical vector contains <code>NA</code>, it is stored using <code>float64</code>
 of <code>NA</code> as a sentinel value.</p>
 <p>To override this automatic behavior, you can specify an exact type. The full
 list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"skip"</code></p></li>
-<li><p><code>"utf8"</code>, <code>"ascii"</code> (for character data)</p></li>
+<li><p><code>"utf8"</code>, <code>"ascii"</code> (variable length strings)</p></li>
+<li><p><code>"utf8[&lt;int&gt;]"</code>, <code>"ascii[&lt;int&gt;]"</code> (fixed length strings - <code>&lt;int&gt;</code> bytes wide)</p></li>
+<li><p><code>"utf8[]"</code>, <code>"ascii[]"</code> (fixed length strings - auto-selected byte width)</p></li>
 <li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
 <li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>

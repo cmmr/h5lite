@@ -38,13 +38,14 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
 - as:
 
-  The target HDF5 data type. Can be one of `"auto"`, `"utf8"`,
-  `"ascii"`, `"float16"`, `"float32"`, `"float64"`, `"int8"`, `"int16"`,
-  `"int32"`, `"int64"`, `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`,
-  or `"skip"`. The default, `"auto"`, selects `"int32"` for integers
-  without `NA`s, `"uint8"` for logicals without `NA`s, `"utf8"` for
-  character strings, and `"float64"` for everything else. See details
-  below.
+  The target HDF5 data type. Can be one of `"auto"` (default), `"skip"`,
+  `"utf8"`, `"ascii"`, `"bfloat16"`, `"float16"`, `"float32"`,
+  `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
+  `"uint16"`, `"uint32"`, or `"uint64"`. To use fixed length strings,
+  suffix `"utf8"` or `"ascii"` with `"[<int>]"` (e.g., `"ascii[100]"`).
+  Omit `"<int>"` (e.g. `"utf8[]"`) to use the longest string's length.
+  `NA` can only be stored in a floating point or variable width string
+  data type.
 
 - compress:
 
@@ -163,7 +164,13 @@ full list of supported values is:
 
 - `"auto"`, `"skip"`
 
-- `"utf8"`, `"ascii"` (for character data)
+- `"utf8"`, `"ascii"` (variable length strings)
+
+- `"utf8[<int>]"`, `"ascii[<int>]"` (fixed length strings - `<int>`
+  bytes wide)
+
+- `"utf8[]"`, `"ascii[]"` (fixed length strings - auto-selected byte
+  width)
 
 - `"float16"`, `"float32"`, `"float64"`
 
