@@ -18,7 +18,7 @@ h5_write(c(1.1, 2.2, 3.14), filename, "vec/dbl")
 # R stores TRUE=1, FALSE=0 internally. We test how they arrive in HDF5.
 h5_write(c(TRUE, FALSE, TRUE), filename, "vec/bool")
 
-# Fixed-Length Strings
+# Default String Behavior
 h5_write(c("alpha", "bravo", "charlie"), filename, "vec/str")
 
 
@@ -74,7 +74,23 @@ h5_write(df, filename, "compound/mixed")
 # 5. ATTRIBUTES
 # ==========================================
 # Verify we can write metadata to a dataset
-h5_write("Test Integers", filename, "vec/int", "description")
+# Use I() to force writing as a Scalar (h5py expects shape (), not (1,))
+h5_write(I("Test Integers"), filename, "vec/int", "description")
 h5_write(1L, filename, "vec/int", "version")
+
+
+# ==========================================
+# 6. EXPLICIT FIXED LENGTH STRINGS
+# ==========================================
+# Test explicit 'as = "utf8[]"' for vector
+h5_write(c("fix_a", "fix_b"), filename, "vec/fixed_explicit", as = "utf8[]")
+
+# Test explicit 'as = c(col = "utf8[]")' for compound
+df_fixed <- data.frame(
+  id = 101:102,
+  tag = c("tag1", "tag2"),
+  stringsAsFactors = FALSE
+)
+h5_write(df_fixed, filename, "compound/fixed_explicit", as = c(tag = "utf8[]"))
 
 cat("Successfully generated", filename, "\n")

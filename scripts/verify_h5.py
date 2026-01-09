@@ -2,11 +2,17 @@ import h5py
 import numpy as np
 import sys
 
+# Global flag to track overall success
+TEST_FAILED = False
+
 # --- Reporting Helpers ---
 def pass_msg(msg):
     print(f"  [PASS] {msg}")
 
 def fail_msg(msg, expected=None, actual=None):
+    global TEST_FAILED
+    TEST_FAILED = True
+    
     print(f"  [FAIL] {msg}")
     if expected is not None:
         print(f"         Expected: {expected}")
@@ -69,9 +75,15 @@ def verify_compound(dset, expected_dict, name):
             
         col_data = data[col_name]
         
-        # Handle Byte Strings
+        # Handle Byte Strings (Fixed Length)
         if col_data.dtype.kind == 'S': 
             col_data = [x.decode('utf-8') for x in col_data]
+
+        # Handle Variable Length Strings (Object Arrays of Bytes)
+        elif col_data.dtype.kind == 'O':
+            # Check if the first element is bytes (if data is not empty)
+            if len(col_data) > 0 and isinstance(col_data[0], bytes):
+                 col_data = [x.decode('utf-8') for x in col_data]
         
         # Handle Nested Enums
         elif h5py.check_dtype(enum=dset.dtype[col_name]):
@@ -145,4 +157,22 @@ with h5py.File(filename, "r") as f:
     else:
         fail_msg("Attribute 'version' missing")
 
+    # 6. Explicit Fixed Strings
+    print("\n--- Explicit Fixed Length Strings ---")
+    
+    # Vector
+    strs_fixed = [x.decode('utf-8') for x in f["vec/fixed_explicit"][:]]
+    check_eq(strs_fixed, ["fix_a", "fix_b"], "Fixed-Length Vector")
+    
+    # Compound
+    verify_compound(f["compound/fixed_explicit"], {
+        "id": [101, 102],
+        "tag": ["tag1", "tag2"]
+    }, "Fixed-Length Compound Frame")
+
 print("\nVerification Complete.")
+
+# Exit with non-zero status if any failure occurred
+if TEST_FAILED:
+    print("\n[ERROR] Some tests failed.")
+    sys.exit(1)
