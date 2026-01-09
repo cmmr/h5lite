@@ -21,17 +21,17 @@ and nested \code{list}s.}
 \item If provided (string), \code{data} is written as an attribute named \code{attr} attached to the object \code{name}.
 }}
 
-\item{as}{The target HDF5 data type. Can be one of \code{"auto"} (default),
-\code{"skip"}, \code{"utf8"}, \code{"ascii"}, \code{"bfloat16"}, \code{"float16"}, \code{"float32"},
-\code{"float64"}, \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}, \code{"uint8"},
-\code{"uint16"}, \code{"uint32"}, or \code{"uint64"}. To use fixed length strings,
-suffix \code{"utf8"} or \code{"ascii"} with \code{"[<int>]"} (e.g., \code{"ascii[100]"}). Omit
-\code{"<int>"} (e.g. \code{"utf8[]"}) to use the longest string's length. \code{NA} can
-only be stored in a floating point or variable width string data type.}
+\item{as}{The target HDF5 data type. Defaults to \code{"auto"}.
+See the \strong{Data Type Selection} section for a full list of valid options
+(including \code{"int64"}, \code{"bfloat16"}, \code{"utf8[n]"}, etc.) and how to map
+specific columns.}
 
-\item{compress}{A logical or an integer from 0-9. If \code{TRUE},
-compression level 5 is used. If \code{FALSE} or \code{0}, no compression is used.
-An integer \code{1-9} specifies the zlib compression level directly.}
+\item{compress}{Compression configuration.
+\itemize{
+\item \code{TRUE} (default): Enables compression (zlib level 5).
+\item \code{FALSE} or \code{0}: Disables compression.
+\item Integer \code{1-9}: Specifies the zlib compression level.
+}}
 }
 \value{
 Invisibly returns \code{file}. This function is called for its side effects.
@@ -40,58 +40,73 @@ Invisibly returns \code{file}. This function is called for its side effects.
 Writes an R object to an HDF5 file, creating the file if it does not exist.
 This function acts as a unified writer for datasets, groups (lists), and attributes.
 }
+\section{Data Type Selection (\code{as} Argument)}{
+
+The \code{as} argument controls the on-disk storage type for integer, double,
+logical, and character columns.
+
+\strong{1. Available Types}
+\itemize{
+\item \strong{Floating Point:} \code{"float16"}, \code{"float32"}, \code{"float64"}, \code{"bfloat16"}
+\item \strong{Signed Integer:} \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
+\item \strong{Unsigned Integer:} \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
+\item \strong{Variable Length Strings:} \code{"utf8"}, \code{"ascii"}
+\item \strong{Fixed Length Strings:}
+\itemize{
+\item \code{"utf8[]"} or \code{"ascii[]"} (auto-detects the longest string in the data)
+\item \code{"utf8[n]"} or \code{"ascii[n]"} (where \code{n} is the length in bytes, e.g., \code{"utf8[10]"})
+}
+\item \strong{Other:} \code{"auto"}, \code{"skip"} (to skip a column/attribute of any R type)
+}
+
+\emph{Strings:} Variable-length strings allow for \code{NA} values (via NULL pointers)
+but cannot be compressed. Fixed-length strings allow for compression but do
+not support \code{NA}.
+
+\strong{2. Automatic Selection (\code{as = "auto"})}
+
+\tabular{lll}{
+\strong{R Type} \tab \strong{HDF5 Type} \tab \strong{Notes} \cr
+\code{integer}    \tab \code{H5T_STD_I32LE}  \tab  \cr
+\code{double}     \tab \code{H5T_IEEE_F64LE} \tab  \cr
+\code{logical}    \tab \code{H5T_STD_U8LE}   \tab 1-bit storage efficiency. \cr
+\code{character}  \tab \code{H5T_C_S1}       \tab \verb{H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM} \cr
+\code{factor}     \tab \code{H5T_ENUM}       \tab Maps levels to integers. \cr
+\code{data.frame} \tab \code{H5T_COMPOUND}   \tab Native table-like structure. \cr
+\code{list}       \tab \code{H5O_TYPE_GROUP} \tab Written to HDF5 recursively. \cr
+\code{complex}    \tab \code{H5T_COMPLEX_IEEE_F64LE} \tab Requires HDF5 >= 2.0.0. \cr
+\code{raw}        \tab \code{H5T_OPAQUE}     \tab For binary data storage. \cr
+\code{NULL}       \tab \code{H5S_NULL}       \tab Null Dataspace \cr
+\code{integer64}  \tab \code{H5T_STD_I64LE}  \tab From the \code{bit64} R package. \cr
+\code{POSIXt}     \tab \code{H5T_C_S1}       \tab ISO 8601 string (\code{YYYY-MM-DDTHH:MM:SSZ}) \cr
+}
+
+\emph{NA Handling:} HDF5 integers do not support \code{NA}. If an R integer or logical
+vector contains \code{NA}, \code{h5lite} automatically promotes it to \code{float64} to
+preserve the \code{NA} value.
+
+\strong{3. Column/Class Mapping}
+
+You can provide a named vector to map specific columns or classes:
+\itemize{
+\item \strong{Specific Name:} \code{"col_name" = "type"} (e.g., \code{c(score = "float32")})
+\item \strong{Specific Attribute:} \code{"@attr_name" = "type"}
+\item \strong{Class-based:} \code{".integer" = "type"}, \code{".numeric" = "type"}
+\item \strong{Class-based Attribute:} \code{"@.character" = "type"}, \code{"@.logical" = "type"}
+\item \strong{Global Fallback:} \code{"." = "type"}
+\item \strong{Global Attribute Fallback:} \code{"@." = "type"}
+}
+
+\emph{Numeric Class:} \code{".numeric"} targets both \code{integer} and \code{double} with a
+lower priority than \code{".integer"} and \code{".double"}.
+}
+
 \section{Writing Scalars}{
 
 By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
 To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
 For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, while
 \code{h5_write(5, file, "x")} will create a 1D array of length 1.
-}
-
-\section{Writing Lists}{
-
-If \code{data} is a \code{list} (but not a \code{data.frame}), \code{h5_write} will write it
-recursively, creating a corresponding group and dataset structure.
-\itemize{
-\item R \code{list} objects are created as HDF5 \strong{groups}.
-\item All other supported R objects (vectors, matrices, arrays, factors, \code{data.frame}s)
-are written as HDF5 \strong{datasets}.
-\item Attributes of a list are written as HDF5 attributes on the corresponding group.
-\item Before writing, a "dry run" is performed to validate that all objects and attributes
-within the list are of a writeable type. If any part of the
-structure is invalid, the function will throw an error and no data will be
-written.
-}
-}
-
-\section{Writing NULL}{
-
-If \code{data} is \code{NULL}, \code{h5_write} will create an HDF5 \strong{null dataset}. This is
-a dataset with a null dataspace, which contains no data.
-}
-
-\section{Writing Data Frames}{
-
-\code{data.frame} objects are written as HDF5 \strong{compound datasets}. This is a
-native HDF5 table-like structure that is highly efficient and portable. If the
-data.frame has row names, they will be written as an HDF5 dimension scale at
-\strong{\if{html}{\out{<name>}}_rownames}.
-}
-
-\section{Writing Complex Numbers}{
-
-\code{h5lite} writes R \code{complex} objects using the native HDF5 \code{H5T_COMPLEX}
-datatype class, which was introduced in HDF5 version 2.0.0. As a result,
-HDF5 files containing complex numbers written by \code{h5lite} can only be read
-by other HDF5 tools that support HDF5 version 2.0.0 or later.
-}
-
-\section{Writing Date-Time Objects}{
-
-\code{POSIXt} objects are automatically converted to character strings in
-ISO 8601 format (\code{YYYY-MM-DDTHH:MM:SSZ}). This ensures that timestamps are
-stored in a human-readable and unambiguous way. This conversion applies to
-standalone \code{POSIXt} objects, as well as to columns within a \code{data.frame}.
 }
 
 \section{Dimension Scales}{
@@ -107,50 +122,6 @@ The dimension scales can be relocated with \code{h5_move()} without breaking the
 link.
 }
 
-\section{Data Type Selection (\code{as} Argument)}{
-
-The \code{as} argument controls the on-disk storage type.
-
-The \code{as} argument can be one of the following:
-\itemize{
-\item \strong{Global:} A single string, e.g., \code{"auto"}, \code{"float32"}, \code{"ascii"}.
-\item \strong{Specific:} A named vector mapping names or type classes to HDF5 types.
-Matches \code{h5_read} behavior:
-\itemize{
-\item \code{"col_name" = "type"}: Specific dataset/column.
-\item \code{"@attr_name" = "type"}: Specific attached attribute.
-\item \code{".integer" = "type"}: Class-based (e.g., \code{.integer}, \code{.double}, \code{.logical}, \code{.character}, \code{.numeric}).
-\item \code{"." = "type"}: Global default fallback (applies to all supported types).
-}
-}
-
-\strong{Class-based Priority:}
-When selecting a type based on class, specific selectors override general ones:
-\enumerate{
-\item \code{.integer} and \code{.double} (Highest Priority)
-\item \code{.numeric} (Targets both integer and double)
-\item \code{.} (Lowest Priority)
-}
-
-If \code{as} is set to \code{"auto"} (the default), \code{h5lite} will automatically
-select \code{float64} for double vectors, \code{int32} for integer vectors, \code{uint8}
-for logical vectors, and \code{utf8} for character vectors. If an integer or
-logical vector contains \code{NA}, it is stored using \code{float64} to enable encoding
-of \code{NA} as a sentinel value.
-
-To override this automatic behavior, you can specify an exact type. The full
-list of supported values is:
-\itemize{
-\item \code{"auto"}, \code{"skip"}
-\item \code{"utf8"}, \code{"ascii"} (variable length strings)
-\item \code{"utf8[<int>]"}, \code{"ascii[<int>]"} (fixed length strings - \verb{<int>} bytes wide)
-\item \code{"utf8[]"}, \code{"ascii[]"} (fixed length strings - auto-selected byte width)
-\item \code{"float16"}, \code{"float32"}, \code{"float64"}
-\item \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
-\item \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
-}
-}
-
 \examples{
 file <- tempfile(fileext = ".h5")
 
@@ -163,29 +134,36 @@ h5_write(letters[1:5], file, "data/chars")
 # Write an object first
 h5_write(1:10, file, "data/vector")
 # Attach an attribute to it using the 'attr' parameter
-h5_write("My Description", file, "data/vector", attr = "description")
-h5_write(100, file, "data/vector", attr = "scale_factor")
+h5_write(I("My Description"), file, "data/vector", attr = "description")
+h5_write(I(100), file, "data/vector", attr = "scale_factor")
 
-# 3. Writing Complex Structures (Lists/Groups)
-my_list <- list(
-  meta = list(id = 1, name = "Experiment A"),
-  results = matrix(runif(9), 3, 3),
-  valid = TRUE
-)
-h5_write(my_list, file, "experiment_1")
-
-# 4. Writing Data Frames (Compound Datasets)
-df <- data.frame(
-  id = 1:5,
-  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
-  grade = factor(c("A", "A", "B", "C", "D"))
-)
-h5_write(df, file, "records/scores")
-
-# 5. Controlling Data Types (Compression)
+# 3. Controlling Data Types
 # Store integers as 8-bit unsigned
 h5_write(1:5, file, "compressed/small_ints", as = "uint8")
 
+# 4. Writing Complex Structures (Lists/Groups)
+my_list <- list(
+  meta    = list(id = 1, name = "Experiment A"),
+  results = matrix(runif(9), 3, 3),
+  valid   = I(TRUE)
+)
+h5_write(my_list, file, "experiment_1", as = c(id = "uint16"))
+
+# 5. Writing Data Frames (Compound Datasets)
+df <- data.frame(
+  id    = 1:5,
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  grade = factor(c("A", "A", "B", "C", "D"))
+)
+h5_write(df, file, "records/scores", as = c(grade = "ascii[1]"))
+
+# 6. Fixed-Length Strings
+h5_write(c("A", "B"), file, "fixed_str", as = "ascii[10]")
+
+# 7. Review the file structure
+h5_str(file)
+
+# 8. Clean up
 unlink(file)
 }
 \seealso{
