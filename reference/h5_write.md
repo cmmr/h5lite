@@ -38,24 +38,98 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
 - as:
 
-  The target HDF5 data type. Can be one of `"auto"` (default), `"skip"`,
-  `"utf8"`, `"ascii"`, `"bfloat16"`, `"float16"`, `"float32"`,
-  `"float64"`, `"int8"`, `"int16"`, `"int32"`, `"int64"`, `"uint8"`,
-  `"uint16"`, `"uint32"`, or `"uint64"`. To use fixed length strings,
-  suffix `"utf8"` or `"ascii"` with `"[<int>]"` (e.g., `"ascii[100]"`).
-  Omit `"<int>"` (e.g. `"utf8[]"`) to use the longest string's length.
-  `NA` can only be stored in a floating point or variable width string
-  data type.
+  The target HDF5 data type. Defaults to `"auto"`. See the **Data Type
+  Selection** section for a full list of valid options (including
+  `"int64"`, `"bfloat16"`, `"utf8[n]"`, etc.) and how to map specific
+  columns.
 
 - compress:
 
-  A logical or an integer from 0-9. If `TRUE`, compression level 5 is
-  used. If `FALSE` or `0`, no compression is used. An integer `1-9`
-  specifies the zlib compression level directly.
+  Compression configuration.
+
+  - `TRUE` (default): Enables compression (zlib level 5).
+
+  - `FALSE` or `0`: Disables compression.
+
+  - Integer `1-9`: Specifies the zlib compression level.
 
 ## Value
 
 Invisibly returns `file`. This function is called for its side effects.
+
+## Data Type Selection (`as` Argument)
+
+The `as` argument controls the on-disk storage type for integer, double,
+logical, and character columns.
+
+**1. Available Types**
+
+- **Floating Point:** `"float16"`, `"float32"`, `"float64"`,
+  `"bfloat16"`
+
+- **Signed Integer:** `"int8"`, `"int16"`, `"int32"`, `"int64"`
+
+- **Unsigned Integer:** `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
+
+- **Variable Length Strings:** `"utf8"`, `"ascii"`
+
+- **Fixed Length Strings:**
+
+  - `"utf8[]"` or `"ascii[]"` (auto-detects the longest string in the
+    data)
+
+  - `"utf8[n]"` or `"ascii[n]"` (where `n` is the length in bytes, e.g.,
+    `"utf8[10]"`)
+
+- **Other:** `"auto"`, `"skip"` (to skip a column/attribute of any R
+  type)
+
+*Strings:* Variable-length strings allow for `NA` values (via NULL
+pointers) but cannot be compressed. Fixed-length strings allow for
+compression but do not support `NA`.
+
+**2. Automatic Selection (`as = "auto"`)**
+
+|              |                          |                                               |
+|--------------|--------------------------|-----------------------------------------------|
+| **R Type**   | **HDF5 Type**            | **Notes**                                     |
+| `integer`    | `H5T_STD_I32LE`          |                                               |
+| `double`     | `H5T_IEEE_F64LE`         |                                               |
+| `logical`    | `H5T_STD_U8LE`           | 1-bit storage efficiency.                     |
+| `character`  | `H5T_C_S1`               | `H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM` |
+| `factor`     | `H5T_ENUM`               | Maps levels to integers.                      |
+| `data.frame` | `H5T_COMPOUND`           | Native table-like structure.                  |
+| `list`       | `H5O_TYPE_GROUP`         | Written to HDF5 recursively.                  |
+| `complex`    | `H5T_COMPLEX_IEEE_F64LE` | Requires HDF5 \>= 2.0.0.                      |
+| `raw`        | `H5T_OPAQUE`             | For binary data storage.                      |
+| `NULL`       | `H5S_NULL`               | Null Dataspace                                |
+| `integer64`  | `H5T_STD_I64LE`          | From the `bit64` R package.                   |
+| `POSIXt`     | `H5T_C_S1`               | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`)      |
+
+*NA Handling:* HDF5 integers do not support `NA`. If an R integer or
+logical vector contains `NA`, `h5lite` automatically promotes it to
+`float64` to preserve the `NA` value.
+
+**3. Column/Class Mapping**
+
+You can provide a named vector to map specific columns or classes:
+
+- **Specific Name:** `"col_name" = "type"` (e.g.,
+  `c(score = "float32")`)
+
+- **Specific Attribute:** `"@attr_name" = "type"`
+
+- **Class-based:** `".integer" = "type"`, `".numeric" = "type"`
+
+- **Class-based Attribute:** `"@.character" = "type"`,
+  `"@.logical" = "type"`
+
+- **Global Fallback:** `"." = "type"`
+
+- **Global Attribute Fallback:** `"@." = "type"`
+
+*Numeric Class:* `".numeric"` targets both `integer` and `double` with a
+lower priority than `".integer"` and `".double"`.
 
 ## Writing Scalars
 
@@ -64,51 +138,6 @@ arrays. To write a true HDF5 scalar, wrap the value in
 [`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
 example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
 `h5_write(5, file, "x")` will create a 1D array of length 1.
-
-## Writing Lists
-
-If `data` is a `list` (but not a `data.frame`), `h5_write` will write it
-recursively, creating a corresponding group and dataset structure.
-
-- R `list` objects are created as HDF5 **groups**.
-
-- All other supported R objects (vectors, matrices, arrays, factors,
-  `data.frame`s) are written as HDF5 **datasets**.
-
-- Attributes of a list are written as HDF5 attributes on the
-  corresponding group.
-
-- Before writing, a "dry run" is performed to validate that all objects
-  and attributes within the list are of a writeable type. If any part of
-  the structure is invalid, the function will throw an error and no data
-  will be written.
-
-## Writing NULL
-
-If `data` is `NULL`, `h5_write` will create an HDF5 **null dataset**.
-This is a dataset with a null dataspace, which contains no data.
-
-## Writing Data Frames
-
-`data.frame` objects are written as HDF5 **compound datasets**. This is
-a native HDF5 table-like structure that is highly efficient and
-portable. If the data.frame has row names, they will be written as an
-HDF5 dimension scale at **\_rownames**.
-
-## Writing Complex Numbers
-
-`h5lite` writes R `complex` objects using the native HDF5 `H5T_COMPLEX`
-datatype class, which was introduced in HDF5 version 2.0.0. As a result,
-HDF5 files containing complex numbers written by `h5lite` can only be
-read by other HDF5 tools that support HDF5 version 2.0.0 or later.
-
-## Writing Date-Time Objects
-
-`POSIXt` objects are automatically converted to character strings in ISO
-8601 format (`YYYY-MM-DDTHH:MM:SSZ`). This ensures that timestamps are
-stored in a human-readable and unambiguous way. This conversion applies
-to standalone `POSIXt` objects, as well as to columns within a
-`data.frame`.
 
 ## Dimension Scales
 
@@ -122,61 +151,6 @@ Special HDF5 metadata attributes link the dimension scales to the
 dataset. The dimension scales can be relocated with
 [`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md)
 without breaking the link.
-
-## Data Type Selection (`as` Argument)
-
-The `as` argument controls the on-disk storage type.
-
-The `as` argument can be one of the following:
-
-- **Global:** A single string, e.g., `"auto"`, `"float32"`, `"ascii"`.
-
-- **Specific:** A named vector mapping names or type classes to HDF5
-  types. Matches `h5_read` behavior:
-
-  - `"col_name" = "type"`: Specific dataset/column.
-
-  - `"@attr_name" = "type"`: Specific attached attribute.
-
-  - `".integer" = "type"`: Class-based (e.g., `.integer`, `.double`,
-    `.logical`, `.character`, `.numeric`).
-
-  - `"." = "type"`: Global default fallback (applies to all supported
-    types).
-
-**Class-based Priority:** When selecting a type based on class, specific
-selectors override general ones:
-
-1.  `.integer` and `.double` (Highest Priority)
-
-2.  `.numeric` (Targets both integer and double)
-
-3.  `.` (Lowest Priority)
-
-If `as` is set to `"auto"` (the default), `h5lite` will automatically
-select `float64` for double vectors, `int32` for integer vectors,
-`uint8` for logical vectors, and `utf8` for character vectors. If an
-integer or logical vector contains `NA`, it is stored using `float64` to
-enable encoding of `NA` as a sentinel value.
-
-To override this automatic behavior, you can specify an exact type. The
-full list of supported values is:
-
-- `"auto"`, `"skip"`
-
-- `"utf8"`, `"ascii"` (variable length strings)
-
-- `"utf8[<int>]"`, `"ascii[<int>]"` (fixed length strings - `<int>`
-  bytes wide)
-
-- `"utf8[]"`, `"ascii[]"` (fixed length strings - auto-selected byte
-  width)
-
-- `"float16"`, `"float32"`, `"float64"`
-
-- `"int8"`, `"int16"`, `"int32"`, `"int64"`
-
-- `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
 ## See also
 
@@ -196,28 +170,54 @@ h5_write(letters[1:5], file, "data/chars")
 # Write an object first
 h5_write(1:10, file, "data/vector")
 # Attach an attribute to it using the 'attr' parameter
-h5_write("My Description", file, "data/vector", attr = "description")
-h5_write(100, file, "data/vector", attr = "scale_factor")
+h5_write(I("My Description"), file, "data/vector", attr = "description")
+h5_write(I(100), file, "data/vector", attr = "scale_factor")
 
-# 3. Writing Complex Structures (Lists/Groups)
-my_list <- list(
-  meta = list(id = 1, name = "Experiment A"),
-  results = matrix(runif(9), 3, 3),
-  valid = TRUE
-)
-h5_write(my_list, file, "experiment_1")
-
-# 4. Writing Data Frames (Compound Datasets)
-df <- data.frame(
-  id = 1:5,
-  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
-  grade = factor(c("A", "A", "B", "C", "D"))
-)
-h5_write(df, file, "records/scores")
-
-# 5. Controlling Data Types (Compression)
+# 3. Controlling Data Types
 # Store integers as 8-bit unsigned
 h5_write(1:5, file, "compressed/small_ints", as = "uint8")
 
+# 4. Writing Complex Structures (Lists/Groups)
+my_list <- list(
+  meta    = list(id = 1, name = "Experiment A"),
+  results = matrix(runif(9), 3, 3),
+  valid   = I(TRUE)
+)
+h5_write(my_list, file, "experiment_1", as = c(id = "uint16"))
+
+# 5. Writing Data Frames (Compound Datasets)
+df <- data.frame(
+  id    = 1:5,
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  grade = factor(c("A", "A", "B", "C", "D"))
+)
+h5_write(df, file, "records/scores", as = c(grade = "ascii[1]"))
+
+# 6. Fixed-Length Strings
+h5_write(c("A", "B"), file, "fixed_str", as = "ascii[10]")
+
+# 7. Review the file structure
+h5_str(file)
+#> /
+#> ├── data
+#> │   ├── integers <int32 × 10>
+#> │   ├── floats <float64 × 10>
+#> │   ├── chars <utf8 × 5>
+#> │   └── vector <int32 × 10>
+#> │       ├── @description <utf8 scalar>
+#> │       └── @scale_factor <float64 scalar>
+#> ├── compressed
+#> │   └── small_ints <uint8 × 5>
+#> ├── experiment_1
+#> │   ├── meta
+#> │   │   ├── id <uint16 × 1>
+#> │   │   └── name <utf8 × 1>
+#> │   ├── results <float64 × 3 × 3>
+#> │   └── valid <int scalar>
+#> ├── fixed_str <ascii[10] × 2>
+#> └── records
+#>     └── scores <compound × 5 × 3>
+
+# 8. Clean up
 unlink(file)
 ```

@@ -68,24 +68,53 @@ and nested <code>list</code>s.</p></dd>
 
 
 <dt id="arg-as">as<a class="anchor" aria-label="anchor" href="#arg-as"></a></dt>
-<dd><p>The target HDF5 data type. Can be one of <code>"auto"</code> (default),
-<code>"skip"</code>, <code>"utf8"</code>, <code>"ascii"</code>, <code>"bfloat16"</code>, <code>"float16"</code>, <code>"float32"</code>,
-<code>"float64"</code>, <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code>, <code>"uint8"</code>,
-<code>"uint16"</code>, <code>"uint32"</code>, or <code>"uint64"</code>. To use fixed length strings,
-suffix <code>"utf8"</code> or <code>"ascii"</code> with <code>"[&lt;int&gt;]"</code> (e.g., <code>"ascii[100]"</code>). Omit
-<code>"&lt;int&gt;"</code> (e.g. <code>"utf8[]"</code>) to use the longest string's length. <code>NA</code> can
-only be stored in a floating point or variable width string data type.</p></dd>
+<dd><p>The target HDF5 data type. Defaults to <code>"auto"</code>.
+See the <strong>Data Type Selection</strong> section for a full list of valid options
+(including <code>"int64"</code>, <code>"bfloat16"</code>, <code>"utf8[n]"</code>, etc.) and how to map
+specific columns.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
-<dd><p>A logical or an integer from 0-9. If <code>TRUE</code>,
-compression level 5 is used. If <code>FALSE</code> or <code>0</code>, no compression is used.
-An integer <code>1-9</code> specifies the zlib compression level directly.</p></dd>
+<dd><p>Compression configuration.</p><ul><li><p><code>TRUE</code> (default): Enables compression (zlib level 5).</p></li>
+<li><p><code>FALSE</code> or <code>0</code>: Disables compression.</p></li>
+<li><p>Integer <code>1-9</code>: Specifies the zlib compression level.</p></li>
+</ul></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly returns <code>file</code>. This function is called for its side effects.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="data-type-selection-as-argument-">Data Type Selection (<code>as</code> Argument)<a class="anchor" aria-label="anchor" href="#data-type-selection-as-argument-"></a></h2>
+
+
+<p>The <code>as</code> argument controls the on-disk storage type for integer, double,
+logical, and character columns.</p>
+<p><strong>1. Available Types</strong></p><ul><li><p><strong>Floating Point:</strong> <code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code>, <code>"bfloat16"</code></p></li>
+<li><p><strong>Signed Integer:</strong> <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
+<li><p><strong>Unsigned Integer:</strong> <code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
+<li><p><strong>Variable Length Strings:</strong> <code>"utf8"</code>, <code>"ascii"</code></p></li>
+<li><p><strong>Fixed Length Strings:</strong></p><ul><li><p><code>"utf8[]"</code> or <code>"ascii[]"</code> (auto-detects the longest string in the data)</p></li>
+<li><p><code>"utf8[n]"</code> or <code>"ascii[n]"</code> (where <code>n</code> is the length in bytes, e.g., <code>"utf8[10]"</code>)</p></li>
+</ul></li>
+<li><p><strong>Other:</strong> <code>"auto"</code>, <code>"skip"</code> (to skip a column/attribute of any R type)</p></li>
+</ul><p><em>Strings:</em> Variable-length strings allow for <code>NA</code> values (via NULL pointers)
+but cannot be compressed. Fixed-length strings allow for compression but do
+not support <code>NA</code>.</p>
+<p><strong>2. Automatic Selection (<code>as = "auto"</code>)</strong></p>
+<table class="table table"><tr><td><strong>R Type</strong></td><td><strong>HDF5 Type</strong></td><td><strong>Notes</strong></td></tr><tr><td><code>integer</code></td><td><code>H5T_STD_I32LE</code></td><td></td></tr><tr><td><code>double</code></td><td><code>H5T_IEEE_F64LE</code></td><td></td></tr><tr><td><code>logical</code></td><td><code>H5T_STD_U8LE</code></td><td>1-bit storage efficiency.</td></tr><tr><td><code>character</code></td><td><code>H5T_C_S1</code></td><td><code>H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM</code></td></tr><tr><td><code>factor</code></td><td><code>H5T_ENUM</code></td><td>Maps levels to integers.</td></tr><tr><td><code>data.frame</code></td><td><code>H5T_COMPOUND</code></td><td>Native table-like structure.</td></tr><tr><td><code>list</code></td><td><code>H5O_TYPE_GROUP</code></td><td>Written to HDF5 recursively.</td></tr><tr><td><code>complex</code></td><td><code>H5T_COMPLEX_IEEE_F64LE</code></td><td>Requires HDF5 &gt;= 2.0.0.</td></tr><tr><td><code>raw</code></td><td><code>H5T_OPAQUE</code></td><td>For binary data storage.</td></tr><tr><td><code>NULL</code></td><td><code>H5S_NULL</code></td><td>Null Dataspace</td></tr><tr><td><code>integer64</code></td><td><code>H5T_STD_I64LE</code></td><td>From the <code>bit64</code> R package.</td></tr><tr><td><code>POSIXt</code></td><td><code>H5T_C_S1</code></td><td>ISO 8601 string (<code>YYYY-MM-DDTHH:MM:SSZ</code>)</td></tr></table><p><em>NA Handling:</em> HDF5 integers do not support <code>NA</code>. If an R integer or logical
+vector contains <code>NA</code>, <code>h5lite</code> automatically promotes it to <code>float64</code> to
+preserve the <code>NA</code> value.</p>
+<p><strong>3. Column/Class Mapping</strong></p>
+<p>You can provide a named vector to map specific columns or classes:</p><ul><li><p><strong>Specific Name:</strong> <code>"col_name" = "type"</code> (e.g., <code>c(score = "float32")</code>)</p></li>
+<li><p><strong>Specific Attribute:</strong> <code>"@attr_name" = "type"</code></p></li>
+<li><p><strong>Class-based:</strong> <code>".integer" = "type"</code>, <code>".numeric" = "type"</code></p></li>
+<li><p><strong>Class-based Attribute:</strong> <code>"@.character" = "type"</code>, <code>"@.logical" = "type"</code></p></li>
+<li><p><strong>Global Fallback:</strong> <code>"." = "type"</code></p></li>
+<li><p><strong>Global Attribute Fallback:</strong> <code>"@." = "type"</code></p></li>
+</ul><p><em>Numeric Class:</em> <code>".numeric"</code> targets both <code>integer</code> and <code>double</code> with a
+lower priority than <code>".integer"</code> and <code>".double"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="writing-scalars">Writing Scalars<a class="anchor" aria-label="anchor" href="#writing-scalars"></a></h2>
@@ -95,54 +124,6 @@ An integer <code>1-9</code> specifies the zlib compression level directly.</p></
 To write a true HDF5 scalar, wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it "as-is."
 For example, <code>h5_write(I(5), file, "x")</code> will create a scalar dataset, while
 <code>h5_write(5, file, "x")</code> will create a 1D array of length 1.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="writing-lists">Writing Lists<a class="anchor" aria-label="anchor" href="#writing-lists"></a></h2>
-
-
-<p>If <code>data</code> is a <code>list</code> (but not a <code>data.frame</code>), <code>h5_write</code> will write it
-recursively, creating a corresponding group and dataset structure.</p><ul><li><p>R <code>list</code> objects are created as HDF5 <strong>groups</strong>.</p></li>
-<li><p>All other supported R objects (vectors, matrices, arrays, factors, <code>data.frame</code>s)
-are written as HDF5 <strong>datasets</strong>.</p></li>
-<li><p>Attributes of a list are written as HDF5 attributes on the corresponding group.</p></li>
-<li><p>Before writing, a "dry run" is performed to validate that all objects and attributes
-within the list are of a writeable type. If any part of the
-structure is invalid, the function will throw an error and no data will be
-written.</p></li>
-</ul></div>
-    <div class="section level2">
-    <h2 id="writing-null">Writing NULL<a class="anchor" aria-label="anchor" href="#writing-null"></a></h2>
-
-
-<p>If <code>data</code> is <code>NULL</code>, <code>h5_write</code> will create an HDF5 <strong>null dataset</strong>. This is
-a dataset with a null dataspace, which contains no data.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="writing-data-frames">Writing Data Frames<a class="anchor" aria-label="anchor" href="#writing-data-frames"></a></h2>
-
-
-<p><code>data.frame</code> objects are written as HDF5 <strong>compound datasets</strong>. This is a
-native HDF5 table-like structure that is highly efficient and portable. If the
-data.frame has row names, they will be written as an HDF5 dimension scale at
-<strong><name>_rownames</name></strong>.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="writing-complex-numbers">Writing Complex Numbers<a class="anchor" aria-label="anchor" href="#writing-complex-numbers"></a></h2>
-
-
-<p><code>h5lite</code> writes R <code>complex</code> objects using the native HDF5 <code>H5T_COMPLEX</code>
-datatype class, which was introduced in HDF5 version 2.0.0. As a result,
-HDF5 files containing complex numbers written by <code>h5lite</code> can only be read
-by other HDF5 tools that support HDF5 version 2.0.0 or later.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="writing-date-time-objects">Writing Date-Time Objects<a class="anchor" aria-label="anchor" href="#writing-date-time-objects"></a></h2>
-
-
-<p><code>POSIXt</code> objects are automatically converted to character strings in
-ISO 8601 format (<code>YYYY-MM-DDTHH:MM:SSZ</code>). This ensures that timestamps are
-stored in a human-readable and unambiguous way. This conversion applies to
-standalone <code>POSIXt</code> objects, as well as to columns within a <code>data.frame</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="dimension-scales">Dimension Scales<a class="anchor" aria-label="anchor" href="#dimension-scales"></a></h2>
@@ -158,36 +139,6 @@ Special HDF5 metadata attributes link the dimension scales to the dataset.
 The dimension scales can be relocated with <code><a href="h5_move.html">h5_move()</a></code> without breaking the
 link.</p>
     </div>
-    <div class="section level2">
-    <h2 id="data-type-selection-as-argument-">Data Type Selection (<code>as</code> Argument)<a class="anchor" aria-label="anchor" href="#data-type-selection-as-argument-"></a></h2>
-
-
-<p>The <code>as</code> argument controls the on-disk storage type.</p>
-<p>The <code>as</code> argument can be one of the following:</p><ul><li><p><strong>Global:</strong> A single string, e.g., <code>"auto"</code>, <code>"float32"</code>, <code>"ascii"</code>.</p></li>
-<li><p><strong>Specific:</strong> A named vector mapping names or type classes to HDF5 types.
-Matches <code>h5_read</code> behavior:</p><ul><li><p><code>"col_name" = "type"</code>: Specific dataset/column.</p></li>
-<li><p><code>"@attr_name" = "type"</code>: Specific attached attribute.</p></li>
-<li><p><code>".integer" = "type"</code>: Class-based (e.g., <code>.integer</code>, <code>.double</code>, <code>.logical</code>, <code>.character</code>, <code>.numeric</code>).</p></li>
-<li><p><code>"." = "type"</code>: Global default fallback (applies to all supported types).</p></li>
-</ul></li>
-</ul><p><strong>Class-based Priority:</strong>
-When selecting a type based on class, specific selectors override general ones:</p><ol><li><p><code>.integer</code> and <code>.double</code> (Highest Priority)</p></li>
-<li><p><code>.numeric</code> (Targets both integer and double)</p></li>
-<li><p><code>.</code> (Lowest Priority)</p></li>
-</ol><p>If <code>as</code> is set to <code>"auto"</code> (the default), <code>h5lite</code> will automatically
-select <code>float64</code> for double vectors, <code>int32</code> for integer vectors, <code>uint8</code>
-for logical vectors, and <code>utf8</code> for character vectors. If an integer or
-logical vector contains <code>NA</code>, it is stored using <code>float64</code> to enable encoding
-of <code>NA</code> as a sentinel value.</p>
-<p>To override this automatic behavior, you can specify an exact type. The full
-list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"skip"</code></p></li>
-<li><p><code>"utf8"</code>, <code>"ascii"</code> (variable length strings)</p></li>
-<li><p><code>"utf8[&lt;int&gt;]"</code>, <code>"ascii[&lt;int&gt;]"</code> (fixed length strings - <code>&lt;int&gt;</code> bytes wide)</p></li>
-<li><p><code>"utf8[]"</code>, <code>"ascii[]"</code> (fixed length strings - auto-selected byte width)</p></li>
-<li><p><code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code></p></li>
-<li><p><code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
-<li><p><code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
-</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="h5_read.html">h5_read()</a></code></p></div>
@@ -206,29 +157,55 @@ list of supported values is:</p><ul><li><p><code>"auto"</code>, <code>"skip"</co
 <span class="r-in"><span><span class="co"># Write an object first</span></span></span>
 <span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"data/vector"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="co"># Attach an attribute to it using the 'attr' parameter</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="st">"My Description"</span>, <span class="va">file</span>, <span class="st">"data/vector"</span>, attr <span class="op">=</span> <span class="st">"description"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fl">100</span>, <span class="va">file</span>, <span class="st">"data/vector"</span>, attr <span class="op">=</span> <span class="st">"scale_factor"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"My Description"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/vector"</span>, attr <span class="op">=</span> <span class="st">"description"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/vector"</span>, attr <span class="op">=</span> <span class="st">"scale_factor"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 3. Writing Complex Structures (Lists/Groups)</span></span></span>
-<span class="r-in"><span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Experiment A"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  results <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  valid <span class="op">=</span> <span class="cn">TRUE</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">my_list</span>, <span class="va">file</span>, <span class="st">"experiment_1"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 4. Writing Data Frames (Compound Datasets)</span></span></span>
-<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  id <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span></span>
-<span class="r-in"><span>  score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10.5</span>, <span class="fl">9.2</span>, <span class="fl">8.4</span>, <span class="fl">7.1</span>, <span class="fl">6.0</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  grade <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"D"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"records/scores"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># 5. Controlling Data Types (Compression)</span></span></span>
+<span class="r-in"><span><span class="co"># 3. Controlling Data Types</span></span></span>
 <span class="r-in"><span><span class="co"># Store integers as 8-bit unsigned</span></span></span>
 <span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="va">file</span>, <span class="st">"compressed/small_ints"</span>, as <span class="op">=</span> <span class="st">"uint8"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 4. Writing Complex Structures (Lists/Groups)</span></span></span>
+<span class="r-in"><span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  meta    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Experiment A"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  results <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">9</span><span class="op">)</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  valid   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">my_list</span>, <span class="va">file</span>, <span class="st">"experiment_1"</span>, as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"uint16"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 5. Writing Data Frames (Compound Datasets)</span></span></span>
+<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  id    <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span></span>
+<span class="r-in"><span>  score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10.5</span>, <span class="fl">9.2</span>, <span class="fl">8.4</span>, <span class="fl">7.1</span>, <span class="fl">6.0</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  grade <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"D"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"records/scores"</span>, as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>grade <span class="op">=</span> <span class="st">"ascii[1]"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 6. Fixed-Length Strings</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"fixed_str"</span>, as <span class="op">=</span> <span class="st">"ascii[10]"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 7. Review the file structure</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> /</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── data</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── integers <span style="color: #555555;">&lt;int32 × 10&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── floats <span style="color: #555555;">&lt;float64 × 10&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── chars <span style="color: #555555;">&lt;utf8 × 5&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── vector <span style="color: #555555;">&lt;int32 × 10&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── @<span style="font-style: italic;">description</span> <span style="color: #555555;">&lt;utf8 scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── @<span style="font-style: italic;">scale_factor</span> <span style="color: #555555;">&lt;float64 scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── compressed</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── small_ints <span style="color: #555555;">&lt;uint8 × 5&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── experiment_1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── meta</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   │   ├── id <span style="color: #555555;">&lt;uint16 × 1&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   │   └── name <span style="color: #555555;">&lt;utf8 × 1&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── results <span style="color: #555555;">&lt;float64 × 3 × 3&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── valid <span style="color: #555555;">&lt;int scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── fixed_str <span style="color: #555555;">&lt;ascii[10] × 2&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> └── records</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     └── scores <span style="color: #555555;">&lt;compound × 5 × 3&gt;</span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># 8. Clean up</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>
