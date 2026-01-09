@@ -74,7 +74,7 @@ h5_write(df, filename, "compound/mixed")
 # 5. ATTRIBUTES
 # ==========================================
 # Verify we can write metadata to a dataset
-h5attr(filename, "vec/int", "description") <- "Test Integers"
-h5attr(filename, "vec/int", "version") <- 1L
+h5_write("Test Integers", filename, "vec/int", "description")
+h5_write(1L, filename, "vec/int", "version")
 
 cat("Successfully generated", filename, "\n")
