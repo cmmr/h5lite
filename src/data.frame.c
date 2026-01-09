@@ -41,7 +41,15 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       else       { mem_member_types[c] = H5Tcopy(H5T_NATIVE_DOUBLE); }
     }
     else if (file_class == H5T_ENUM) {
-      mem_member_types[c] = H5Tcopy(file_member_type);
+      /* Custom memory Enum that maps file labels to 1-based R integers. */
+      mem_member_types[c] = H5Tcreate(H5T_ENUM, sizeof(int));
+      int n_members = H5Tget_nmembers(file_member_type);
+      for (int i = 0; i < n_members; i++) {
+        char *mname = H5Tget_member_name(file_member_type, i);
+        int val = i + 1; /* Force 1-based index */
+      H5Tenum_insert(mem_member_types[c], mname, &val);
+      H5free_memory(mname);
+      }
     }
     else if (file_class == H5T_STRING) {
       H5T_cset_t cset = H5Tget_cset(file_member_type);

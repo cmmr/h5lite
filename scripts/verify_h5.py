@@ -1,93 +1,148 @@
-# scripts/verify_h5.py
 import h5py
 import numpy as np
 import sys
 
-file_path = "test_interop.h5"
+# --- Reporting Helpers ---
+def pass_msg(msg):
+    print(f"  [PASS] {msg}")
 
-def fail(msg):
-    print(f"FAILURE: {msg}")
-    sys.exit(1)
+def fail_msg(msg, expected=None, actual=None):
+    print(f"  [FAIL] {msg}")
+    if expected is not None:
+        print(f"         Expected: {expected}")
+        print(f"         Actual:   {actual}")
+    return False
 
-def as_scalar(val):
-    """Helper to safely extract scalar values from 0-d or 1-d numpy arrays."""
-    if isinstance(val, np.ndarray):
-        if val.size == 1:
-            return val.item()
-    return val
+def check_eq(actual, expected, name):
+    # Handles lists, numpy arrays, and scalers
+    actual_arr = np.array(actual)
+    expected_arr = np.array(expected)
+    
+    # Check shape first
+    if actual_arr.shape != expected_arr.shape:
+        return fail_msg(f"{name} shape mismatch", expected_arr.shape, actual_arr.shape)
 
-try:
-    with h5py.File(file_path, "r") as f:
-        print(f"Successfully opened {file_path}")
+    # Check content
+    # Use allclose for floats, equal for others
+    if np.issubdtype(actual_arr.dtype, np.floating):
+        match = np.allclose(actual_arr, expected_arr)
+    else:
+        match = np.array_equal(actual_arr, expected_arr)
 
-        # --- 1. Verify Vectors ---
-        data = f["vec_double"][:]
-        expected = np.array([1.1, 2.2, 3.3])
-        if not np.allclose(data, expected):
-            fail(f"vec_double mismatch.\nExpected: {expected}\nGot: {data}")
-        print("Verified vec_double")
+    if match:
+        pass_msg(f"{name} content match")
+        return True
+    else:
+        return fail_msg(f"{name} value mismatch", expected, actual)
 
-        data = f["vec_int"][:]
-        expected = np.array([1, 2, 3, 4, 5])
-        if not np.array_equal(data, expected):
-            fail(f"vec_int mismatch.\nExpected: {expected}\nGot: {data}")
-        print("Verified vec_int")
+# --- Type Specific Verifiers ---
 
-        data = f["vec_logical"][:]
-        expected = np.array([1, 0, 1])
-        if not np.array_equal(data, expected):
-            fail(f"vec_logical mismatch.\nExpected: {expected}\nGot: {data}")
-        print("Verified vec_logical")
+def verify_enum(dset, expected_labels, name):
+    print(f"\n--- Verifying Enum: {name} ---")
+    data = dset[:]
+    
+    # 1. Get the Map
+    dtype = dset.dtype
+    mapping = h5py.check_dtype(enum=dtype)
+    if not mapping:
+        return fail_msg("Dataset is not an HDF5 ENUM")
+    
+    # 2. Decode Integers to Strings
+    rev_mapping = {v: k for k, v in mapping.items()}
+    try:
+        decoded = [rev_mapping[val] for val in data]
+    except KeyError as e:
+        return fail_msg(f"Found integer {e} in data with no Enum mapping!")
 
-        data = f["vec_char"][:]
-        expected = np.array([b"apple", b"banana", b"cherry"])
-        if not np.array_equal(data, expected):
-            fail(f"vec_char mismatch.\nExpected: {expected}\nGot: {data}")
-        print("Verified vec_char")
+    # 3. Compare
+    check_eq(decoded, expected_labels, "Labels")
 
-        # --- 2. Verify Matrix ---
-        data = f["matrix_int"][:]
-        expected = np.array([[1, 3, 5], [2, 4, 6]])
-        
-        if data.shape != (2, 3):
-             fail(f"Matrix shape mismatch. Expected (2,3), Got {data.shape}")
-        
-        if not np.array_equal(data, expected):
-            fail(f"matrix_int mismatch.\nExpected:\n{expected}\nGot:\n{data}")
-        print("Verified matrix_int")
-
-        # --- 3. Verify Data Frame ---
-        data = f["dataframe"][:]
-        if data['id'][0] != 1 or data['score'][1] != 20.5 or data['label'][2] != b'C':
-             fail(f"dataframe content mismatch. Got: {data}")
-        print("Verified dataframe")
-
-        # --- 4. Verify Attributes ---
-        dset = f["dset_with_attr"]
-        
-        # Check 'unit' attribute
-        if "unit" not in dset.attrs:
-            fail("Attribute 'unit' missing")
+def verify_compound(dset, expected_dict, name):
+    print(f"\n--- Verifying Compound: {name} ---")
+    data = dset[:]
+    names = data.dtype.names
+    
+    for col_name, expected_vals in expected_dict.items():
+        if col_name not in names:
+            fail_msg(f"Column '{col_name}' missing from compound dataset")
+            continue
             
-        unit_val = as_scalar(dset.attrs["unit"])
-        # h5py might return bytes, decode if necessary
-        if isinstance(unit_val, bytes):
-            unit_val = unit_val.decode()
-            
-        if unit_val != "meters":
-            fail(f"Attribute 'unit' mismatch. Expected 'meters', Got: {unit_val}")
+        col_data = data[col_name]
+        
+        # Handle Byte Strings
+        if col_data.dtype.kind == 'S': 
+            col_data = [x.decode('utf-8') for x in col_data]
+        
+        # Handle Nested Enums
+        elif h5py.check_dtype(enum=dset.dtype[col_name]):
+            mapping = h5py.check_dtype(enum=dset.dtype[col_name])
+            rev_mapping = {v: k for k, v in mapping.items()}
+            col_data = [rev_mapping[x] for x in col_data]
 
-        # Check 'scale' attribute
-        if "scale" not in dset.attrs:
-             fail("Attribute 'scale' missing")
-             
-        scale_val = as_scalar(dset.attrs["scale"])
-        if not np.isclose(scale_val, 1.5):
-             fail(f"Attribute 'scale' mismatch. Expected 1.5, Got: {scale_val}")
-             
-        print("Verified attributes")
+        check_eq(col_data, expected_vals, f"Column '{col_name}'")
 
-    print("\nALL TESTS PASSED")
+# --- Main Test Runner ---
 
-except Exception as e:
-    fail(f"An exception occurred: {e}")
+filename = "interop_test.h5"
+print(f"Opening {filename} for verification...")
+
+with h5py.File(filename, "r") as f:
+    
+    # 1. Vectors
+    print("\n--- Basic Vectors ---")
+    check_eq(f["vec/int"], [1, 2, -5], "Integer Vector")
+    check_eq(f["vec/dbl"], [1.1, 2.2, 3.14], "Double Vector")
+    check_eq(f["vec/bool"], [1, 0, 1], "Boolean Vector (as 0/1)")
+    
+    # Strings (Decode bytes to utf-8)
+    strs = [x.decode('utf-8') for x in f["vec/str"][:]]
+    check_eq(strs, ["alpha", "bravo", "charlie"], "String Vector")
+
+    # 2. Factors
+    # Standard: small, medium, small, large
+    verify_enum(f["factor/standard"], ["small", "medium", "small", "large"], "Standard Factor")
+    
+    # Reordered: z, x, y
+    verify_enum(f["factor/reordered"], ["z", "x", "y"], "Reordered Factor")
+
+    # 3. Matrices
+    print("\n--- Matrices (Layout Check) ---")
+    
+    # Integer 2x3
+    # R: 1, 3, 5 (row 1) / 2, 4, 6 (row 2)
+    verify_matrix_int = [[1, 3, 5], [2, 4, 6]]
+    check_eq(f["matrix/int_2x3"], verify_matrix_int, "Integer Matrix 2x3")
+    
+    # Double 3x2
+    # R: 0.1, 0.4 / 0.2, 0.5 / 0.3, 0.6
+    verify_matrix_dbl = [[0.1, 0.4], [0.2, 0.5], [0.3, 0.6]]
+    check_eq(f["matrix/dbl_3x2"], verify_matrix_dbl, "Double Matrix 3x2")
+
+    # 4. Compound
+    verify_compound(f["compound/mixed"], {
+        "id": [1, 2, 3],
+        "code": ["A-1", "B-2", "C-3"],
+        "status": ["ok", "fail", "ok"],
+        "value": [10.5, 20.0, 15.5]
+    }, "Mixed Data Frame")
+
+    # 5. Attributes
+    print("\n--- Attributes ---")
+    dset = f["vec/int"]
+    
+    # Attr: description
+    if "description" in dset.attrs:
+        val = dset.attrs["description"]
+        # H5py might return bytes or string depending on version/encoding
+        if isinstance(val, bytes): val = val.decode('utf-8')
+        check_eq(val, "Test Integers", "Attr 'description'")
+    else:
+        fail_msg("Attribute 'description' missing")
+
+    # Attr: version
+    if "version" in dset.attrs:
+        check_eq(dset.attrs["version"], [1], "Attr 'version'")
+    else:
+        fail_msg("Attribute 'version' missing")
+
+print("\nVerification Complete.")

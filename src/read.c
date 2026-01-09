@@ -145,15 +145,48 @@ static SEXP read_raw(hid_t loc_id, int is_dataset, hid_t file_type_id,
   return result;
 }
 
+
 static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id, 
                         int ndims, hsize_t *dims, hsize_t total_elements) {
+  
   int n_members = H5Tget_nmembers(file_type_id);
   if (n_members <= 0) return mkChar("enum type has no members");
   
-  SEXP   result = PROTECT(allocVector(INTSXP, (R_xlen_t)total_elements));
-  herr_t status = h5_read_impl(loc_id, H5T_NATIVE_INT, INTEGER(result), is_dataset);
-  if (status < 0) { UNPROTECT(1); return mkChar("Failed to read enum values"); }
+  /* 1. Create a memory Enum type based on integers */
+  hid_t mem_type_id = H5Tcreate(H5T_ENUM, sizeof(int));
+  if (mem_type_id < 0) return mkChar("Failed to create memory enum type");
+
+  /* 2. Build the R levels vector and populate the memory Enum */
+  /* We map the file's names to R's 1-based indices (1, 2, 3...) */
+  SEXP levels = PROTECT(allocVector(STRSXP, n_members));
   
+  for (int i = 0; i < n_members; i++) {
+    char *name = H5Tget_member_name(file_type_id, i);
+    int r_index = i + 1; /* R uses 1-based indexing */
+    
+    if (name) {
+      /* Tell HDF5: "When you see this name, read it as integer 'r_index'" */
+      H5Tenum_insert(mem_type_id, name, &r_index);
+      SET_STRING_ELT(levels, i, mkCharCE(name, CE_UTF8));
+      H5free_memory(name);
+    } else {
+      SET_STRING_ELT(levels, i, NA_STRING); // # nocov
+    }
+  }
+
+  /* 3. Read the data using the custom memory Enum type */
+  /* HDF5 will automatically match names from the file to our 1-based integers */
+  SEXP result = PROTECT(allocVector(INTSXP, (R_xlen_t)total_elements));
+  herr_t status = h5_read_impl(loc_id, mem_type_id, INTEGER(result), is_dataset);
+  
+  H5Tclose(mem_type_id);
+
+  if (status < 0) { // # nocov start
+    UNPROTECT(2); 
+    return mkChar("Failed to read enum values"); 
+  } // # nocov end
+  
+  /* 4. Handle Transposition (if necessary) */
   if (ndims > 1) {
     SEXP dup_result = PROTECT(duplicate(result));
     h5_transpose(INTEGER(dup_result), INTEGER(result), ndims, dims, sizeof(int), 1);
@@ -161,20 +194,15 @@ static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id,
     UNPROTECT(1); 
   }
   
-  SEXP levels = allocVector(STRSXP, n_members);
+  /* 5. Set Class and Levels */
   setAttrib(result, R_LevelsSymbol, levels);
-  for (int i = 0; i < n_members; i++) {
-    char *level_name = H5Tget_member_name(file_type_id, i);
-    if (level_name) { SET_STRING_ELT(levels, i, mkCharCE(level_name, CE_UTF8)); }
-    else            { SET_STRING_ELT(levels, i, NA_STRING); } // # nocov
-    H5free_memory(level_name);
-  }
   
-  SEXP class_attr = allocVector(STRSXP, 1);
-  setAttrib(result, R_ClassSymbol, class_attr);
+  SEXP class_attr = PROTECT(allocVector(STRSXP, 1));
   SET_STRING_ELT(class_attr, 0, mkChar("factor"));
+  setAttrib(result, R_ClassSymbol, class_attr);
+  UNPROTECT(1); // class_attr
   
-  UNPROTECT(1);
+  UNPROTECT(2); // levels, result
   return result;
 }
 

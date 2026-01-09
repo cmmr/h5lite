@@ -1,43 +1,80 @@
-# scripts/generate_h5.R
-if (!requireNamespace("h5lite", quietly = TRUE)) {
-  stop("h5lite must be installed to run this script.")
-}
 library(h5lite)
 
-file_path <- "test_interop.h5"
-if (file.exists(file_path)) unlink(file_path)
+filename <- "interop_test.h5"
+if (file.exists(filename)) file.remove(filename)
 
-cat("Generating HDF5 file at:", file_path, "\n")
+cat("--- Generating HDF5 Data from R ---\n")
 
-# --- 1. Atomic Vectors ---
-h5_write(c(1.1, 2.2, 3.3), file_path, "vec_double")
-h5_write(as.integer(c(1, 2, 3, 4, 5)), file_path, "vec_int")
-# Note: R logicals are typically written as integers (0/1) or enums in HDF5
-h5_write(c(TRUE, FALSE, TRUE), file_path, "vec_logical")
-h5_write(c("apple", "banana", "cherry"), file_path, "vec_char")
+# ==========================================
+# 1. BASIC VECTORS
+# ==========================================
+# Integer
+h5_write(c(1L, 2L, -5L), filename, "vec/int")
 
-# --- 2. Matrix/Array ---
-# R fills matrices by column. 
-# matrix(1:6, 2, 3) -> 
+# Double
+h5_write(c(1.1, 2.2, 3.14), filename, "vec/dbl")
+
+# Logical (Boolean)
+# R stores TRUE=1, FALSE=0 internally. We test how they arrive in HDF5.
+h5_write(c(TRUE, FALSE, TRUE), filename, "vec/bool")
+
+# Fixed-Length Strings
+h5_write(c("alpha", "bravo", "charlie"), filename, "vec/str")
+
+
+# ==========================================
+# 2. FACTORS (ENUMS)
+# ==========================================
+# Case A: Standard Factor (Alphabetical levels)
+f_std <- factor(c("small", "medium", "small", "large"))
+h5_write(f_std, filename, "factor/standard")
+
+# Case B: Reordered Levels (Crucial for testing index mapping)
+# Data: "z", "x", "y"
+# Levels: "z" (1), "y" (2), "x" (3) -> Ints in R: 1, 3, 2
+f_ord <- factor(c("z", "x", "y"), levels = c("z", "y", "x"))
+h5_write(f_ord, filename, "factor/reordered")
+
+
+# ==========================================
+# 3. MATRICES (LAYOUT TEST)
+# ==========================================
+# Matrix A: Integer, 2 Rows x 3 Cols
+# R (Col-Major) fills column by column:
 #      [,1] [,2] [,3]
 # [1,]    1    3    5
 # [2,]    2    4    6
-mat <- matrix(1:6, nrow = 2, ncol = 3)
-h5_write(mat, file_path, "matrix_int")
+m_int <- matrix(1:6, nrow = 2, ncol = 3)
+h5_write(m_int, filename, "matrix/int_2x3")
 
-# --- 3. Data Frame (Compound Dataset) ---
-# Using types seen in src/write_compound.c logic (ints, doubles, strings)
+# Matrix B: Double, 3 Rows x 2 Cols
+#      [,1] [,2]
+# [1,]  0.1  0.4
+# [2,]  0.2  0.5
+# [3,]  0.3  0.6
+m_dbl <- matrix(c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6), nrow = 3, ncol = 2)
+h5_write(m_dbl, filename, "matrix/dbl_3x2")
+
+
+# ==========================================
+# 4. COMPOUND (DATA FRAMES)
+# ==========================================
+# A complex dataframe mixing strings, ints, and factors
 df <- data.frame(
-  id = c(1L, 2L, 3L),
-  score = c(10.5, 20.5, 30.5),
-  label = c("A", "B", "C"),
+  id = 1:3,
+  code = c("A-1", "B-2", "C-3"),             # String
+  status = factor(c("ok", "fail", "ok")),    # Factor (Enum)
+  value = c(10.5, 20.0, 15.5),               # Double
   stringsAsFactors = FALSE
 )
-h5_write(df, file_path, "dataframe")
+h5_write(df, filename, "compound/mixed")
 
-# --- 4. Attributes ---
-h5_write(c(100L, 200L), file_path, "dset_with_attr")
-h5_write("meters", file_path, "dset_with_attr", "unit")
-h5_write(1.5, file_path, "dset_with_attr", "scale")
 
-cat("Finished generating HDF5 file.\n")
+# ==========================================
+# 5. ATTRIBUTES
+# ==========================================
+# Verify we can write metadata to a dataset
+h5attr(filename, "vec/int", "description") <- "Test Integers"
+h5attr(filename, "vec/int", "version") <- 1L
+
+cat("Successfully generated", filename, "\n")
