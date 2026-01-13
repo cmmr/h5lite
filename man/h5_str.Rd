@@ -4,7 +4,7 @@
 \alias{h5_str}
 \title{Display the Structure of an HDF5 Object}
 \usage{
-h5_str(file, name = "/", attrs = TRUE, members = TRUE)
+h5_str(file, name = "/", attrs = TRUE, members = TRUE, markup = interactive())
 }
 \arguments{
 \item{file}{The path to the HDF5 file.}
@@ -17,6 +17,8 @@ attributes prefixed with \code{@}.}
 
 \item{members}{Set to \code{FALSE} to hide compound dataset members. The default
 (\code{TRUE}) shows members prefixed with \code{$}.}
+
+\item{markup}{Set to \code{FALSE} to remove colors and italics from the output.}
 }
 \value{
 This function is called for its side-effect of printing to the

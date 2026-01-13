@@ -1,16 +1,5 @@
 #include "h5lite.h"
 
-/* --- COLOR & FORMATTING DEFINITIONS --- */
-
-/* ANSI Color Codes
- * \033[90m = Bright Black (Dark Grey) - nice for "subtle" info
- * \033[3m  = Italic
- * \033[0m  = Reset to default
- */
-#define COL_SUBTLE "\033[90m"
-#define COL_ITALIC "\033[3m"
-#define COL_RESET  "\033[0m"
-
 /* --- FORMATTING HELPERS --- */
 
 /*
@@ -120,8 +109,22 @@ static void format_member_type(hid_t type_id, char *buffer, size_t buf_len) {
  * @param show_attrs Boolean (1 or 0) indicating whether to list attributes.
  * @param show_members Boolean (1 or 0) indicating whether to list compound members.
  */
-static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, int show_members) {
-  /* * HDF5 1.12+ signature for H5Oget_info requires 3 arguments. */
+static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, int show_members, int show_markup) {
+  
+  
+  
+  /* --- COLOR & FORMATTING DEFINITIONS --- */
+  
+  /* ANSI Color Codes
+   * \033[90m = Bright Black (Dark Grey) - nice for "subtle" info
+   * \033[3m  = Italic
+   * \033[0m  = Reset to default
+   */
+  const char *col_subtle = show_markup ? "\033[90m" : "";
+  const char *col_italic = show_markup ? "\033[3m"  : "";
+  const char *col_reset  = show_markup ? "\033[0m"  : "";
+  
+  
   unsigned fields = H5O_INFO_BASIC;
   if (show_attrs) fields |= H5O_INFO_NUM_ATTRS;
   
@@ -193,8 +196,8 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
       Rprintf("%s%s @%s%s%s %s%s%s\n", 
               prefix, 
               (is_last ? conn_last : conn_norm), 
-              COL_ITALIC, attr_name, COL_RESET, 
-              COL_SUBTLE, type_str, COL_RESET);
+              col_italic, attr_name, col_reset, 
+              col_subtle, type_str, col_reset);
       
       /* Check for Compound Attribute Members */
       if (show_members && H5Tget_class(atype) == H5T_COMPOUND) {
@@ -217,8 +220,8 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
              Rprintf("%s%s $%s%s%s %s%s%s\n", 
                      memb_prefix,
                      (is_last_memb ? conn_last : conn_norm),
-                     COL_ITALIC, mname, COL_RESET, 
-                     COL_SUBTLE, mtype_str, COL_RESET);
+                     col_italic, mname, col_reset, 
+                     col_subtle, mtype_str, col_reset);
              
              H5free_memory(mname);
              H5Tclose(mtype);
@@ -249,8 +252,8 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
       Rprintf("%s%s $%s%s%s %s%s%s\n", 
               prefix, 
               (is_last ? conn_last : conn_norm), 
-              COL_ITALIC, memb_name, COL_RESET, 
-              COL_SUBTLE, type_str, COL_RESET);
+              col_italic, memb_name, col_reset, 
+              col_subtle, type_str, col_reset);
 
       H5free_memory(memb_name);
       H5Tclose(memb_type);
@@ -270,8 +273,9 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
     /* Open Object to inspect type/recurse */
     hid_t oid = H5Oopen(loc_id, name, H5P_DEFAULT);
     if (oid < 0) { // # nocov start
-      Rprintf("%s%s %s " COL_SUBTLE "<Error>" COL_RESET "\n", 
-              prefix, (is_last ? conn_last : conn_norm), name); 
+      Rprintf("%s%s %s %s<Error>%s\n", 
+              prefix, (is_last ? conn_last : conn_norm), 
+              name, col_subtle, col_reset); 
       continue; 
     } // # nocov end
     
@@ -303,14 +307,12 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
      */
     if (is_group) {
       Rprintf("%s%s %s/\n", 
-              prefix, 
-              (is_last ? conn_last : conn_norm), 
+              prefix, (is_last ? conn_last : conn_norm), 
               name);
     } else {
-      Rprintf("%s%s %s " COL_SUBTLE "%s" COL_RESET "\n", 
-              prefix, 
-              (is_last ? conn_last : conn_norm), 
-              name, type_str);
+      Rprintf("%s%s %s %s%s%s\n", 
+              prefix, (is_last ? conn_last : conn_norm), 
+              name, col_subtle, type_str, col_reset);
     }
     
     /* Recurse if Group OR if Compound Dataset (to show members) OR if Attributes requested */
@@ -323,7 +325,7 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
       /* Safety: Ensure we don't overflow the prefix stack buffer */
       snprintf(new_prefix, sizeof(new_prefix), "%s%s", prefix, (is_last ? pref_last : pref_norm));
       
-      h5_list_recursive(oid, new_prefix, show_attrs, show_members);
+      h5_list_recursive(oid, new_prefix, show_attrs, show_members, show_markup);
     }
     
     H5Oclose(oid);
@@ -338,11 +340,12 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
  * @param attrs      Logical TRUE to list attributes, FALSE to hide them.
  * @param members    Logical TRUE to list compound members, FALSE to hide them.
  */
-SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs, SEXP members) {
+SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs, SEXP members, SEXP markup) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
-  int show_attrs = LOGICAL(attrs)[0];
+  int show_attrs   = LOGICAL(attrs)[0];
   int show_members = LOGICAL(members)[0];
+  int show_markup  = LOGICAL(markup)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -364,7 +367,7 @@ SEXP C_h5_str(SEXP filename, SEXP group_name, SEXP attrs, SEXP members) {
   }
   
   /* Start Recursion with empty prefix */
-  h5_list_recursive(group_id, "", show_attrs, show_members);
+  h5_list_recursive(group_id, "", show_attrs, show_members, show_markup);
   
   H5Oclose(group_id);
   H5Fclose(file_id);

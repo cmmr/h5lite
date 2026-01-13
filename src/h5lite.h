@@ -64,7 +64,7 @@ SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name);
 SEXP C_h5_attr_names(SEXP filename, SEXP obj_name);
 
 /* --- ls.c --- */
-SEXP C_h5_str(SEXP filename, SEXP obj_name, SEXP attrs, SEXP members);
+SEXP C_h5_str(SEXP filename, SEXP obj_name, SEXP attrs, SEXP members, SEXP markup);
 SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales);
 
 /* --- organize.c --- */

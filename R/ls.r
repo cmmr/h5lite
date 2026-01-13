@@ -63,6 +63,7 @@ h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE, scales
 #'   attributes prefixed with `@`.
 #' @param members Set to `FALSE` to hide compound dataset members. The default
 #'   (`TRUE`) shows members prefixed with `$`.
+#' @param markup Set to `FALSE` to remove colors and italics from the output.
 #' @return This function is called for its side-effect of printing to the
 #'   console and returns \code{NULL} invisibly.
 #' @seealso [h5_ls()], [h5_attr_names()]
@@ -76,12 +77,12 @@ h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE, scales
 #' h5_str(file)
 #' 
 #' unlink(file)
-h5_str <- function(file, name = "/", attrs = TRUE, members = TRUE) {
+h5_str <- function(file, name = "/", attrs = TRUE, members = TRUE, markup = interactive()) {
   
   file <- validate_strings(file, name, must_exist = TRUE)
-  assert_scalar_logical(attrs, members)
+  assert_scalar_logical(attrs, members, markup)
   
   # Call the C function that recursively visits objects and prints a summary.
-  .Call("C_h5_str", file, name, isTRUE(attrs), isTRUE(members), PACKAGE = "h5lite")
+  .Call("C_h5_str", file, name, attrs, members, markup, PACKAGE = "h5lite")
   invisible(NULL)
 }
