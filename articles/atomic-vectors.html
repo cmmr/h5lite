@@ -115,10 +115,10 @@ scalar, you must wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.ht
 <span><span class="co"># 2. Explicit Scalar: Wrapped in I()</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"structure/scalar"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"structure"</span><span class="op">)</span></span></code></pre></div>
-<pre class="fansi fansi-output"><code><span><span class="co">#&gt; structure/</span></span>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"structure"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; structure/</span></span>
 <span><span class="co">#&gt; ├── array_1d &lt;uint8 × 1&gt;</span></span>
-<span><span class="co">#&gt; └── scalar &lt;uint8 scalar&gt;</span></span></code></pre>
+<span><span class="co">#&gt; └── scalar &lt;uint8 scalar&gt;</span></span></code></pre></div>
 <p><em>Note: When reading data back into R, both storage formats appear
 as standard R vectors of length 1.</em></p>
 </div>

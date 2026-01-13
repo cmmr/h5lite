@@ -151,8 +151,8 @@ frame.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mtcars_subset</span>, <span class="va">file</span>, <span class="st">"cars"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
-<pre class="fansi fansi-output"><code><span><span class="co">#&gt; /</span></span>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span><span class="co">#&gt; /</span></span>
 <span><span class="co">#&gt; ├── study_data/</span></span>
 <span><span class="co">#&gt; │   └── results &lt;compound[4] × 5&gt;</span></span>
 <span><span class="co">#&gt; │       ├── $id &lt;uint8&gt;</span></span>
@@ -179,9 +179,8 @@ frame.</p>
 <span><span class="co">#&gt;     ├── @CLASS &lt;ascii[16] scalar&gt;</span></span>
 <span><span class="co">#&gt;     └── @REFERENCE_LIST &lt;compound[2] × 1&gt;</span></span>
 <span><span class="co">#&gt;         ├── $dataset &lt;reference&gt;</span></span>
-<span><span class="co">#&gt;         └── $dimension &lt;uint32&gt;</span></span></code></pre>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
+<span><span class="co">#&gt;         └── $dimension &lt;uint32&gt;</span></span>
+<span></span>
 <span><span class="co"># Read back</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"cars"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/row.names.html" class="external-link">row.names</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">)</span></span>

@@ -55,7 +55,7 @@ dimensions, and attributes.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">h5_str</span><span class="op">(</span><span class="va">file</span>, name <span class="op">=</span> <span class="st">"/"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span>, members <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">h5_str</span><span class="op">(</span><span class="va">file</span>, name <span class="op">=</span> <span class="st">"/"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span>, members <span class="op">=</span> <span class="cn">TRUE</span>, markup <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -79,6 +79,10 @@ attributes prefixed with <code>@</code>.</p></dd>
 <dt id="arg-members">members<a class="anchor" aria-label="anchor" href="#arg-members"></a></dt>
 <dd><p>Set to <code>FALSE</code> to hide compound dataset members. The default
 (<code>TRUE</code>) shows members prefixed with <code>$</code>.</p></dd>
+
+
+<dt id="arg-markup">markup<a class="anchor" aria-label="anchor" href="#arg-markup"></a></dt>
+<dd><p>Set to <code>FALSE</code> to remove colors and italics from the output.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -110,9 +114,9 @@ fast and memory-safe for arbitrarily large files.</p>
 <span class="r-in"><span><span class="fu">h5_str</span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> /</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> └── group/</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     ├── @<span style="font-style: italic;">info</span> <span style="color: #555555;">&lt;utf8[8] × 1&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     ├── x <span style="color: #555555;">&lt;uint8 × 10&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     └── y <span style="color: #555555;">&lt;uint8 × 3 × 3&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     ├── @info &lt;utf8[8] × 1&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     ├── x &lt;uint8 × 10&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     └── y &lt;uint8 × 3 × 3&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

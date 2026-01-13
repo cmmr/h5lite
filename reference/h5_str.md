@@ -7,7 +7,7 @@ dimensions, and attributes.
 ## Usage
 
 ``` r
-h5_str(file, name = "/", attrs = TRUE, members = TRUE)
+h5_str(file, name = "/", attrs = TRUE, members = TRUE, markup = interactive())
 ```
 
 ## Arguments
@@ -30,6 +30,10 @@ h5_str(file, name = "/", attrs = TRUE, members = TRUE)
 
   Set to `FALSE` to hide compound dataset members. The default (`TRUE`)
   shows members prefixed with `$`.
+
+- markup:
+
+  Set to `FALSE` to remove colors and italics from the output.
 
 ## Value
 

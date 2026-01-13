@@ -59,9 +59,6 @@ h5_attr_names(file, "experiment/control")
 #> [1] "description" "valid"
 
 h5_str(file)
-```
-
-``` fansi
 #> /
 #> ├── measurements/
 #> │   └── temperature <uint8 × 10>

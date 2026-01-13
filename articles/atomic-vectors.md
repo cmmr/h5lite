@@ -47,9 +47,6 @@ h5_write(42, file, "structure/array_1d")
 h5_write(I(42), file, "structure/scalar")
 
 h5_str(file, "structure")
-```
-
-``` fansi
 #> structure/
 #> ├── array_1d <uint8 × 1>
 #> └── scalar <uint8 scalar>

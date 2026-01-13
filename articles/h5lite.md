@@ -174,9 +174,6 @@ h5_ls(file)
 
 # Print structure tree (like R's str())
 h5_str(file)
-```
-
-``` fansi
 #> /
 #> ├── examples/
 #> │   ├── vector <float64 × 3>

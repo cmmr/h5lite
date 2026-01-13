@@ -83,9 +83,6 @@ mtcars_subset <- head(mtcars, 3)
 h5_write(mtcars_subset, file, "cars")
 
 h5_str(file)
-```
-
-``` fansi
 #> /
 #> ├── study_data/
 #> │   └── results <compound[4] × 5>
@@ -114,9 +111,6 @@ h5_str(file)
 #>     └── @REFERENCE_LIST <compound[2] × 1>
 #>         ├── $dataset <reference>
 #>         └── $dimension <uint32>
-```
-
-``` r
 
 # Read back
 result <- h5_read(file, "cars")

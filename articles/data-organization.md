@@ -108,9 +108,6 @@ h5_ls(file, recursive = TRUE)
 
 # Visualize the tree
 h5_str(file)
-```
-
-``` fansi
 #> /
 #> ├── project_A/
 #> │   └── simulation/
