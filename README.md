@@ -25,6 +25,7 @@ so you can focus on your data.
     -   Writing to an existing dataset path overwrites it, just like re-assigning a variable.
 -   **Safe and Efficient:**
     -   Auto-selects a safe R data type for numeric data to prevent overflow.
+    -   Automatic data type selection saves space by default (e.g., `1:100` is stored as an 8-bit integer).
     -   Built-in, easy-to-use compression (`compress = TRUE`).
 -   **Easy Installation:** `h5lite` bundles its HDF5 dependency, so installation is a simple `install.packages("h5lite")`. No need to manage system libraries.
 
@@ -97,23 +98,40 @@ Use `h5_ls()` to see the file structure as a character vector, or `h5_str()` for
 ```r
 # List all objects recursively
 h5_ls(file, recursive = TRUE)
-#> [1] "data"          "data/vector"   "data/matrix"   "data/array"
-#> [5] "scalar_string" "factor_data"   "config"        "config/a"
-#> [9] "config/b"      "mtcars"
+#> [1] "data"          "data/vector"   "data/matrix"   "data/array"   
+#> [5] "scalar_string" "factor_data"   "mtcars"        "config"       
+#> [9] "config/a"      "config/b"
 
 # Preview the file structure (like h5ls -r)
 h5_str(file)
 #> /
-#> ├── data
-#> │   ├── vector <uint8 x 10>
-#> │   ├── matrix <float64 x 2 x 5>
-#> │   └── array <uint8 x 2 x 3 x 4>
-#> ├── scalar_string <string scalar>
-#> ├── factor_data <enum x 4>
-#> ├── config
-#> │   ├── a <uint8 x 1>
-#> │   └── b <uint8 x 1>
-#> └── mtcars <compound × 32 × 11>
+#> ├── data/
+#> │   ├── vector <uint8 × 10>
+#> │   ├── matrix <float64 × 2 × 5>
+#> │   └── array <uint8 × 2 × 3 × 4>
+#> ├── scalar_string <utf8[6] scalar>
+#> ├── factor_data <enum × 4>
+#> ├── mtcars <compound[11] × 32>
+#> │   ├── @DIMENSION_LIST <vlen × 1>
+#> │   ├── $mpg <float64>
+#> │   ├── $cyl <uint8>
+#> │   ├── $disp <float64>
+#> │   ├── $hp <uint16>
+#> │   ├── $drat <float64>
+#> │   ├── $wt <float64>
+#> │   ├── $qsec <float64>
+#> │   ├── $vs <uint8>
+#> │   ├── $am <uint8>
+#> │   ├── $gear <uint8>
+#> │   └── $carb <uint8>
+#> ├── mtcars_rownames <utf8 × 32>
+#> │   ├── @CLASS <ascii[16] scalar>
+#> │   └── @REFERENCE_LIST <compound[2] × 1>
+#> │       ├── $dataset <reference>
+#> │       └── $dimension <uint32>
+#> └── config/
+#>     ├── a <uint8 × 1>
+#>     └── b <uint8 × 1>
 ```
 
 ### 3. Read Data
@@ -151,13 +169,14 @@ print(units)
 For more detailed guides on specific topics, see the package vignettes:
 
 -   **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
--   **[Working with Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
--   **[Working with Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
--   **[Working with Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.
+-   **[Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
+-   **[Data Types & Compression](https://cmmr.github.io/h5lite/articles/data-types.html)**: Controlling storage types and compression.
+-   **[Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
+-   **[Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.
 -   **[Data Organization](https://cmmr.github.io/h5lite/articles/data-organization.html)**: Using groups and lists to structure files.
 -   **[Attributes In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.html)**: A deep dive into metadata handling.
 -   **[Object-Oriented Interface](https://cmmr.github.io/h5lite/articles/oo-interface.html)**: A guide to the `h5_open()` handle for a streamlined workflow.
--   **[Using h5lite with Parallel Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**: Guide for multi-threaded and multi-process access.
+-   **[Parallel Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**: Guide for multi-threaded and multi-process access.
 
 You can also access these vignettes from within R using `browseVignettes("h5lite")`.
 
@@ -178,10 +197,12 @@ You can also access these vignettes from within R using `browseVignettes("h5lite
 | **Compression**        | Simple on/off (`compress = TRUE`).           | Full control over filters, chunking, etc.       |
 
 **Use `rhdf5` or `hdf5r` if you need to:**
+
 -   Work with complex or custom HDF5 data types not supported by `h5lite` (e.g., bitfields, references).
 -   Have fine-grained control over file properties, chunking, or compression filters.
 -   Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).
 
 **Use `h5lite` if you want to:**
+
 -   Quickly and safely get data into or out of a file.
 -   Avoid thinking about low-level details.

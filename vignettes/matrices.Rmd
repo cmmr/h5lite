@@ -1,0 +1,128 @@
+---
+title: "Matrices and Arrays"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Matrices and Arrays}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+fansi::set_knit_hooks(knitr::knit_hooks)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+HDF5 is an excellent format for storing large, multi-dimensional numerical arrays. `h5lite` simplifies the process of reading and writing matrices and arrays by handling the complex memory layout differences between R and HDF5 automatically.
+
+This vignette covers writing matrices, preserving dimension names (`dimnames`), and understanding how `h5lite` manages dimension ordering.
+
+```{r setup}
+library(h5lite)
+file <- tempfile(fileext = ".h5")
+```
+
+## Writing Matrices
+
+In R, matrices are simply 2-dimensional arrays. You can write them directly using `h5_write()`. `h5lite` preserves the dimensions exactly as they appear in R.
+
+```{r}
+# Create a 3x4 matrix
+mat <- matrix(1:12, nrow = 3, ncol = 4)
+
+# Write to file
+h5_write(mat, file, "linear_algebra/mat_a")
+
+# Read back
+mat_in <- h5_read(file, "linear_algebra/mat_a")
+
+# Verify
+all.equal(mat, mat_in)
+```
+
+## Writing N-Dimensional Arrays
+
+The same logic applies to arrays with 3 or more dimensions.
+
+```{r}
+# Create a 3D array (e.g., spatial data over time: x, y, time)
+vol <- array(runif(24), dim = c(4, 3, 2))
+
+h5_write(vol, file, "spatial/volume")
+
+# Check dimensions without reading the full data
+h5_dim(file, "spatial/volume")
+```
+
+## Dimension Names (dimnames)
+
+R objects often carry metadata in the form of `dimnames` (row names, column names, etc.). HDF5 does not have a native "row name" concept for numerical arrays, but it supports **Dimension Scales**.
+
+`h5lite` automatically converts R `dimnames` into HDF5 Dimension Scales. This allows your row and column names to survive the round-trip to disk and back.
+
+```{r}
+# Create a matrix with row and column names
+data <- matrix(rnorm(6), nrow = 2)
+rownames(data) <- c("Sample_A", "Sample_B")
+colnames(data) <- c("Gene_1", "Gene_2", "Gene_3")
+
+h5_write(data, file, "genetics/expression")
+
+# Read back
+data_in <- h5_read(file, "genetics/expression")
+
+print(data_in)
+```
+
+*Technical Note: In the HDF5 file, the names are stored as separate datasets (e.g., `_rownames`, `_colnames`) and linked to the main dataset using HDF5 Dimension Scale attributes.*
+
+## Dimension Ordering (Row-Major vs. Column-Major)
+
+One of the most confusing aspects of HDF5 for R users is dimension ordering.
+
+* **R** is **Column-Major**: The first dimension varies fastest.
+* **HDF5** (and C/C++/Python) is **Row-Major**: The last dimension varies fastest.
+
+### How h5lite handles it
+
+To ensure that a `3x4` matrix in R looks like a `3x4` dataset in HDF5 tools (like `h5dump` or `HDFView`), `h5lite` physically **transposes** the data during read/write operations.
+
+1.  **Writing:** `h5lite` converts R's column-major memory layout to HDF5's row-major layout.
+2.  **Reading:** `h5lite` converts the data back to column-major for R.
+
+This ensures that **indexing is preserved**. `x[2, 1]` in R refers to the exact same value after reading it back from HDF5.
+
+### Interoperability with Python
+
+Because `h5lite` writes the data in C-order (Row-Major) to match the HDF5 specification, files created with `h5lite` are perfectly readable by Python (`h5py` or `pandas`).
+
+* **R:** Shape is `(3, 4)`
+* **Python:** Shape is `(3, 4)`
+
+*Note: Some other R packages create HDF5 files by swapping the dimensions (writing a 3x4 matrix as 4x3) to avoid the cost of transposing data. `h5lite` prioritizes correctness and interoperability over raw write speed.*
+
+## Compression and Chunking
+
+Matrices and arrays benefit significantly from compression. When you enable compression, `h5lite` automatically "chunks" the dataset (breaks it into smaller tiles).
+
+```{r}
+# Large matrix of zeros (highly compressible)
+sparse_mat <- matrix(0, nrow = 1000, ncol = 1000)
+sparse_mat[1:10, 1:10] <- 1
+
+# Write with compression (zlib level 5)
+h5_write(sparse_mat, file, "compressed/matrix", compress = TRUE)
+
+# Write with high compression (zlib level 9)
+h5_write(sparse_mat, file, "compressed/matrix_max", compress = 9)
+```
+
+## Partial I/O
+
+`h5lite` is designed for simplicity and currently reads/writes full datasets at once. It does **not** support partial I/O (hyperslabs), such as reading only rows 1-10 of a 1,000,000 row matrix.
+
+If you need to read specific subsets of data that are too large to fit in memory, you should consider using the `rhdf5` or `hdf5r` packages.
+
+```{r, include=FALSE}
+unlink(file)
+```
+

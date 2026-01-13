@@ -283,17 +283,6 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       H5Pset_create_intermediate_group(lcpl_id, 1);
       H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
       
-      /* N-Bit Filter for Logicals Written as Unsigned Integers */
-      int use_nbit_strategy = 0;
-      
-      if (TYPEOF(data) == LGLSXP && H5Tget_class(file_type_id) == H5T_INTEGER) {
-        if (H5Tget_sign(file_type_id) == H5T_SGN_NONE) {
-          H5Tset_precision(file_type_id, 1);
-          H5Tset_offset(file_type_id, 0);
-          use_nbit_strategy = 1;
-        }
-      }
-      
       /* Create Dataset Creation Property List (DCPL) for compression */
       hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
       
@@ -308,12 +297,8 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
         calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
         H5Pset_chunk(dcpl_id, rank, chunk_dims);
         
-        if (use_nbit_strategy) {
-          H5Pset_nbit(dcpl_id);      /* Pack bits (removes padding) */
-        }
-        else if (type_size > 1) {
-          H5Pset_shuffle(dcpl_id);   /* Standard shuffle for Signed Ints / Floats */
-        }
+        /* Apply shuffle filter on multibyte data types */
+        if (type_size > 1) H5Pset_shuffle(dcpl_id);
         
         H5Pset_deflate(dcpl_id, (unsigned int)compress);
       }

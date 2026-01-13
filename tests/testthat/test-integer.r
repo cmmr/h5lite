@@ -6,7 +6,7 @@ test_that("Integer scalars and vectors work", {
   vec <- 1:10
   h5_write(vec, file, "vec")
   expect_equal(h5_read(file, "vec"), vec)
-  expect_equal(h5_class(file, "vec"), "integer")
+  expect_equal(h5_class(file, "vec"), "numeric")
   expect_equal(h5_read(file, "vec", as = "integer"), vec)
 
   # 2. Integer Scalar (1D array of length 1)

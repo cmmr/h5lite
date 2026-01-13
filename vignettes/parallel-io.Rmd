@@ -1,0 +1,32 @@
+---
+title: "Parallel Processing"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Parallel Processing}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+fansi::set_knit_hooks(knitr::knit_hooks)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Parallel processing allows you to speed up data workflows by performing operations simultaneously. However, the HDF5 library maintains complex internal states that can be easily corrupted if multiple workers attempt to write to the file at the exact same moment.
+
+## The Safety Rule: Always Lock
+
+**`h5lite` is not inherently safe for concurrent writing.**
+
+While the underlying HDF5 library may support thread-safety for specific low-level operations, `h5lite` utilizes HDF5's High-Level APIs (specifically the **Dimension Scales API**) to manage R attributes like `names` and `dimnames`. These High-Level APIs are **not thread-safe**.
+
+Therefore, strictly follow this rule:
+
+> **If multiple processes or threads access the same HDF5 file, you must use an external locking mechanism (mutex or file lock) to serialize the write operations.**
+
+Without locking, you risk race conditions that can corrupt your data or the HDF5 file structure itself.
+
+## Recommended Strategy: File Locking with `flock`
+
+For R users relying on packages like `parallel`, `future`, or `foreach`, the most robust way to coordinate access is **File Locking**. We recommend the **[flock](https://cran.r-project.org/package=flock)** package. It creates a lock directly on the file system, ensuring that even independent R processes respect the queue.
+

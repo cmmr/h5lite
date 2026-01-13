@@ -49,12 +49,21 @@ SEXP h5_type_to_rstr(hid_t type_id) {
   }
   
   
+  if (class_id == H5T_COMPOUND) {
+      /* Number of elements: "compound[10]" */
+      char buffer[128];
+      size_t size = H5Tget_nmembers(type_id);
+      snprintf(buffer, sizeof(buffer), "compound[%lu]", (unsigned long)size);
+      return mkString(buffer);
+  }
+  
+  
   /* Handle other classes */
   switch(class_id) {
     case H5T_COMPLEX:   return mkString("complex");
     case H5T_OPAQUE:    return mkString("opaque");
-    case H5T_COMPOUND:  return mkString("compound");
     case H5T_ENUM:      return mkString("enum");
+    case H5T_COMPOUND:  return mkString("compound");  // # nocov
     case H5T_INTEGER:   return mkString("int");       // # nocov
     case H5T_FLOAT:     return mkString("float");     // # nocov
     case H5T_STRING:    return mkString("string");    // # nocov

@@ -41,12 +41,12 @@ test_that("h5_typeof and h5_class", {
   expect_equal(h5_typeof(file, 'ds_utf8'),     'utf8')
   expect_equal(h5_typeof(file, 'ds_ascii'),    'ascii')
   expect_equal(h5_typeof(file, 'ds_complex'),  'complex')
-  expect_equal(h5_typeof(file, 'ds_compound'), 'compound')
+  expect_match(h5_typeof(file, 'ds_compound'), 'compound\\[\\d+\\]')
   expect_equal(h5_typeof(file, 'ds_opaque'),   'opaque')
   expect_equal(h5_typeof(file, 'ds_enum'),     'enum')
 
-  expect_equal(h5_class(file, 'ds_uint8'),    'integer')
-  expect_equal(h5_class(file, 'ds_int8'),     'integer')
+  expect_equal(h5_class(file, 'ds_uint8'),    'numeric')
+  expect_equal(h5_class(file, 'ds_int8'),     'numeric')
   expect_equal(h5_class(file, 'ds_float16'),  'numeric')
   expect_equal(h5_class(file, 'ds_null'),     'NULL')
   expect_equal(h5_class(file, 'ds_utf8'),     'character')
@@ -63,7 +63,7 @@ test_that("h5_typeof and h5_class", {
   expect_equal(h5_typeof(file, '/', 'attr_uint8'), 'uint8')
   expect_equal(h5_typeof(file, '/', 'attr_null'),  'null')
 
-  expect_equal(h5_class(file, '/', 'attr_uint8'), 'integer')
+  expect_equal(h5_class(file, '/', 'attr_uint8'), 'numeric')
   expect_equal(h5_class(file, '/', 'attr_null'),  'NULL')
 
 

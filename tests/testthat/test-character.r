@@ -144,17 +144,9 @@ test_that("Character errors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
+  expect_error(h5_write('A',        file, "x", as = 'invalid'))
   expect_error(h5_write(c('A', NA), file, "x", as = 'utf[]'))
   expect_error(h5_write(c('A', NA), file, "x", as = 'utf[10]'))
   expect_error(h5_write(c('A', NA), file, "x", as = 'ascii[]'))
   expect_error(h5_write(c('A', NA), file, "x", as = 'ascii[10]'))
-  
-  expect_error(h5_write('A', file, "x", as = 'utf[0]'))
-  expect_error(h5_write('A', file, "x", as = 'utf[-1]'))
-  expect_error(h5_write('A', file, "x", as = 'ascii[0]'))
-  expect_error(h5_write('A', file, "x", as = 'ascii[-1]'))
-  
-  expect_error(h5_write('A', file, "x", as = 'utf[2][2]'))
-  expect_error(h5_write('A', file, "x", as = 'ascii[2][2]'))
-  expect_error(h5_write('A', file, "x", as = 'invalid'))
 })

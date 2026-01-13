@@ -41,17 +41,17 @@ h5_class <- function (file, name, attr = NULL) {
   hdf5_type <- h5_typeof(file, name, attr)
 
   if (!is.character(hdf5_type)) return(NA_character_) # nocov
-  if (startsWith(hdf5_type, "int"))     return("integer")
-  if (startsWith(hdf5_type, "uint"))    return("integer")
-  if (startsWith(hdf5_type, "float"))   return("numeric")
-  if (identical(hdf5_type, "utf8"))     return("character")
-  if (identical(hdf5_type, "ascii"))    return("character")
-  if (identical(hdf5_type, "string"))   return("character") # nocov
-  if (identical(hdf5_type, "compound")) return("data.frame")
-  if (identical(hdf5_type, "enum"))     return("factor")
-  if (identical(hdf5_type, "complex"))  return("complex")
-  if (identical(hdf5_type, "opaque"))   return("raw")
-  if (identical(hdf5_type, "null"))     return("NULL")
+  if (startsWith(hdf5_type, "int"))      return("numeric")
+  if (startsWith(hdf5_type, "uint"))     return("numeric")
+  if (startsWith(hdf5_type, "float"))    return("numeric")
+  if (startsWith(hdf5_type, "compound")) return("data.frame")
+  if (startsWith(hdf5_type, "utf8"))     return("character")
+  if (startsWith(hdf5_type, "ascii"))    return("character")
+  if (startsWith(hdf5_type, "string"))   return("character") # nocov
+  if (identical(hdf5_type, "enum"))      return("factor")
+  if (identical(hdf5_type, "complex"))   return("complex")
+  if (identical(hdf5_type, "opaque"))    return("raw")
+  if (identical(hdf5_type, "null"))      return("NULL")
 
   NA_character_
 }
@@ -299,9 +299,9 @@ h5_length <- function (file, name, attr = NULL) {
 
   if (h5_is_dataset(file, name, attr)) {
     dims <- h5_dim(file, name, attr)
-    res <- if (identical(dims, integer(0)))                    { 1L         }
-           else if (h5_typeof(file, name, attr) == "compound") { dims[2]    }
-           else                                                { prod(dims) }
+    res <- if (identical(dims, integer(0)))                     { 1L         }
+           else if (h5_class(file, name, attr) == "data.frame") { dims[2]    }
+           else                                                 { prod(dims) }
     return(as.integer(res))
   }
   else if (h5_is_group(file, name, attr)) {

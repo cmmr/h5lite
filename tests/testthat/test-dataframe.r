@@ -39,7 +39,7 @@ test_that("Data frames work (Compound)", {
   
   h5_write(df, file, "df", as = col_map)
   expect_equal(h5_class(file, "df"), "data.frame")
-  expect_equal(h5_typeof(file, "df"), "compound")
+  expect_match(h5_typeof(file, "df"), "compound\\[\\d+\\]")
   
   res <- h5_read(file, "df")
   expect_null(res$skp)
@@ -68,7 +68,7 @@ test_that("Data frames work (Compound)", {
   
   h5_write(df, file, "df", "attr")
   expect_equal(h5_class(file, "df", "attr"), "data.frame")
-  expect_equal(h5_typeof(file, "df", "attr"), "compound")
+  expect_match(h5_typeof(file, "df", "attr"), "compound\\[\\d+\\]")
   
   res <- h5_read(file, "df", "attr")
   expect_equal(res$int, df$int)

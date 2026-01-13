@@ -43,9 +43,8 @@
 #' 
 #' \tabular{lll}{
 #'   \strong{R Type} \tab \strong{HDF5 Type} \tab \strong{Notes} \cr
-#'   `integer`    \tab `H5T_STD_I32LE`  \tab  \cr
-#'   `double`     \tab `H5T_IEEE_F64LE` \tab  \cr
-#'   `logical`    \tab `H5T_STD_U8LE`   \tab 1-bit storage efficiency. \cr
+#'   `numeric`    \tab *various*        \tab Selects smallest type for data range. \cr
+#'   `logical`    \tab `H5T_STD_U8LE`   \tab TRUE/FALSE stored as 1/0. \cr
 #'   `character`  \tab `H5T_C_S1`       \tab `H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM` \cr
 #'   `factor`     \tab `H5T_ENUM`       \tab Maps levels to integers. \cr
 #'   `data.frame` \tab `H5T_COMPOUND`   \tab Native table-like structure. \cr
@@ -57,9 +56,8 @@
 #'   `POSIXt`     \tab `H5T_C_S1`       \tab ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`) \cr
 #' }
 #' 
-#' *NA Handling:* HDF5 integers do not support `NA`. If an R integer or logical 
-#' vector contains `NA`, `h5lite` automatically promotes it to `float64` to 
-#' preserve the `NA` value.
+#' *NA Handling:* If an R numeric or logical vector contains `NA`, `h5lite` 
+#' will store it as `float64` to preserve the `NA` value.
 #' 
 #' **3. Column/Class Mapping**
 #' 
@@ -112,8 +110,8 @@
 #' h5_write(I(100), file, "data/vector", attr = "scale_factor")
 #' 
 #' # 3. Controlling Data Types
-#' # Store integers as 8-bit unsigned
-#' h5_write(1:5, file, "compressed/small_ints", as = "uint8")
+#' # Store values as 32-bit signed integers
+#' h5_write(1:5, file, "small_ints", as = "int32")
 #' 
 #' # 4. Writing Complex Structures (Lists/Groups)
 #' my_list <- list(
@@ -260,7 +258,7 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress = FALSE
 write_attributes <- function(data, file, name, attr_as, dry = FALSE) {
 
   attr_names <- names(attributes(data))
-  attr_names <- setdiff(attr_names, c("class", "dim", "dimnames", "names", "row.names"))
+  attr_names <- setdiff(attr_names, c("class", "dim", "dimnames", "names", "row.names", "levels"))
 
   for (attr in attr_names) {
     attr_data <- base::attr(data, attr, exact = TRUE)
@@ -340,48 +338,36 @@ resolve_h5_type <- function(data, name, as_map) {
     na_errmsg  <- paste("`NA` cannot be encoded by fixed length strings.")
     
     h5_type <- tolower(h5_type)
-    size    <- NULL
-    
-    # Auto-select fixed length
-    if (endsWith(h5_type, "[]")) {
-      h5_type <- sub('[]', '', h5_type, fixed = TRUE)
-      size    <- max(c(1L, nchar(data, type = "bytes")))
-      if (is.na(size)) stop(na_errmsg, call. = FALSE)
-    }
-    
-    # See if length is provided
-    else {
-      parts <- strsplit(h5_type, "[^a-z0-9]")[[1]]
-      
-      if (length(parts) == 1) {
-        h5_type <- parts[[1]]
-      }
-      
-      else if (length(parts) == 2) {
-        h5_type <- parts[[1]]
-        size    <- parts[[2]]
-        
-        if (anyNA(data)) stop(na_errmsg, call. = FALSE)
-        
-        size <- try(suppressWarnings(as.integer(size)), silent = TRUE)
-        if (!inherits(size, "integer") || is.na(size) || size < 1)
-          stop(arg_errmsg, call. = FALSE)
-      }
-      
-      else {
-        stop(arg_errmsg, call. = FALSE)
-      }
-    }
-    
-    cset <- tryCatch(
-      expr  = match.arg(h5_type, c("auto", "ascii", "skip", "utf8")), 
+    cset    <- tryCatch(
+      expr  = match.arg(sub('\\[.+$', '', h5_type), c("auto", "ascii", "skip", "utf8")), 
       error = function (e) { stop(arg_errmsg, call. = FALSE) })
     
     if (cset == "skip") return ("skip")
-    if (cset == "auto") return ("utf8")
+
+    # Auto-select: Always use UTF-8.
+    # Choose fixed length when strings are short and consistent.
+    if (cset == "auto") {
+      if (length(data) > 0 && !anyNA(data)) {
+        str_lens <- nchar(data, type = "bytes")
+        max_len  <- max(str_lens)
+        mean_len <- mean(str_lens) + 16
+        if (max_len < 4096 && max_len < mean_len * 4)
+          return (paste0("utf8[", max_len, "]"))
+      }
+      return ("utf8")
+    }
     
-    h5_type <- ifelse(is.null(size), cset, paste0(cset, "[", size, "]"))
-    return (h5_type)
+    # User-specified fixed length
+    if (grepl("\\[\\d*\\]", h5_type)) {
+      if (anyNA(data)) stop(na_errmsg, call. = FALSE)
+      size <- as.integer(sub(".*\\[(\\d*)\\].*", "\\1", h5_type))
+      if (is.na(size) || size < 1)
+        size <- max(c(1L, nchar(data, type = "bytes")))
+      return (paste0(cset, "[", size, "]"))
+    }
+    
+    # User-specified variable length
+    return (cset)
   }
   
 
@@ -395,28 +381,60 @@ resolve_h5_type <- function(data, name, as_map) {
     
     h5_type <- match.arg(tolower(h5_type), choices)
     
-    if (h5_type == "skip") return ("skip")
+    if (h5_type == "skip")    return ("skip")
+    if (h5_type == "float64") return ("float64")
     
     if (h5_type == "auto") {
-      if (is.double(data))  return ("float64")
-      if (anyNA(data))      return ("float64")
+      
+      if (anyNA(data))      return ("float64") # NA must use float64
       if (is.logical(data)) return ("uint8")
-      return ("int32")
+
+      if (is.double(data)) {
+
+        if (any(data %% 1 > 0, na.rm = TRUE)) # Fractional values
+          return ("float64")
+
+        if (any(!is.finite(data))) { # NaN, Inf, or -Inf present
+          rng <- range(c(1.0, data), na.rm = TRUE, finite = TRUE)
+          if (rng[1] >= -2^24 && rng[2] <= 2^24) return ("float32")
+          return ("float64")
+        }
+      }
+
+      # Choose optimal data type for finite integers
+      rng <- range(c(1, data), na.rm = TRUE, finite = TRUE)
+      lo  <- rng[[1]]
+      hi  <- rng[[2]]
+
+      if (lo >= 0) { # Unsigned integer
+        if (hi <= 2^8-1)  return ("uint8")
+        if (hi <= 2^16-1) return ("uint16")
+        if (hi <= 2^32-1) return ("uint32")
+        if (hi <  2^53)   return ("uint64")
+      }
+      else { # Signed integer
+        if (lo >= -2^7  && hi <= 2^7-1)  return ("int8")
+        if (lo >= -2^15 && hi <= 2^15-1) return ("int16")
+        if (lo >= -2^31 && hi <= 2^31-1) return ("int32")
+        if (lo >  -2^53 && hi <  2^53)   return ("int64")
+      }
+
+      return ("float64")
     }
     
     # Sanity check user's requested HDF5 numeric type
     
     if (length(data) == 0) return(h5_type)
-    if (any(!is.finite(data)) && !startsWith(h5_type, "float"))
+    if (any(!is.finite(data)) && !grepl("float", h5_type, fixed = TRUE))
       stop("Data contains NA/NaN/Inf; requires float type.", call. = FALSE)
     
-    if (any(is.finite(data)) && h5_type != "float64") {
+    if (any(is.finite(data)) && !grepl("float", h5_type, fixed = TRUE)) {
       type_ranges <- list(
-        'int8'    = c(-2^7,  2^7-1),  'uint8'  = c(0, 2^8-1),   
-        'int16'   = c(-2^15, 2^15-1), 'uint16' = c(0, 2^16-1),
-        'int32'   = c(-2^31, 2^31-1), 'uint32' = c(0, 2^32-1),  
-        'int64'   = c(-2^63, 2^63-1), 'uint64' = c(0, 2^64-1),
-        'float16' = c(-65504,  65504),
+        'int8'    = c(-2^7,  2^7-1),   'uint8'    = c(0, 2^8-1),   
+        'int16'   = c(-2^15, 2^15-1),  'uint16'   = c(0, 2^16-1),
+        'int32'   = c(-2^31, 2^31-1),  'uint32'   = c(0, 2^32-1),  
+        'int64'   = c(-2^63, 2^63-1),  'uint64'   = c(0, 2^64-1),
+        'float16' = c(-65504,  65504), 'bfloat16' = c(-3.4e38, 3.4e38),
         'float32' = c(-3.4e38, 3.4e38) )
       val_range <- range(data, na.rm = TRUE, finite = TRUE)
       rng <- type_ranges[[h5_type]]

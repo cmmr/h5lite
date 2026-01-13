@@ -67,9 +67,8 @@ not support \code{NA}.
 
 \tabular{lll}{
 \strong{R Type} \tab \strong{HDF5 Type} \tab \strong{Notes} \cr
-\code{integer}    \tab \code{H5T_STD_I32LE}  \tab  \cr
-\code{double}     \tab \code{H5T_IEEE_F64LE} \tab  \cr
-\code{logical}    \tab \code{H5T_STD_U8LE}   \tab 1-bit storage efficiency. \cr
+\code{numeric}    \tab \emph{various}        \tab Selects smallest type for data range. \cr
+\code{logical}    \tab \code{H5T_STD_U8LE}   \tab TRUE/FALSE stored as 1/0. \cr
 \code{character}  \tab \code{H5T_C_S1}       \tab \verb{H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM} \cr
 \code{factor}     \tab \code{H5T_ENUM}       \tab Maps levels to integers. \cr
 \code{data.frame} \tab \code{H5T_COMPOUND}   \tab Native table-like structure. \cr
@@ -81,9 +80,8 @@ not support \code{NA}.
 \code{POSIXt}     \tab \code{H5T_C_S1}       \tab ISO 8601 string (\code{YYYY-MM-DDTHH:MM:SSZ}) \cr
 }
 
-\emph{NA Handling:} HDF5 integers do not support \code{NA}. If an R integer or logical
-vector contains \code{NA}, \code{h5lite} automatically promotes it to \code{float64} to
-preserve the \code{NA} value.
+\emph{NA Handling:} If an R numeric or logical vector contains \code{NA}, \code{h5lite}
+will store it as \code{float64} to preserve the \code{NA} value.
 
 \strong{3. Column/Class Mapping}
 
@@ -138,8 +136,8 @@ h5_write(I("My Description"), file, "data/vector", attr = "description")
 h5_write(I(100), file, "data/vector", attr = "scale_factor")
 
 # 3. Controlling Data Types
-# Store integers as 8-bit unsigned
-h5_write(1:5, file, "compressed/small_ints", as = "uint8")
+# Store values as 32-bit signed integers
+h5_write(1:5, file, "small_ints", as = "int32")
 
 # 4. Writing Complex Structures (Lists/Groups)
 my_list <- list(

@@ -187,19 +187,44 @@ while (current_bytes > TARGET_SIZE) {
 
 /*
  * Creates an enum type for a factor.
+ * * @param data The R factor object.
+ * @param native_mem_layout If 1, uses H5T_NATIVE_INT to match R's memory layout (INTSXP).
+ * If 0, uses the smallest sufficient standard integer type (U8/U16/U32)
+ * to optimize file storage.
  */
-static hid_t create_enum_type(SEXP data) {
+static hid_t create_enum_type(SEXP data, int native_mem_layout) {
   
-  /* Base type for enum is INT. */
-  hid_t type_id = H5Tcreate(H5T_ENUM, sizeof(int));
-  if (type_id < 0) return -1; // # nocov
-  
-  /* Insert each level name and its corresponding integer value into the enum type. */
   SEXP levels = PROTECT(getAttrib(data, R_LevelsSymbol));
   R_xlen_t n_levels = XLENGTH(levels);
+  
+  hid_t type_id;
+  
+  if (native_mem_layout) {
+    type_id = H5Tenum_create(H5T_NATIVE_INT);
+  }
+  else {
+    if      (n_levels < 256)     type_id = H5Tenum_create(H5T_STD_U8LE);
+    else if (n_levels < 65536)   type_id = H5Tenum_create(H5T_STD_U16LE);
+    else                         type_id = H5Tenum_create(H5T_STD_U32LE); // # nocov
+  }
+  
+  if (type_id < 0) { UNPROTECT(1); return -1; } // # nocov
+  
+  /* Insert each level name and its corresponding integer value into the enum type. */
   for (R_xlen_t i = 0; i < n_levels; i++) {
-    int val = i + 1; /* R factors are 1-based, so value is i+1 */
-    H5Tenum_insert(type_id, Rf_translateCharUTF8(STRING_ELT(levels, i)), &val);
+    unsigned long long val_idx = i + 1; /* R factors are 1-based */
+    const char *name = Rf_translateCharUTF8(STRING_ELT(levels, i));
+    
+    /* H5Tenum_insert requires a pointer to the value matching the base type size */
+    if (native_mem_layout) {
+      int val = (int)val_idx;
+      H5Tenum_insert(type_id, name, &val);
+    }
+    else {
+      if      (n_levels < 256)   { uint8_t  val = (uint8_t)val_idx;  H5Tenum_insert(type_id, name, &val); }
+      else if (n_levels < 65536) { uint16_t val = (uint16_t)val_idx; H5Tenum_insert(type_id, name, &val); }
+      else                       { uint32_t val = (uint32_t)val_idx; H5Tenum_insert(type_id, name, &val); } // # nocov
+    }
   }
   
   UNPROTECT(1);
@@ -213,7 +238,7 @@ static hid_t create_enum_type(SEXP data) {
 hid_t create_r_memory_type(SEXP data, const char *dtype) {
   
   if (Rf_inherits(data, "integer64")) return H5Tcopy(H5T_NATIVE_INT64);
-  if (Rf_inherits(data, "factor"))    return create_enum_type(data);
+  if (Rf_inherits(data, "factor"))    return create_enum_type(data, 1);
   
   switch (TYPEOF(data)) {
     case REALSXP: return H5Tcopy(H5T_NATIVE_DOUBLE);
@@ -259,7 +284,7 @@ hid_t create_h5_file_type(SEXP data, const char *dtype) {
   
   /* Other Types */
   if (strcmp(dtype, "raw")     == 0) return H5Tcreate(H5T_OPAQUE, 1);
-  if (strcmp(dtype, "factor")  == 0) return create_enum_type(data);
+  if (strcmp(dtype, "factor")  == 0) return create_enum_type(data, 0);
   if (strcmp(dtype, "complex") == 0) return H5Tcopy(H5T_COMPLEX_IEEE_F64LE);
   if (strcmp(dtype, "bit64")   == 0) return H5Tcopy(H5T_STD_I64LE);
   

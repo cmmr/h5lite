@@ -20,7 +20,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"C_h5_attr_names",  (DL_FUNC) &C_h5_attr_names, 2},
   
   /* ls.c */
-  {"C_h5_str", (DL_FUNC) &C_h5_str, 3},
+  {"C_h5_str", (DL_FUNC) &C_h5_str, 4},
   {"C_h5_ls",  (DL_FUNC) &C_h5_ls, 5},
   
   /* organize.c */

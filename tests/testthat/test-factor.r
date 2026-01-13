@@ -31,3 +31,16 @@ test_that("Factor attributes work", {
   
   expect_equal(h5_read(file, "dset", attr = "quality"), f)
 })
+
+test_that("Different magnitudes of levels", {
+  file <- tempfile(fileext = ".h5")
+  on.exit(unlink(file))
+  
+  uids <- apply(expand.grid(letters, letters), 1L, paste0, collapse = '')
+  
+  h5_write(sm <- factor(uids[1:10], levels = uids[1:255]), file, 'enum_uint8')
+  h5_write(md <- factor(uids[1:10], levels = uids[1:256]), file, 'enum_uint16')
+  
+  expect_equal(h5_read(file, "enum_uint8"),  sm)
+  expect_equal(h5_read(file, "enum_uint16"), md)
+})

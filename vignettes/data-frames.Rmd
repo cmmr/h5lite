@@ -1,0 +1,88 @@
+---
+title: "Data Frames"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Data Frames}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+fansi::set_knit_hooks(knitr::knit_hooks)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+Data frames are the workhorse of data analysis in R. In HDF5, data frames are stored as **Compound Datasets**. This allows different columns to have different data types (e.g., integer, float, string) within the same dataset, much like a SQL table.
+
+This vignette explains how `h5lite` handles data frames, including row names, factors, and missing values.
+
+```{r setup}
+library(h5lite)
+file <- tempfile(fileext = ".h5")
+```
+
+## Basic Usage
+
+Writing a data frame is as simple as writing any other object. `h5lite` automatically maps each column to its appropriate HDF5 type.
+
+```{r}
+# Create a standard data frame
+df <- data.frame(
+  id = 1:5,
+  group = c("A", "A", "B", "B", "C"),
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  passed = c(TRUE, TRUE, TRUE, FALSE, FALSE),
+  stringsAsFactors = FALSE
+)
+
+# Write to HDF5
+h5_write(df, file, "study_data/results")
+
+# Fetch the column names
+h5_names(file, "study_data/results")
+
+# Read back
+df_in <- h5_read(file, "study_data/results")
+
+head(df_in)
+```
+
+## Customizing Column Types
+
+You can use the `as` argument to control the storage type for specific columns. This is passed as a named vector where the names correspond to the column names.
+
+This is particularly useful for optimizing storage (e.g., saving space by storing small integers as `int8` or single characters as `ascii[1]`).
+
+```{r}
+df_small <- data.frame(
+  id   = 1:10,
+  code = rep("A", 10)
+)
+
+# Force 'id' to be uint16 and 'code' to be an ascii string
+h5_write(df_small, file, "custom_df", 
+         as = c(id = "uint16", code = "ascii[]"))
+```
+
+## Row Names
+
+Standard HDF5 Compound Datasets do not have a concept of "row names". However, `h5lite` preserves them using **Dimension Scales**.
+
+When you write a data frame with row names, `h5lite` creates a separate dataset (usually named `_rownames`) and links it to the main table. When reading, `h5lite` automatically restores these as the `row.names` of the data frame.
+
+```{r}
+mtcars_subset <- head(mtcars, 3)
+
+h5_write(mtcars_subset, file, "cars")
+
+h5_str(file)
+
+# Read back
+result <- h5_read(file, "cars")
+print(row.names(result))
+```
+
+
+```{r, include=FALSE}
+unlink(file)
+```
