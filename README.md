@@ -14,7 +14,6 @@ If you've struggled with complex HDF5 bindings in the past, `h5lite` offers a fr
 2.  **Zero System Dependencies:** `h5lite` bundles the HDF5 library (via `hdf5lib`). Users do **not** need to install HDF5 system libraries manually.
 3.  **Smart Defaults, Full Control:** It automatically selects the most efficient data types (e.g., saving space by storing small integers as `int8`), but gives you granular control when you need to conform to a strict spec.
 
----
 
 ## Installation
 
@@ -31,7 +30,6 @@ Or the development version from GitHub:
 devtools::install_github("cmmr/h5lite")
 ```
 
----
 
 ## Quick Start
 
@@ -131,7 +129,6 @@ h5_str(file)
 #>     └── $note <ascii>
 ```
 
----
 
 ## For Package Developers
 
@@ -140,7 +137,6 @@ If you are developing a package that needs to store large arrays or hierarchical
 * **No "System Requirements":** Because `h5lite` links to `hdf5lib`, your users don't need to install `libhdf5-dev` (Linux) or `brew install hdf5` (macOS). It compiles seamlessly on all major platforms.
 * **Safe by Design:** `h5lite` prevents common HDF5 errors, such as dimension mismatches or integer overflows, before they happen.
 
----
 
 ## Comparison
 
@@ -165,8 +161,6 @@ How does `h5lite` compare to the other major R HDF5 packages?
 
 -   Quickly and safely get data into or out of a file.
 -   Avoid thinking about low-level details.
-
----
 
 
 ## Documentation
