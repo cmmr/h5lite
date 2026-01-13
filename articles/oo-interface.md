@@ -1,255 +1,174 @@
 # Object-Oriented Interface
 
+The `h5lite` package provides a convenient object-oriented interface for
+interacting with HDF5 files. While the standard functions (e.g.,
+`h5_read`, `h5_write`) are excellent for stateless, atomic operations,
+the object-oriented handle is often more natural when performing
+multiple operations on a single file or when navigating deep group
+structures.
+
+## Basic Usage
+
+To use this interface, create a file handle using
+[`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md). This
+returns an `h5` object (specifically, an environment) that maintains a
+reference to your file.
+
 ``` r
 library(h5lite)
 
-# We'll use a temporary file for this guide.
+# Create a temporary file for this example
 file <- tempfile(fileext = ".h5")
-```
 
-## Introduction
+# Open the handle
+h5 <- h5_open(file)
 
-While the standard `h5lite` functions
-([`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
-etc.) are powerful, they require you to pass the `file` path as the
-first argument every time. When performing many operations on the same
-file, this can become repetitive.
-
-To streamline this workflow, `h5lite` provides an object-oriented (OO)
-interface through the
-[`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md)
-function. This function creates a file **handle**—a special R object
-that “remembers” the file path and maintains an internal state, such as
-a current working directory.
-
-This vignette provides a comprehensive guide to using the `h5` handle to
-make your HDF5 interactions more efficient and expressive.
-
-## 1. Creating a Handle
-
-You create a handle with
-[`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md). If
-the file doesn’t exist, it will be created for you.
-
-``` r
-h <- h5_open(file)
-print(h)
+# The print method shows the file path and current internal working directory
+print(h5)
 #> <h5 handle>
-#>   File:  /tmp/RtmpvfEJOf/file285d1d751242.h5 
+#>   File:  /tmp/RtmpvrdDyt/file27ee1656050b.h5 
 #>   WD:    / 
 #>   Size:  195 bytes 
 #>   Objects (root):  0
 ```
 
-The `h` object is now your gateway to interacting with the HDF5 file.
-
-## 2. Basic Operations as Methods
-
-The primary benefit of the handle is that most `h5lite` functions are
-available as **methods** on the handle object, without the `h5_` prefix.
-The `file` argument is supplied automatically.
-
-For example, instead of this:
+Once the handle is open, you can access standard `h5lite` functions as
+methods of this object. The primary benefit is that you no longer need
+to pass the `file` argument; it is handled implicitly.
 
 ``` r
-h5_write(file, "dset1", 1:10)
-h5_write(file, "dset2", letters[1:5])
-h5_ls(file)
+# Write data using the handle
+h5$write(1:10, "dataset1")
+h5$write(matrix(1:9, 3, 3), "matrix_data")
+
+# List contents
+h5$ls()
+#> [1] "dataset1"    "matrix_data"
+
+# Read data back
+my_data <- h5$read("dataset1")
+print(my_data)
+#>  [1]  1  2  3  4  5  6  7  8  9 10
 ```
 
-You can use the more concise handle-based methods:
+Almost all standard functions map directly to methods by dropping the
+`h5_` prefix:
+
+- [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+  $\rightarrow$`h5$write()`
+- [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+  $\rightarrow$`h5$read()`
+- [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md)
+  $\rightarrow$`h5$ls()`
+- [`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md)
+  $\rightarrow$`h5$attr_names()`
+- And so on (see **Method Reference** below).
+
+## Navigation and Working Directories
+
+A unique feature of the `h5` handle is the ability to maintain a
+stateful “Working Directory” (WD) inside the HDF5 file. This functions
+similarly to [`setwd()`](https://rdrr.io/r/base/getwd.html) in R or `cd`
+in a shell.
+
+By default, the WD is the root (`/`). You can change it using `$cd()`
+and check it using `$pwd()`.
 
 ``` r
-h$write("dset1", 1:10)
-h$write("dset2", letters[1:5])
-h$ls()
-#> [1] "dset1" "dset2"
+# Create a group structure
+h5$create_group("simulations")
+
+# Navigate into the group
+h5$cd("simulations")
+h5$pwd()
+#> [1] "/simulations"
+
+# Write data using relative paths (writes to /simulations/run1)
+h5$write(rnorm(10), "run1")
+
+# Verify the location
+h5$ls()
+#> [1] "run1"
 ```
 
-This makes your code cleaner and easier to read, as the context (which
-file you’re working on) is established once.
-
-## 3. Navigation (`$cd()` and `$pwd()`)
-
-A powerful feature of the handle is its ability to maintain an internal
-“working directory.” This allows you to work with relative paths, which
-is extremely useful for organizing complex files.
-
-- `h$pwd()`: **P**rints the **w**orking **d**irectory.
-- `h$cd(path)`: **C**hanges the **d**irectory. It understands absolute
-  paths (starting with `/`) and relative paths (like `..` for parent).
-
-Let’s create a nested structure and navigate it.
+Absolute paths (paths starting with `/`) always override the current
+working directory:
 
 ``` r
-# Create a group
-h$create_group("/data/raw")
+# Writes to the root, ignoring the fact that we are in /simulations
+h5$write(100, "/root_dataset")
+```
 
-# Check our current location (root)
-h$pwd()
+You can also use `..` to navigate up the hierarchy:
+
+``` r
+h5$cd("..")
+h5$pwd() # Now back at "/"
 #> [1] "/"
-
-# Change into the new group
-h$cd("/data/raw")
-h$pwd()
-#> [1] "/data/raw"
-
-# Now, any operation with a relative path is relative to "/data/raw"
-h$write("sensor_a", rnorm(10))
-
-# Let's see what's in the file
-h$ls(recursive = TRUE)
-#> [1] "sensor_a"
-
-# We can navigate up with ".."
-h$cd("..")
-h$pwd()
-#> [1] "/data"
 ```
 
-## 4. Convenient Subsetting with `[[`
+## Reference Semantics
 
-The `h5` handle also supports list-style subsetting with `[[` and `[[<-`
-as a convenient shortcut for reading and writing.
+The object returned by `h5_open` is an **R environment**. This means it
+follows “pass-by-reference” semantics, unlike most R objects which are
+“pass-by-value”.
 
-### Reading and Writing Datasets
-
-`h[["dset"]]` is a shortcut for `h$read("dset")`, and
-`h[["dset"]] <- value` is a shortcut for `h$write("dset", value)`.
+If you assign the handle to a new variable, you are creating a new
+reference to the *same* handle. Modifying one will modify the other.
 
 ``` r
-# Write a dataset using subsetting
-h[["metadata/run_id"]] <- I("run-123")
+h5_alias <- h5
 
-# Read it back
-run_id <- h[["metadata/run_id"]]
-print(run_id)
-#> [1] "run-123"
+# Change directory in the alias
+h5_alias$cd("simulations")
+
+# The original handle is also updated
+h5$pwd()
+#> [1] "/simulations"
 ```
 
-### Accessing Attributes with `@`
+## Closing the Handle
 
-The `[[` methods have a special, powerful syntax for attribute access:
-the `@` symbol. You can separate an object name and an attribute name
-with `@` to directly read or write an attribute.
+When you are finished, you can close the handle using `$close()`.
+
+**Note:** `h5lite` does not keep the actual HDF5 file lock open
+persistently (it opens and closes the file for every read/write
+operation to ensure safety). Therefore, `$close()` is a logical
+operation: it clears the internal file path and working directory from
+the handle, preventing further methods from being called on it.
 
 ``` r
-# Write an attribute to the 'sensor_a' dataset
-h[["/data/raw/sensor_a@units"]] <- "volts"
+h5$close()
 
-# Read the attribute back
-units <- h[["/data/raw/sensor_a@units"]]
-print(units)
-#> [1] "volts"
-
-# You can even access attributes on the current working directory
-h$cd("/data")
-h[["@info"]] <- "This is the data group"
-h$ls_attr(".")
-#> [1] "info"
+# Further attempts to use the handle will result in an error:
+# h5$ls() 
+# Error: This h5 file handle has been closed.
 ```
 
-> **Important:** The `@` syntax is a special feature of the `[[` and
-> `[[<-` methods **only**. It will not work with the standard `$read()`
-> or `$write()` methods. You must use `$read_attr()` and `$write_attr()`
-> for those.
+## Method Reference
 
-## 5. Pass-by-Reference Behavior
+The following methods are available on the `h5` object:
 
-Unlike most R objects, the `h5` handle is an **environment**. This means
-it exhibits **pass-by-reference** semantics. This is a critical concept
-to understand to avoid common mistakes.
-
-When you copy a normal R object, you get an independent copy:
-
-``` r
-x <- c(1, 2, 3)
-y <- x
-y <- 99
-print(x) # x is unchanged
-#> [1] 1 2 3
-```
-
-When you copy an `h5` handle, both variables point to the **exact same
-object**. Modifying one will affect the other.
-
-``` r
-h1 <- h5_open(file)
-h1$cd("/") # Start at root
-
-# This does NOT create a copy. h2 is just another name for h1.
-h2 <- h1
-
-# Change the directory using h2
-h2$cd("/data")
-
-# The working directory of h1 has also changed!
-cat("h1 pwd:", h1$pwd(), "\n")
-#> h1 pwd: /data
-cat("h2 pwd:", h2$pwd(), "\n")
-#> h2 pwd: /data
-```
-
-### Common Mistake and The Power
-
-A common mistake is to pass a handle to a function expecting it to be a
-copy, only to find the original handle has been modified.
-
-However, this behavior is also very powerful. It allows you to write
-helper functions that can modify the state of the handle (e.g., navigate
-and write data) without needing to return the handle.
-
-``` r
-# A function to log data to a specific group
-log_data <- function(handle, sensor_id, data) {
-  # This function modifies the handle it receives
-  original_wd <- handle$pwd()
-  on.exit(handle$cd(original_wd)) # Go back to where we were on exit
-  
-  handle$cd("/data/raw")
-  handle[[sensor_id]] <- data
-  handle[[paste0(sensor_id, "@timestamp")]] <- Sys.time()
-}
-
-# Use the helper function
-log_data(h, "sensor_b", rnorm(5))
-
-# Check the result
-h$ls("/data/raw", full.names = TRUE)
-#> [1] "/data/raw/sensor_a" "/data/raw/sensor_b"
-h$read_attr("/data/raw/sensor_b", "timestamp")
-#> [1] "2025-12-09T02:18:20Z"
-```
-
-## 6. Closing the Handle
-
-The `h5lite` package does not keep a persistent, open connection to the
-HDF5 file. Each operation (read, write, etc.) opens the file, performs
-its action, and closes it.
-
-The purpose of the `$close()` method is not to close the file, but to
-**invalidate the handle object**. After calling `$close()`, any further
-attempt to use the handle will result in an error. This is a safety
-mechanism to prevent you from accidentally using a handle that you
-thought was “finished.”
-
-``` r
-h_to_close <- h5_open(file)
-h_to_close$ls()
-#> [1] "dset1"                "dset2"                "data"                
-#> [4] "data/raw"             "data/raw/sensor_a"    "data/raw/sensor_b"   
-#> [7] "data/metadata"        "data/metadata/run_id"
-
-# Invalidate the handle
-h_to_close$close()
-
-# This will now throw an error
-h_to_close$ls()
-#> Error: This h5 file handle has been closed.
-```
-
-``` r
-# Clean up the temporary file
-unlink(file)
-```
+| Method                    | Description                                   |
+|:--------------------------|:----------------------------------------------|
+| **I/O**                   |                                               |
+| `$read(name, ...)`        | Read a dataset or attribute.                  |
+| `$write(data, name, ...)` | Write a dataset or attribute.                 |
+| **Navigation**            |                                               |
+| `$cd(group)`              | Change the internal working directory.        |
+| `$pwd()`                  | Print the current internal working directory. |
+| **Structure**             |                                               |
+| `$ls(name, ...)`          | List contents of a group.                     |
+| `$create_group(name)`     | Create a new group.                           |
+| `$delete(name)`           | Delete a group or dataset.                    |
+| `$move(from, to)`         | Move/Rename an object.                        |
+| `$names(name)`            | Get names of objects in a group.              |
+| **Inspection**            |                                               |
+| `$exists(name)`           | Check if an object exists.                    |
+| `$dim(name)`              | Get dimensions of a dataset.                  |
+| `$typeof(name)`           | Get the HDF5 type of an object.               |
+| `$class(name)`            | Get the class (dataset/group) of an object.   |
+| `$is_dataset(name)`       | Boolean check for dataset.                    |
+| `$is_group(name)`         | Boolean check for group.                      |
+| `$attr_names(name)`       | List attribute names.                         |
+| `$str(name)`              | Display structure of an object.               |

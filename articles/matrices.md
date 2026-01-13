@@ -1,196 +1,145 @@
 # Matrices and Arrays
 
+HDF5 is an excellent format for storing large, multi-dimensional
+numerical arrays. `h5lite` simplifies the process of reading and writing
+matrices and arrays by handling the complex memory layout differences
+between R and HDF5 automatically.
+
+This vignette covers writing matrices, preserving dimension names
+(`dimnames`), and understanding how `h5lite` manages dimension ordering.
+
 ``` r
 library(h5lite)
-
-# We'll use a temporary file for this guide.
 file <- tempfile(fileext = ".h5")
 ```
 
-## Introduction
+## Writing Matrices
 
-Matrices and multi-dimensional arrays are workhorses of data analysis in
-R. `h5lite` is designed to make saving and loading these objects to HDF5
-files as seamless as possible, automatically handling dimensions and
-data layout.
-
-This vignette covers the basics of working with matrices and arrays, and
-then dives into two important technical details: the `dimnames`
-limitation and the automatic handling of row-major vs. column-major data
-ordering.
-
-For details on other data structures, see
-[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
-and
-[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md).
-
-## 1. Writing and Reading Matrices
-
-Writing a matrix or array is as simple as calling
+In R, matrices are simply 2-dimensional arrays. You can write them
+directly using
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
-`h5lite` will automatically detect the dimensions of your R object and
-create an HDF5 dataset with a corresponding dataspace.
+`h5lite` preserves the dimensions exactly as they appear in R.
 
 ``` r
-# A simple 2x3 matrix
-my_matrix <- matrix(1:6, nrow = 2, ncol = 3)
-print(my_matrix)
-#>      [,1] [,2] [,3]
-#> [1,]    1    3    5
-#> [2,]    2    4    6
+# Create a 3x4 matrix
+mat <- matrix(1:12, nrow = 3, ncol = 4)
 
-h5_write(file, "my_matrix", my_matrix)
-```
+# Write to file
+h5_write(mat, file, "linear_algebra/mat_a")
 
-You can verify the dimensions of the on-disk dataset using
-[`h5_dim()`](https://cmmr.github.io/h5lite/reference/h5_dim.md).
+# Read back
+mat_in <- h5_read(file, "linear_algebra/mat_a")
 
-``` r
-h5_dim(file, "my_matrix")
-#> [1] 2 3
-```
-
-When you read the data back with
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-`h5lite` restores the dimensions, giving you an identical R matrix.
-
-``` r
-read_matrix <- h5_read(file, "my_matrix")
-
-all.equal(my_matrix, read_matrix)
+# Verify
+all.equal(mat, mat_in)
 #> [1] TRUE
 ```
 
-The same process works for higher-dimensional arrays.
+## Writing N-Dimensional Arrays
+
+The same logic applies to arrays with 3 or more dimensions.
 
 ``` r
-my_array <- array(1:24, dim = c(2, 3, 4))
-h5_write(file, "my_array", my_array)
+# Create a 3D array (e.g., spatial data over time: x, y, time)
+vol <- array(runif(24), dim = c(4, 3, 2))
 
-h5_dim(file, "my_array")
-#> [1] 2 3 4
+h5_write(vol, file, "spatial/volume")
+
+# Check dimensions without reading the full data
+h5_dim(file, "spatial/volume")
+#> [1] 4 3 2
 ```
 
-## The `dimnames` Limitation
+## Dimension Names (dimnames)
 
-A crucial limitation to be aware of involves `dimnames` (the row and
-column names of a matrix). HDF5 does not have a native way to store
-these, and R implements them as a `list` attribute.
+R objects often carry metadata in the form of `dimnames` (row names,
+column names, etc.). HDF5 does not have a native “row name” concept for
+numerical arrays, but it supports **Dimension Scales**.
 
-The `h5lite` function
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
-cannot write list-like attributes. Therefore, attempting to write a
-matrix with `dimnames` while `attrs = TRUE` will result in an error.
+`h5lite` automatically converts R `dimnames` into HDF5 Dimension Scales.
+This allows your row and column names to survive the round-trip to disk
+and back.
 
 ``` r
-named_matrix <- matrix(1:4, nrow = 2, ncol = 2,
-                       dimnames = list(c("row1", "row2"), c("col1", "col2")))
+# Create a matrix with row and column names
+data <- matrix(rnorm(6), nrow = 2)
+rownames(data) <- c("Sample_A", "Sample_B")
+colnames(data) <- c("Gene_1", "Gene_2", "Gene_3")
 
-str(attributes(named_matrix))
-#> List of 2
-#>  $ dim     : int [1:2] 2 2
-#>  $ dimnames:List of 2
-#>   ..$ : chr [1:2] "row1" "row2"
-#>   ..$ : chr [1:2] "col1" "col2"
+h5_write(data, file, "genetics/expression")
 
-# This will fail because the 'dimnames' attribute is a list.
-h5_write(file, "named_matrix", named_matrix, attrs = TRUE)
-#> Error in validate_attrs(data, attrs): Attribute 'dimnames' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.
+# Read back
+data_in <- h5_read(file, "genetics/expression")
+
+print(data_in)
+#>             Gene_1     Gene_2      Gene_3
+#> Sample_A  2.065025  0.5124269 -0.52201251
+#> Sample_B -1.630989 -1.8630115 -0.05260191
 ```
 
-### Workaround
+*Technical Note: In the HDF5 file, the names are stored as separate
+datasets (e.g., `_rownames`, `_colnames`) and linked to the main dataset
+using HDF5 Dimension Scale attributes.*
 
-The solution is to either remove the `dimnames` before writing or, more
-simply, write with `attrs = FALSE` (the default). This will successfully
-write the matrix data but will discard the `dimnames`.
+## Dimension Ordering (Row-Major vs. Column-Major)
+
+One of the most confusing aspects of HDF5 for R users is dimension
+ordering.
+
+- **R** is **Column-Major**: The first dimension varies fastest.
+- **HDF5** (and C/C++/Python) is **Row-Major**: The last dimension
+  varies fastest.
+
+### How h5lite handles it
+
+To ensure that a `3x4` matrix in R looks like a `3x4` dataset in HDF5
+tools (like `h5dump` or `HDFView`), `h5lite` physically **transposes**
+the data during read/write operations.
+
+1.  **Writing:** `h5lite` converts R’s column-major memory layout to
+    HDF5’s row-major layout.
+2.  **Reading:** `h5lite` converts the data back to column-major for R.
+
+This ensures that **indexing is preserved**. `x[2, 1]` in R refers to
+the exact same value after reading it back from HDF5.
+
+### Interoperability with Python
+
+Because `h5lite` writes the data in C-order (Row-Major) to match the
+HDF5 specification, files created with `h5lite` are perfectly readable
+by Python (`h5py` or `pandas`).
+
+- **R:** Shape is `(3, 4)`
+- **Python:** Shape is `(3, 4)`
+
+*Note: Some other R packages create HDF5 files by swapping the
+dimensions (writing a 3x4 matrix as 4x3) to avoid the cost of
+transposing data. `h5lite` prioritizes correctness and interoperability
+over raw write speed.*
+
+## Compression and Chunking
+
+Matrices and arrays benefit significantly from compression. When you
+enable compression, `h5lite` automatically “chunks” the dataset (breaks
+it into smaller tiles).
 
 ``` r
-# This works, but the dimnames are not saved.
-h5_write(file, "named_matrix", named_matrix, attrs = FALSE)
+# Large matrix of zeros (highly compressible)
+sparse_mat <- matrix(0, nrow = 1000, ncol = 1000)
+sparse_mat[1:10, 1:10] <- 1
 
-read_named_matrix <- h5_read(file, "named_matrix")
+# Write with compression (zlib level 5)
+h5_write(sparse_mat, file, "compressed/matrix", compress = TRUE)
 
-# The data is correct, but the names are gone.
-print(read_named_matrix)
-#>      [,1] [,2]
-#> [1,]    1    3
-#> [2,]    2    4
-dimnames(read_named_matrix)
-#> NULL
+# Write with high compression (zlib level 9)
+h5_write(sparse_mat, file, "compressed/matrix_max", compress = 9)
 ```
 
-## Advanced Details: Row-Major vs. Column-Major Order
+## Partial I/O
 
-One of the most common sources of error when using HDF5 with R is
-managing the different data layouts.
+`h5lite` is designed for simplicity and currently reads/writes full
+datasets at once. It does **not** support partial I/O (hyperslabs), such
+as reading only rows 1-10 of a 1,000,000 row matrix.
 
-- **R** stores matrices and arrays in **column-major** order. In memory,
-  the elements of the first column are contiguous, followed by the
-  second column, and so on.
-- **HDF5** (along with C, C++, and Python’s NumPy) uses **row-major**
-  order. The elements of the first row are contiguous in memory/on disk.
-
-`h5lite` **completely automates the transposition** required to move
-between these two layouts.
-
-### How it Works
-
-Consider our 2x3 `my_matrix`:
-
-``` r
-print(my_matrix)
-#>      [,1] [,2] [,3]
-#> [1,]    1    3    5
-#> [2,]    2    4    6
-```
-
-- **On
-  [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)**:
-  The C-level code reads the R object’s column-major data
-  (`1, 2, 3, 4, 5, 6`) and transposes it into a row-major buffer
-  (`1, 3, 5, 2, 4, 6`) before writing it to the HDF5 file.
-- **On
-  [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)**:
-  The C-level code reads the row-major data from the file and transposes
-  it back into R’s native column-major layout.
-
-This “it just works” behavior is a core design principle of `h5lite`. It
-ensures that the matrix you read back is identical to the one you wrote,
-without requiring you to perform manual array transpositions
-([`aperm()`](https://rdrr.io/r/base/aperm.html)) or think about data
-ordering. This is a significant convenience compared to lower-level HDF5
-interfaces.
-
-## Compression
-
-For large matrices, using compression can significantly reduce file
-size. Simply set `compress = TRUE` (which uses a default compression
-level of 5) or specify an integer from 1-9.
-
-`h5lite` automatically creates chunked storage when compression is
-enabled, which is a prerequisite for HDF5 compression filters.
-
-``` r
-large_matrix <- matrix(rnorm(1e6), nrow = 1000)
-
-# Write with default compression
-h5_write(file, "large_matrix_compressed", large_matrix, compress = TRUE)
-
-# Write without compression
-h5_write(file, "large_matrix_uncompressed", large_matrix, compress = FALSE)
-
-# Compare file sizes (in a real scenario, the compressed version would be smaller)
-h5_ls(file, full.names = TRUE)
-#> [1] "my_matrix"                 "my_array"                 
-#> [3] "named_matrix"              "large_matrix_compressed"  
-#> [5] "large_matrix_uncompressed"
-```
-
-> **Note:** For random data like in this example, compression is not
-> very effective. It works best on data with repeating patterns or low
-> entropy.
-
-``` r
-# Clean up the temporary file
-unlink(file)
-```
+If you need to read specific subsets of data that are too large to fit
+in memory, you should consider using the `rhdf5` or `hdf5r` packages.

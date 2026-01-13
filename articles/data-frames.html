@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Working with Data Frames • h5lite</title>
+<title>Data Frames • h5lite</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/Noto_Sans-0.4.10/font.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<meta property="og:title" content="Working with Data Frames">
+<meta property="og:title" content="Data Frames">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -63,7 +64,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Working with Data Frames</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Data Frames</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/cmmr/h5lite/blob/master/vignettes/data-frames.Rmd" class="external-link"><code>vignettes/data-frames.Rmd</code></a></small>
@@ -72,173 +73,119 @@
 
     
     
+<p>Data frames are the workhorse of data analysis in R. In HDF5, data
+frames are stored as <strong>Compound Datasets</strong>. This allows
+different columns to have different data types (e.g., integer, float,
+string) within the same dataset, much like a SQL table.</p>
+<p>This vignette explains how <code>h5lite</code> handles data frames,
+including row names, factors, and missing values.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
 </h2>
-<p>The <code>data.frame</code> is R’s primary data structure for tabular
-data, containing columns of potentially different types.
-<code>h5lite</code> provides first-class support for
-<code>data.frame</code> objects by mapping them to a native HDF5
-structure called a <strong>compound dataset</strong>.</p>
-<p>This vignette explains how <code>data.frame</code> objects are
-written and read, and provides technical details on the underlying HDF5
-implementation.</p>
-<p>For details on other data structures, see
-<code><a href="../articles/atomic-vectors.html">vignette("atomic-vectors")</a></code> and
-<code><a href="../articles/matrices.html">vignette("matrices")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="writing-and-reading-data-frames">1. Writing and Reading Data Frames<a class="anchor" aria-label="anchor" href="#writing-and-reading-data-frames"></a>
-</h2>
-<p>Writing a <code>data.frame</code> is a one-line command with
-<code><a href="../reference/h5_write.html">h5_write()</a></code>.</p>
+<p>Writing a data frame is as simple as writing any other object.
+<code>h5lite</code> automatically maps each column to its appropriate
+HDF5 type.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">my_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  trial <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span>,</span>
-<span>  sample_id <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span>, <span class="st">"B1"</span>, <span class="st">"B2"</span><span class="op">)</span>,</span>
-<span>  value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10.2</span>, <span class="fl">11.1</span>, <span class="fl">9.8</span>, <span class="fl">10.5</span><span class="op">)</span>,</span>
-<span>  pass_qc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>  condition <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treat"</span>, <span class="st">"control"</span>, <span class="st">"treat"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Create a standard data frame</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span>
+<span>  group <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>,</span>
+<span>  score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10.5</span>, <span class="fl">9.2</span>, <span class="fl">8.4</span>, <span class="fl">7.1</span>, <span class="fl">6.0</span><span class="op">)</span>,</span>
+<span>  passed <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">TRUE</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>, <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, <span class="va">my_df</span><span class="op">)</span></span></code></pre></div>
-<p>You can inspect the object with <code><a href="../reference/h5_str.html">h5_str()</a></code> and
-<code><a href="../reference/h5_class.html">h5_class()</a></code>. Notice that <code>h5lite</code> correctly
-identifies it as a <code>data.frame</code> backed by a
-<code>compound</code> HDF5 type.</p>
+<span><span class="co"># Write to HDF5</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"study_data/results"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Fetch the column names</span></span>
+<span><span class="fu"><a href="../reference/h5_names.html">h5_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"study_data/results"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "id"     "group"  "score"  "passed"</span></span>
+<span></span>
+<span><span class="co"># Read back</span></span>
+<span><span class="va">df_in</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"study_data/results"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df_in</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   id group score passed</span></span>
+<span><span class="co">#&gt; 1  1     A  10.5      1</span></span>
+<span><span class="co">#&gt; 2  2     A   9.2      1</span></span>
+<span><span class="co">#&gt; 3  3     B   8.4      1</span></span>
+<span><span class="co">#&gt; 4  4     B   7.1      0</span></span>
+<span><span class="co">#&gt; 5  5     C   6.0      0</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="customizing-column-types">Customizing Column Types<a class="anchor" aria-label="anchor" href="#customizing-column-types"></a>
+</h2>
+<p>You can use the <code>as</code> argument to control the storage type
+for specific columns. This is passed as a named vector where the names
+correspond to the column names.</p>
+<p>This is particularly useful for optimizing storage (e.g., saving
+space by storing small integers as <code>int8</code> or single
+characters as <code>ascii[1]</code>).</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; └── my_df <span style="color: #555555;">&lt;compound x 4&gt;</span></span></span>
-<span><span class="fu"><a href="../reference/h5_class.html">h5_class</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "data.frame"</span></span></code></pre></div>
-<p>Reading the data back with <code><a href="../reference/h5_read.html">h5_read()</a></code> restores it as an R
-<code>data.frame</code>.</p>
+<code class="sourceCode R"><span><span class="va">df_small</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  id   <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>,</span>
+<span>  code <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Force 'id' to be uint16 and 'code' to be an ascii string</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">df_small</span>, <span class="va">file</span>, <span class="st">"custom_df"</span>, </span>
+<span>         as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>id <span class="op">=</span> <span class="st">"uint16"</span>, code <span class="op">=</span> <span class="st">"ascii[]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="row-names">Row Names<a class="anchor" aria-label="anchor" href="#row-names"></a>
+</h2>
+<p>Standard HDF5 Compound Datasets do not have a concept of “row names”.
+However, <code>h5lite</code> preserves them using <strong>Dimension
+Scales</strong>.</p>
+<p>When you write a data frame with row names, <code>h5lite</code>
+creates a separate dataset (usually named <code>_rownames</code>) and
+links it to the main table. When reading, <code>h5lite</code>
+automatically restores these as the <code>row.names</code> of the data
+frame.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">read_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">mtcars_subset</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">mtcars</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">read_df</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'data.frame':    4 obs. of  5 variables:</span></span>
-<span><span class="co">#&gt;  $ trial    : num  1 2 3 4</span></span>
-<span><span class="co">#&gt;  $ sample_id: chr  "A1" "A2" "B1" "B2"</span></span>
-<span><span class="co">#&gt;  $ value    : num  10.2 11.1 9.8 10.5</span></span>
-<span><span class="co">#&gt;  $ pass_qc  : num  1 1 0 1</span></span>
-<span><span class="co">#&gt;  $ condition: Factor w/ 2 levels "control","treat": 1 2 1 2</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="data-type-fidelity">Data Type Fidelity<a class="anchor" aria-label="anchor" href="#data-type-fidelity"></a>
-</h3>
-<p><code>h5lite</code> aims for a high-fidelity round-trip, but there
-are two important conversions to note:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong><code>integer</code> -&gt; <code>numeric</code></strong>:
-All integer columns (<code>trial</code> in our example) are read back as
-<code>numeric</code> (double-precision) vectors. This is a safety
-measure to prevent integer overflow.</li>
-<li>
-<strong><code>logical</code> -&gt; <code>numeric</code></strong>:
-<code>logical</code> columns (<code>pass_qc</code>) are stored as 8-bit
-integers (0/1) and are also read back as <code>numeric</code>.</li>
-</ol>
-<p><code>factor</code> columns, however, are perfectly preserved.</p>
-<p>Let’s verify the round-trip by manually converting the original
-<code>data.frame</code> to match the expected output.</p>
-<pre><code><span><span class="co">#&gt; [1] TRUE</span></span></code></pre>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># To verify the round-trip, convert integer/logical columns to numeric</span></span>
-<span><span class="va">my_df_cmp</span> <span class="op">&lt;-</span> <span class="va">my_df</span></span>
-<span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">trial</span><span class="op">)</span></span>
-<span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">pass_qc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">my_df_cmp</span><span class="op">$</span><span class="va">pass_qc</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mtcars_subset</span>, <span class="va">file</span>, <span class="st">"cars"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">read_df</span>, <span class="va">my_df_cmp</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="advanced-details-the-hdf5-compound-type">Advanced Details: The HDF5 Compound Type<a class="anchor" aria-label="anchor" href="#advanced-details-the-hdf5-compound-type"></a>
-</h2>
-<p>When you write a <code>data.frame</code>, <code>h5lite</code> does
-not save each column as a separate dataset. Instead, it creates a single
-HDF5 dataset with a <strong>compound datatype</strong>.</p>
-<p>A compound type is analogous to a <code>struct</code> in C. It is a
-collection of named members, where each member has its own datatype. For
-a <code>data.frame</code>, this structure looks like:</p>
-<ul>
-<li>
-<strong>HDF5 Dataset:</strong> A 1D array, where the length is the
-number of rows in the <code>data.frame</code>.</li>
-<li>
-<strong>HDF5 Datatype:</strong> A compound type where:
-<ul>
-<li>Each <strong>member</strong> of the struct corresponds to a
-<strong>column</strong> of the <code>data.frame</code>.</li>
-<li>The member’s <strong>name</strong> is the column name.</li>
-<li>The member’s <strong>datatype</strong> is the HDF5 equivalent of the
-R column’s type (e.g., <code>H5T_FLOAT64</code> for
-<code>numeric</code>, <code>H5T_STRING</code> for
-<code>character</code>, <code>H5T_ENUM</code> for
-<code>factor</code>).</li>
-</ul>
-</li>
-</ul>
-<p>This approach has several advantages for HDF5 experts and
-interoperability:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Portability:</strong> A compound dataset is a standard,
-self-describing HDF5 structure. A Python user with <code>h5py</code> or
-a C++ user can read this dataset and immediately get a structured array
-or a vector of structs, with all column names and types preserved.</li>
-<li>
-<strong>Atomicity:</strong> The entire table is a single object in
-the HDF5 file, which can be easier to manage than a group containing
-many separate column-datasets.</li>
-<li>
-<strong>Efficiency:</strong> For many access patterns, reading a
-single contiguous block of compound data can be more efficient than
-reading from multiple disparate datasets.</li>
-</ol>
-</div>
-<div class="section level2">
-<h2 id="preserving-data-frame-attributes">Preserving <code>data.frame</code> Attributes<a class="anchor" aria-label="anchor" href="#preserving-data-frame-attributes"></a>
-</h2>
-<p>Like other R objects, <code>data.frame</code>s can have metadata
-attached. The most common is <code>row.names</code>. To ensure these are
-saved, use <code>attrs = TRUE</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">df_with_attrs</span> <span class="op">&lt;-</span> <span class="va">my_df</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/row.names.html" class="external-link">row.names</a></span><span class="op">(</span><span class="va">df_with_attrs</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="va">df_with_attrs</span><span class="op">$</span><span class="va">sample_id</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">df_with_attrs</span>, <span class="st">"description"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"My experiment data"</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"df_with_attrs"</span>, <span class="va">df_with_attrs</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Inspect the HDF5 attributes created</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"df_with_attrs"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "names"       "class"       "row.names"   "description"</span></span>
-<span></span>
-<span><span class="co"># Read back with attributes</span></span>
-<span><span class="va">read_df_with_attrs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"df_with_attrs"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Manually adjust for type conversions before comparing</span></span>
-<span><span class="va">df_with_attrs</span><span class="op">$</span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">df_with_attrs</span><span class="op">$</span><span class="va">trial</span><span class="op">)</span></span>
-<span><span class="va">df_with_attrs</span><span class="op">$</span><span class="va">pass_qc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">df_with_attrs</span><span class="op">$</span><span class="va">pass_qc</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">read_df_with_attrs</span>, <span class="va">df_with_attrs</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> The <code>row.names</code> attribute is read
-back correctly because of a special rule in <code><a href="../reference/h5_read.html">h5_read()</a></code>. It
-detects the attribute named <code>"row.names"</code>, and if it is a
-<code>numeric</code> vector, it is coerced back to <code>integer</code>
-to satisfy R’s requirements for a valid <code>data.frame</code>.</p>
-</blockquote>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<pre class="fansi fansi-output"><code><span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; ├── study_data/</span></span>
+<span><span class="co">#&gt; │   └── results &lt;compound[4] × 5&gt;</span></span>
+<span><span class="co">#&gt; │       ├── $id &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │       ├── $group &lt;utf8[1]&gt;</span></span>
+<span><span class="co">#&gt; │       ├── $score &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │       └── $passed &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; ├── custom_df &lt;compound[2] × 10&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $id &lt;uint16&gt;</span></span>
+<span><span class="co">#&gt; │   └── $code &lt;ascii[1]&gt;</span></span>
+<span><span class="co">#&gt; ├── cars &lt;compound[11] × 3&gt;</span></span>
+<span><span class="co">#&gt; │   ├── @DIMENSION_LIST &lt;vlen × 1&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $mpg &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $cyl &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $disp &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $hp &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $drat &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $wt &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $qsec &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $vs &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $am &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $gear &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   └── $carb &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; └── cars_rownames &lt;utf8 × 3&gt;</span></span>
+<span><span class="co">#&gt;     ├── @CLASS &lt;ascii[16] scalar&gt;</span></span>
+<span><span class="co">#&gt;     └── @REFERENCE_LIST &lt;compound[2] × 1&gt;</span></span>
+<span><span class="co">#&gt;         ├── $dataset &lt;reference&gt;</span></span>
+<span><span class="co">#&gt;         └── $dimension &lt;uint32&gt;</span></span></code></pre>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span></span>
+<span><span class="co"># Read back</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"cars"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/row.names.html" class="external-link">row.names</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Mazda RX4"     "Mazda RX4 Wag" "Datsun 710"</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

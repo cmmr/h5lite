@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,247 +73,247 @@
 
     
     
+<p>The <code>h5lite</code> package provides a convenient object-oriented
+interface for interacting with HDF5 files. While the standard functions
+(e.g., <code>h5_read</code>, <code>h5_write</code>) are excellent for
+stateless, atomic operations, the object-oriented handle is often more
+natural when performing multiple operations on a single file or when
+navigating deep group structures.</p>
+<div class="section level2">
+<h2 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
+</h2>
+<p>To use this interface, create a file handle using
+<code><a href="../reference/h5_open.html">h5_open()</a></code>. This returns an <code>h5</code> object
+(specifically, an environment) that maintains a reference to your
+file.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
-<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
-</h2>
-<p>While the standard <code>h5lite</code> functions
-(<code><a href="../reference/h5_read.html">h5_read()</a></code>, <code><a href="../reference/h5_write.html">h5_write()</a></code>, etc.) are powerful,
-they require you to pass the <code>file</code> path as the first
-argument every time. When performing many operations on the same file,
-this can become repetitive.</p>
-<p>To streamline this workflow, <code>h5lite</code> provides an
-object-oriented (OO) interface through the <code><a href="../reference/h5_open.html">h5_open()</a></code>
-function. This function creates a file <strong>handle</strong>—a special
-R object that “remembers” the file path and maintains an internal state,
-such as a current working directory.</p>
-<p>This vignette provides a comprehensive guide to using the
-<code>h5</code> handle to make your HDF5 interactions more efficient and
-expressive.</p>
-</div>
-<div class="section level2">
-<h2 id="creating-a-handle">1. Creating a Handle<a class="anchor" aria-label="anchor" href="#creating-a-handle"></a>
-</h2>
-<p>You create a handle with <code><a href="../reference/h5_open.html">h5_open()</a></code>. If the file doesn’t
-exist, it will be created for you.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_open.html">h5_open</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">h</span><span class="op">)</span></span>
+<span><span class="co"># Create a temporary file for this example</span></span>
+<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Open the handle</span></span>
+<span><span class="va">h5</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_open.html">h5_open</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The print method shows the file path and current internal working directory</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">h5</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;h5 handle&gt;</span></span>
-<span><span class="co">#&gt;   File:  /tmp/RtmpvfEJOf/file285d1d751242.h5 </span></span>
+<span><span class="co">#&gt;   File:  /tmp/RtmpvrdDyt/file27ee1656050b.h5 </span></span>
 <span><span class="co">#&gt;   WD:    / </span></span>
 <span><span class="co">#&gt;   Size:  195 bytes </span></span>
 <span><span class="co">#&gt;   Objects (root):  0</span></span></code></pre></div>
-<p>The <code>h</code> object is now your gateway to interacting with the
-HDF5 file.</p>
-</div>
-<div class="section level2">
-<h2 id="basic-operations-as-methods">2. Basic Operations as Methods<a class="anchor" aria-label="anchor" href="#basic-operations-as-methods"></a>
-</h2>
-<p>The primary benefit of the handle is that most <code>h5lite</code>
-functions are available as <strong>methods</strong> on the handle
-object, without the <code>h5_</code> prefix. The <code>file</code>
-argument is supplied automatically.</p>
-<p>For example, instead of this:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"dset1"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"dset2"</span>, <span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
-<p>You can use the more concise handle-based methods:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="st">"dset1"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="st">"dset2"</span>, <span class="va">letters</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "dset1" "dset2"</span></span></code></pre></div>
-<p>This makes your code cleaner and easier to read, as the context
-(which file you’re working on) is established once.</p>
-</div>
-<div class="section level2">
-<h2 id="navigation-cd-and-pwd">3. Navigation (<code>$cd()</code> and <code>$pwd()</code>)<a class="anchor" aria-label="anchor" href="#navigation-cd-and-pwd"></a>
-</h2>
-<p>A powerful feature of the handle is its ability to maintain an
-internal “working directory.” This allows you to work with relative
-paths, which is extremely useful for organizing complex files.</p>
+<p>Once the handle is open, you can access standard <code>h5lite</code>
+functions as methods of this object. The primary benefit is that you no
+longer need to pass the <code>file</code> argument; it is handled
+implicitly.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Write data using the handle</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="st">"dataset1"</span><span class="op">)</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span>, <span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span>, <span class="st">"matrix_data"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># List contents</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "dataset1"    "matrix_data"</span></span>
+<span></span>
+<span><span class="co"># Read data back</span></span>
+<span><span class="va">my_data</span> <span class="op">&lt;-</span> <span class="va">h5</span><span class="op">$</span><span class="fu">read</span><span class="op">(</span><span class="st">"dataset1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">my_data</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1]  1  2  3  4  5  6  7  8  9 10</span></span></code></pre></div>
+<p>Almost all standard functions map directly to methods by dropping the
+<code>h5_</code> prefix:</p>
 <ul>
 <li>
-<code>h$pwd()</code>: <strong>P</strong>rints the
-<strong>w</strong>orking <strong>d</strong>irectory.</li>
+<code><a href="../reference/h5_write.html">h5_write()</a></code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\rightarrow</annotation></semantics></math><code>h5$write()</code>
+</li>
 <li>
-<code>h$cd(path)</code>: <strong>C</strong>hanges the
-<strong>d</strong>irectory. It understands absolute paths (starting with
-<code>/</code>) and relative paths (like <code>..</code> for
-parent).</li>
+<code><a href="../reference/h5_read.html">h5_read()</a></code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\rightarrow</annotation></semantics></math><code>h5$read()</code>
+</li>
+<li>
+<code><a href="../reference/h5_ls.html">h5_ls()</a></code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\rightarrow</annotation></semantics></math><code>h5$ls()</code>
+</li>
+<li>
+<code><a href="../reference/h5_attr_names.html">h5_attr_names()</a></code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\rightarrow</annotation></semantics></math><code>h5$attr_names()</code>
+</li>
+<li>And so on (see <strong>Method Reference</strong> below).</li>
 </ul>
-<p>Let’s create a nested structure and navigate it.</p>
+</div>
+<div class="section level2">
+<h2 id="navigation-and-working-directories">Navigation and Working Directories<a class="anchor" aria-label="anchor" href="#navigation-and-working-directories"></a>
+</h2>
+<p>A unique feature of the <code>h5</code> handle is the ability to
+maintain a stateful “Working Directory” (WD) inside the HDF5 file. This
+functions similarly to <code><a href="https://rdrr.io/r/base/getwd.html" class="external-link">setwd()</a></code> in R or <code>cd</code> in a
+shell.</p>
+<p>By default, the WD is the root (<code>/</code>). You can change it
+using <code>$cd()</code> and check it using <code>$pwd()</code>.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a group structure</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">create_group</span><span class="op">(</span><span class="st">"simulations"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Navigate into the group</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"simulations"</span><span class="op">)</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "/simulations"</span></span>
+<span></span>
+<span><span class="co"># Write data using relative paths (writes to /simulations/run1)</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>, <span class="st">"run1"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Verify the location</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "run1"</span></span></code></pre></div>
+<p>Absolute paths (paths starting with <code>/</code>) always override
+the current working directory:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Writes to the root, ignoring the fact that we are in /simulations</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="fl">100</span>, <span class="st">"/root_dataset"</span><span class="op">)</span></span></code></pre></div>
+<p>You can also use <code>..</code> to navigate up the hierarchy:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a group</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">create_group</span><span class="op">(</span><span class="st">"/data/raw"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Check our current location (root)</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/"</span></span>
-<span></span>
-<span><span class="co"># Change into the new group</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"/data/raw"</span><span class="op">)</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/data/raw"</span></span>
-<span></span>
-<span><span class="co"># Now, any operation with a relative path is relative to "/data/raw"</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">write</span><span class="op">(</span><span class="st">"sensor_a"</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Let's see what's in the file</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span>recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "sensor_a"</span></span>
-<span></span>
-<span><span class="co"># We can navigate up with ".."</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">".."</span><span class="op">)</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/data"</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">h5</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">".."</span><span class="op">)</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span> <span class="co"># Now back at "/"</span></span>
+<span><span class="co">#&gt; [1] "/"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="convenient-subsetting-with">4. Convenient Subsetting with <code>[[</code><a class="anchor" aria-label="anchor" href="#convenient-subsetting-with"></a>
+<h2 id="reference-semantics">Reference Semantics<a class="anchor" aria-label="anchor" href="#reference-semantics"></a>
 </h2>
-<p>The <code>h5</code> handle also supports list-style subsetting with
-<code>[[</code> and <code>[[&lt;-</code> as a convenient shortcut for
-reading and writing.</p>
-<div class="section level3">
-<h3 id="reading-and-writing-datasets">Reading and Writing Datasets<a class="anchor" aria-label="anchor" href="#reading-and-writing-datasets"></a>
-</h3>
-<p><code>h[["dset"]]</code> is a shortcut for
-<code>h$read("dset")</code>, and <code>h[["dset"]] &lt;- value</code> is
-a shortcut for <code>h$write("dset", value)</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Write a dataset using subsetting</span></span>
-<span><span class="va">h</span><span class="op">[[</span><span class="st">"metadata/run_id"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"run-123"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Read it back</span></span>
-<span><span class="va">run_id</span> <span class="op">&lt;-</span> <span class="va">h</span><span class="op">[[</span><span class="st">"metadata/run_id"</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">run_id</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "run-123"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="accessing-attributes-with">Accessing Attributes with <code>@</code><a class="anchor" aria-label="anchor" href="#accessing-attributes-with"></a>
-</h3>
-<p>The <code>[[</code> methods have a special, powerful syntax for
-attribute access: the <code>@</code> symbol. You can separate an object
-name and an attribute name with <code>@</code> to directly read or write
-an attribute.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Write an attribute to the 'sensor_a' dataset</span></span>
-<span><span class="va">h</span><span class="op">[[</span><span class="st">"/data/raw/sensor_a@units"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"volts"</span></span>
-<span></span>
-<span><span class="co"># Read the attribute back</span></span>
-<span><span class="va">units</span> <span class="op">&lt;-</span> <span class="va">h</span><span class="op">[[</span><span class="st">"/data/raw/sensor_a@units"</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "volts"</span></span>
-<span></span>
-<span><span class="co"># You can even access attributes on the current working directory</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"/data"</span><span class="op">)</span></span>
-<span><span class="va">h</span><span class="op">[[</span><span class="st">"@info"</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"This is the data group"</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">ls_attr</span><span class="op">(</span><span class="st">"."</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "info"</span></span></code></pre></div>
-<blockquote>
-<p><strong>Important:</strong> The <code>@</code> syntax is a special
-feature of the <code>[[</code> and <code>[[&lt;-</code> methods
-<strong>only</strong>. It will not work with the standard
-<code>$read()</code> or <code>$write()</code> methods. You must use
-<code>$read_attr()</code> and <code>$write_attr()</code> for those.</p>
-</blockquote>
-</div>
-</div>
-<div class="section level2">
-<h2 id="pass-by-reference-behavior">5. Pass-by-Reference Behavior<a class="anchor" aria-label="anchor" href="#pass-by-reference-behavior"></a>
-</h2>
-<p>Unlike most R objects, the <code>h5</code> handle is an
-<strong>environment</strong>. This means it exhibits
-<strong>pass-by-reference</strong> semantics. This is a critical concept
-to understand to avoid common mistakes.</p>
-<p>When you copy a normal R object, you get an independent copy:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="va">x</span></span>
-<span><span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">99</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="co"># x is unchanged</span></span>
-<span><span class="co">#&gt; [1] 1 2 3</span></span></code></pre></div>
-<p>When you copy an <code>h5</code> handle, both variables point to the
-<strong>exact same object</strong>. Modifying one will affect the
+<p>The object returned by <code>h5_open</code> is an <strong>R
+environment</strong>. This means it follows “pass-by-reference”
+semantics, unlike most R objects which are “pass-by-value”.</p>
+<p>If you assign the handle to a new variable, you are creating a new
+reference to the <em>same</em> handle. Modifying one will modify the
 other.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_open.html">h5_open</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="va">h1</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"/"</span><span class="op">)</span> <span class="co"># Start at root</span></span>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h5_alias</span> <span class="op">&lt;-</span> <span class="va">h5</span></span>
 <span></span>
-<span><span class="co"># This does NOT create a copy. h2 is just another name for h1.</span></span>
-<span><span class="va">h2</span> <span class="op">&lt;-</span> <span class="va">h1</span></span>
+<span><span class="co"># Change directory in the alias</span></span>
+<span><span class="va">h5_alias</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"simulations"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Change the directory using h2</span></span>
-<span><span class="va">h2</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"/data"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># The working directory of h1 has also changed!</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"h1 pwd:"</span>, <span class="va">h1</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; h1 pwd: /data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"h2 pwd:"</span>, <span class="va">h2</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; h2 pwd: /data</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="common-mistake-and-the-power">Common Mistake and The Power<a class="anchor" aria-label="anchor" href="#common-mistake-and-the-power"></a>
-</h3>
-<p>A common mistake is to pass a handle to a function expecting it to be
-a copy, only to find the original handle has been modified.</p>
-<p>However, this behavior is also very powerful. It allows you to write
-helper functions that can modify the state of the handle (e.g., navigate
-and write data) without needing to return the handle.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A function to log data to a specific group</span></span>
-<span><span class="va">log_data</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">handle</span>, <span class="va">sensor_id</span>, <span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># This function modifies the handle it receives</span></span>
-<span>  <span class="va">original_wd</span> <span class="op">&lt;-</span> <span class="va">handle</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit</a></span><span class="op">(</span><span class="va">handle</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="va">original_wd</span><span class="op">)</span><span class="op">)</span> <span class="co"># Go back to where we were on exit</span></span>
-<span>  </span>
-<span>  <span class="va">handle</span><span class="op">$</span><span class="fu">cd</span><span class="op">(</span><span class="st">"/data/raw"</span><span class="op">)</span></span>
-<span>  <span class="va">handle</span><span class="op">[[</span><span class="va">sensor_id</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="va">data</span></span>
-<span>  <span class="va">handle</span><span class="op">[[</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">sensor_id</span>, <span class="st">"@timestamp"</span><span class="op">)</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># Use the helper function</span></span>
-<span><span class="fu">log_data</span><span class="op">(</span><span class="va">h</span>, <span class="st">"sensor_b"</span>, <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Check the result</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="st">"/data/raw"</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "/data/raw/sensor_a" "/data/raw/sensor_b"</span></span>
-<span><span class="va">h</span><span class="op">$</span><span class="fu">read_attr</span><span class="op">(</span><span class="st">"/data/raw/sensor_b"</span>, <span class="st">"timestamp"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "2025-12-09T02:18:20Z"</span></span></code></pre></div>
-</div>
+<span><span class="co"># The original handle is also updated</span></span>
+<span><span class="va">h5</span><span class="op">$</span><span class="fu">pwd</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "/simulations"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="closing-the-handle">6. Closing the Handle<a class="anchor" aria-label="anchor" href="#closing-the-handle"></a>
+<h2 id="closing-the-handle">Closing the Handle<a class="anchor" aria-label="anchor" href="#closing-the-handle"></a>
 </h2>
-<p>The <code>h5lite</code> package does not keep a persistent, open
-connection to the HDF5 file. Each operation (read, write, etc.) opens
-the file, performs its action, and closes it.</p>
-<p>The purpose of the <code>$close()</code> method is not to close the
-file, but to <strong>invalidate the handle object</strong>. After
-calling <code>$close()</code>, any further attempt to use the handle
-will result in an error. This is a safety mechanism to prevent you from
-accidentally using a handle that you thought was “finished.”</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">h_to_close</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_open.html">h5_open</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="va">h_to_close</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "dset1"                "dset2"                "data"                </span></span>
-<span><span class="co">#&gt; [4] "data/raw"             "data/raw/sensor_a"    "data/raw/sensor_b"   </span></span>
-<span><span class="co">#&gt; [7] "data/metadata"        "data/metadata/run_id"</span></span>
+<p>When you are finished, you can close the handle using
+<code>$close()</code>.</p>
+<p><strong>Note:</strong> <code>h5lite</code> does not keep the actual
+HDF5 file lock open persistently (it opens and closes the file for every
+read/write operation to ensure safety). Therefore, <code>$close()</code>
+is a logical operation: it clears the internal file path and working
+directory from the handle, preventing further methods from being called
+on it.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">h5</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Invalidate the handle</span></span>
-<span><span class="va">h_to_close</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># This will now throw an error</span></span>
-<span><span class="va">h_to_close</span><span class="op">$</span><span class="fu">ls</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error: This h5 file handle has been closed.</span></span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Further attempts to use the handle will result in an error:</span></span>
+<span><span class="co"># h5$ls() </span></span>
+<span><span class="co"># Error: This h5 file handle has been closed.</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="method-reference">Method Reference<a class="anchor" aria-label="anchor" href="#method-reference"></a>
+</h2>
+<p>The following methods are available on the <code>h5</code>
+object:</p>
+<table class="table">
+<colgroup>
+<col width="35%">
+<col width="64%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Method</th>
+<th align="left">Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>I/O</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"><code>$read(name, ...)</code></td>
+<td align="left">Read a dataset or attribute.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$write(data, name, ...)</code></td>
+<td align="left">Write a dataset or attribute.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Navigation</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$cd(group)</code></td>
+<td align="left">Change the internal working directory.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$pwd()</code></td>
+<td align="left">Print the current internal working directory.</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Structure</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"><code>$ls(name, ...)</code></td>
+<td align="left">List contents of a group.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$create_group(name)</code></td>
+<td align="left">Create a new group.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$delete(name)</code></td>
+<td align="left">Delete a group or dataset.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$move(from, to)</code></td>
+<td align="left">Move/Rename an object.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$names(name)</code></td>
+<td align="left">Get names of objects in a group.</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Inspection</strong></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"><code>$exists(name)</code></td>
+<td align="left">Check if an object exists.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$dim(name)</code></td>
+<td align="left">Get dimensions of a dataset.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$typeof(name)</code></td>
+<td align="left">Get the HDF5 type of an object.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$class(name)</code></td>
+<td align="left">Get the class (dataset/group) of an object.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$is_dataset(name)</code></td>
+<td align="left">Boolean check for dataset.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$is_group(name)</code></td>
+<td align="left">Boolean check for group.</td>
+</tr>
+<tr class="even">
+<td align="left"><code>$attr_names(name)</code></td>
+<td align="left">List attribute names.</td>
+</tr>
+<tr class="odd">
+<td align="left"><code>$str(name)</code></td>
+<td align="left">Display structure of an object.</td>
+</tr>
+</tbody>
+</table>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

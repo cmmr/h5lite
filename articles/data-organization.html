@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,179 +73,178 @@
 
     
     
+<p>HDF5 files are best understood as “file systems within a file.” Just
+as your computer has folders and files, an HDF5 file has
+<strong>Groups</strong> (folders) and <strong>Datasets</strong> (files).
+This hierarchical structure allows you to organize complex experimental
+data, metadata, and configuration settings into a single,
+self-describing package.</p>
+<p>This vignette explains how to create, manage, and modify this
+structure using <code>h5lite</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="the-hierarchical-model">The Hierarchical Model<a class="anchor" aria-label="anchor" href="#the-hierarchical-model"></a>
 </h2>
-<p>One of the most powerful features of <code>h5lite</code> is its
-ability to map R’s nested <code>list</code> objects directly to the
-hierarchical structure of an HDF5 file. This allows you to save and load
-complex, organized data structures with a single command.</p>
-<p>This vignette explores: * How <code><a href="../reference/h5_write.html">h5_write()</a></code> recursively
-saves a list. * How <code><a href="../reference/h5_read.html">h5_read()</a></code> recursively loads a file
-structure into a list. * The important detail of alphabetical ordering.
-* How to manually manage the file structure using <code>h5lite</code>’s
-organizational functions.</p>
-<p>For an introduction to writing data, see
-<code><a href="../articles/h5lite.html">vignette("h5lite")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="recursive-writing-with-lists">1. Recursive Writing with Lists<a class="anchor" aria-label="anchor" href="#recursive-writing-with-lists"></a>
-</h2>
-<p>When you pass a <code>list</code> to <code><a href="../reference/h5_write.html">h5_write()</a></code>, it
-treats it as a blueprint for creating a file structure:</p>
+<p>HDF5 uses POSIX-style paths (like Linux or macOS) to identify
+objects. The root of the file is <code>/</code>.</p>
 <ul>
-<li>The <code>list</code> itself becomes an HDF5
-<strong>group</strong>.</li>
-<li>Named elements inside the <code>list</code> become datasets or
-sub-groups.</li>
+<li>
+<code>/</code> : The Root Group</li>
+<li>
+<code>/experiment_1</code> : A Group (folder)</li>
+<li>
+<code>/experiment_1/data</code> : A Dataset (file) inside the
+group</li>
 </ul>
-<p>Let’s create a nested list representing a session’s data.</p>
+</div>
+<div class="section level2">
+<h2 id="creating-groups">Creating Groups<a class="anchor" aria-label="anchor" href="#creating-groups"></a>
+</h2>
+<div class="section level3">
+<h3 id="implicit-creation-recommended">Implicit Creation (Recommended)<a class="anchor" aria-label="anchor" href="#implicit-creation-recommended"></a>
+</h3>
+<p>In most cases, you do not need to create groups manually. When you
+write a dataset to a path like <code>"data/experiment/run1"</code>,
+<code>h5lite</code> automatically creates the parent groups
+<code>"data"</code> and <code>"data/experiment"</code> if they do not
+exist.</p>
+</div>
+<div class="section level3">
+<h3 id="explicit-creation">Explicit Creation<a class="anchor" aria-label="anchor" href="#explicit-creation"></a>
+</h3>
+<p>If you need to create an empty group structure (perhaps to add
+attributes to it), you can use <code><a href="../reference/h5_create_group.html">h5_create_group()</a></code>. This
+function works like <code>mkdir -p</code>: it creates all necessary
+parent groups.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">session_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    user <span class="op">=</span> <span class="st">"test"</span>,</span>
-<span>    version <span class="op">=</span> <span class="fl">1.2</span>,</span>
-<span>    timestamp <span class="op">=</span> <span class="st">"2025-11-17"</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  raw_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, ncol <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Create a deep hierarchy</span></span>
+<span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"project_A/simulation/run_01"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># We can even add an attribute to the top-level list</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">session_data</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"This is the root group attribute"</span></span>
-<span></span>
-<span><span class="co"># Write the entire structure in one call</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_1"</span>, <span class="va">session_data</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p>We can now inspect the file with <code><a href="../reference/h5_str.html">h5_str()</a></code> to see the
-hierarchy that was created.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; └── session_1</span></span>
-<span><span class="co">#&gt;     ├── @<span style="font-style: italic;">info</span> <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;     ├── metadata</span></span>
-<span><span class="co">#&gt;     │   ├── user <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;     │   ├── version <span style="color: #555555;">&lt;float64 x 1&gt;</span></span></span>
-<span><span class="co">#&gt;     │   └── timestamp <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;     └── raw_data <span style="color: #555555;">&lt;float64 x 10 x 10&gt;</span></span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="recursive-reading-of-groups">Recursive Reading of Groups<a class="anchor" aria-label="anchor" href="#recursive-reading-of-groups"></a>
-</h2>
-<p>Just as <code><a href="../reference/h5_write.html">h5_write()</a></code> can write a list recursively,
-<code><a href="../reference/h5_read.html">h5_read()</a></code> can read an HDF5 group recursively. When you read
-a group path, <code>h5lite</code> traverses its contents and builds a
-nested R <code>list</code> that mirrors the file structure.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Read the 'session_1' group back into a list</span></span>
-<span><span class="va">read_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_1"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">read_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 2</span></span>
-<span><span class="co">#&gt;  $ metadata:List of 3</span></span>
-<span><span class="co">#&gt;   ..$ timestamp: chr "2025-11-17"</span></span>
-<span><span class="co">#&gt;   ..$ user     : chr "test"</span></span>
-<span><span class="co">#&gt;   ..$ version  : num 1.2</span></span>
-<span><span class="co">#&gt;  $ raw_data: num [1:10, 1:10] -1.40004 0.25532 -2.43726 -0.00557 0.62155 ...</span></span>
-<span><span class="co">#&gt;  - attr(*, "info")= chr "This is the root group attribute"</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="important-hdf5-group-ordering">Important: HDF5 Group Ordering<a class="anchor" aria-label="anchor" href="#important-hdf5-group-ordering"></a>
-</h3>
-<p>A critical detail to remember is that HDF5 groups <strong>do not
-preserve the creation order</strong> of their members. When
-<code><a href="../reference/h5_read.html">h5_read()</a></code> reads a group, it returns the elements in the
-list sorted alphabetically by name.</p>
-<p>Our original <code>session_data$metadata</code> list had the order
-<code>user</code>, <code>version</code>, <code>timestamp</code>. The
-read-back list has the order <code>timestamp</code>, <code>user</code>,
-<code>version</code>.</p>
-<p>To correctly compare a list that has been round-tripped, you should
-sort the original list’s elements by name first.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Sort the original list to match the expected read-back order</span></span>
-<span><span class="va">session_data</span><span class="op">$</span><span class="va">metadata</span> <span class="op">&lt;-</span> <span class="va">session_data</span><span class="op">$</span><span class="va">metadata</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">session_data</span><span class="op">$</span><span class="va">metadata</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span></span>
-<span><span class="co"># Now the comparison will succeed</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">session_data</span>, <span class="va">read_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="manual-file-organization">Manual File Organization<a class="anchor" aria-label="anchor" href="#manual-file-organization"></a>
-</h2>
-<p>While recursive list writing is convenient, you often need to manage
-the file structure manually. <code>h5lite</code> provides a suite of
-simple functions for this.</p>
-<div class="section level3">
-<h3 id="creating-groups">Creating Groups<a class="anchor" aria-label="anchor" href="#creating-groups"></a>
-</h3>
-<p>You can pre-build a directory structure using
-<code><a href="../reference/h5_create_group.html">h5_create_group()</a></code>. It works like <code>mkdir -p</code>,
-creating any necessary parent groups.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/archive/2024/run_01"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "session_1"                    "session_1/metadata"          </span></span>
-<span><span class="co">#&gt; [3] "session_1/metadata/user"      "session_1/metadata/version"  </span></span>
-<span><span class="co">#&gt; [5] "session_1/metadata/timestamp" "session_1/raw_data"          </span></span>
-<span><span class="co">#&gt; [7] "archive"                      "archive/2024"                </span></span>
-<span><span class="co">#&gt; [9] "archive/2024/run_01"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="moving-and-renaming-objects">Moving and Renaming Objects<a class="anchor" aria-label="anchor" href="#moving-and-renaming-objects"></a>
-</h3>
-<p><code><a href="../reference/h5_move.html">h5_move()</a></code> allows you to efficiently rename or move any
-object (group or dataset). This is a fast metadata operation that does
-not rewrite any data.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Let's move our session data into the archive</span></span>
-<span><span class="fu"><a href="../reference/h5_move.html">h5_move</a></span><span class="op">(</span><span class="va">file</span>, from <span class="op">=</span> <span class="st">"session_1"</span>, to <span class="op">=</span> <span class="st">"/archive/2024/run_01/data"</span><span class="op">)</span></span>
-<span></span>
+<span><span class="co"># Verify</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; └── archive</span></span>
-<span><span class="co">#&gt;     └── 2024</span></span>
-<span><span class="co">#&gt;         └── run_01</span></span>
-<span><span class="co">#&gt;             └── data</span></span>
-<span><span class="co">#&gt;                 ├── @<span style="font-style: italic;">info</span> <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;                 ├── metadata</span></span>
-<span><span class="co">#&gt;                 │   ├── user <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;                 │   ├── version <span style="color: #555555;">&lt;float64 x 1&gt;</span></span></span>
-<span><span class="co">#&gt;                 │   └── timestamp <span style="color: #555555;">&lt;string x 1&gt;</span></span></span>
-<span><span class="co">#&gt;                 └── raw_data <span style="color: #555555;">&lt;float64 x 10 x 10&gt;</span></span></span></code></pre></div>
+<span><span class="co">#&gt; └── project_A/</span></span>
+<span><span class="co">#&gt;     └── simulation/</span></span>
+<span><span class="co">#&gt;         └── run_01/</span></span></code></pre></div>
 </div>
-<div class="section level3">
-<h3 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
-</h3>
-<p>Finally, you can remove any object using <code><a href="../reference/h5_delete.html">h5_delete()</a></code>.
-The deletion is recursive, so if you target a group, everything inside
-it will also be removed.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Let's create a temporary group to delete</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "deleteme"</span></span>
-<span></span>
-<span><span class="co"># Delete just the dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_exists.html">h5_exists</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp/deleteme"</span><span class="op">)</span> <span class="co"># FALSE</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span>
-<span></span>
-<span><span class="co"># Delete the now-empty group</span></span>
-<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_exists.html">h5_exists</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"/tmp"</span><span class="op">)</span> <span class="co"># FALSE</span></span>
-<span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>These organizational functions give you full control over the
-structure of your HDF5 file, allowing you to build and manage complex
-data hierarchies with simple, predictable commands.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level2">
+<h2 id="using-lists-as-groups">Using Lists as Groups<a class="anchor" aria-label="anchor" href="#using-lists-as-groups"></a>
+</h2>
+<p>The most powerful way to organize data in <code>h5lite</code> is by
+mapping R <strong>lists</strong> to HDF5 <strong>groups</strong>.</p>
+<p>When you pass a named list to <code><a href="../reference/h5_write.html">h5_write()</a></code>,
+<code>h5lite</code> recursively writes the list structure to the file. *
+<strong>Named Lists</strong> become <strong>Groups</strong>. *
+<strong>Atomic Vectors/Matrices</strong> inside the list become
+<strong>Datasets</strong>.</p>
+<p>This allows you to organize your entire data structure in R and save
+it to disk in one command.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Define a complex structure in R</span></span>
+<span><span class="va">experiment_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  metadata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    id         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">101</span><span class="op">)</span>,</span>
+<span>    technician <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"Dr. Smith"</span><span class="op">)</span>,</span>
+<span>    timestamp  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"2023-10-27"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  measurements <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    raw         <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>,</span>
+<span>    calibration <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"complete"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Write the entire structure to a group named "exp_101"</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">experiment_data</span>, <span class="va">file</span>, <span class="st">"exp_101"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="inspecting-structure">Inspecting Structure<a class="anchor" aria-label="anchor" href="#inspecting-structure"></a>
+</h2>
+<p>You can visualize the organization of your file using
+<code><a href="../reference/h5_ls.html">h5_ls()</a></code> and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
+<ul>
+<li>
+<code><a href="../reference/h5_ls.html">h5_ls()</a></code>: Returns a character vector of names. Useful
+for programmatic checks.</li>
+<li>
+<code><a href="../reference/h5_str.html">h5_str()</a></code>: Prints a tree diagram. Useful for interactive
+exploration.</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># List all objects recursively</span></span>
+<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "project_A"                        "project_A/simulation"            </span></span>
+<span><span class="co">#&gt;  [3] "project_A/simulation/run_01"      "exp_101"                         </span></span>
+<span><span class="co">#&gt;  [5] "exp_101/metadata"                 "exp_101/metadata/id"             </span></span>
+<span><span class="co">#&gt;  [7] "exp_101/metadata/technician"      "exp_101/metadata/timestamp"      </span></span>
+<span><span class="co">#&gt;  [9] "exp_101/measurements"             "exp_101/measurements/raw"        </span></span>
+<span><span class="co">#&gt; [11] "exp_101/measurements/calibration" "exp_101/status"</span></span>
+<span></span>
+<span><span class="co"># Visualize the tree</span></span>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<pre class="fansi fansi-output"><code><span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; ├── project_A/</span></span>
+<span><span class="co">#&gt; │   └── simulation/</span></span>
+<span><span class="co">#&gt; │       └── run_01/</span></span>
+<span><span class="co">#&gt; └── exp_101/</span></span>
+<span><span class="co">#&gt;     ├── metadata/</span></span>
+<span><span class="co">#&gt;     │   ├── id &lt;uint8 scalar&gt;</span></span>
+<span><span class="co">#&gt;     │   ├── technician &lt;utf8[9] scalar&gt;</span></span>
+<span><span class="co">#&gt;     │   └── timestamp &lt;utf8[10] scalar&gt;</span></span>
+<span><span class="co">#&gt;     ├── measurements/</span></span>
+<span><span class="co">#&gt;     │   ├── raw &lt;float64 × 10&gt;</span></span>
+<span><span class="co">#&gt;     │   └── calibration &lt;float64 × 2&gt;</span></span>
+<span><span class="co">#&gt;     └── status &lt;utf8[8] scalar&gt;</span></span></code></pre>
+</div>
+<div class="section level2">
+<h2 id="moving-and-renaming">Moving and Renaming<a class="anchor" aria-label="anchor" href="#moving-and-renaming"></a>
+</h2>
+<p>Data organization often changes. You can rename objects or move them
+to different groups using <code><a href="../reference/h5_move.html">h5_move()</a></code>.</p>
+<p>This operation is metadata-only, meaning it is extremely fast even
+for large datasets, as the data itself is not rewritten.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Rename 'exp_101' to 'archive_101'</span></span>
+<span><span class="fu"><a href="../reference/h5_move.html">h5_move</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"exp_101"</span>, <span class="st">"archive_101"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Move 'project_A' inside 'archive_101'</span></span>
+<span><span class="fu"><a href="../reference/h5_move.html">h5_move</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"project_A"</span>, <span class="st">"archive_101/project_A"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "archive_101"                            </span></span>
+<span><span class="co">#&gt;  [2] "archive_101/metadata"                   </span></span>
+<span><span class="co">#&gt;  [3] "archive_101/metadata/id"                </span></span>
+<span><span class="co">#&gt;  [4] "archive_101/metadata/technician"        </span></span>
+<span><span class="co">#&gt;  [5] "archive_101/metadata/timestamp"         </span></span>
+<span><span class="co">#&gt;  [6] "archive_101/measurements"               </span></span>
+<span><span class="co">#&gt;  [7] "archive_101/measurements/raw"           </span></span>
+<span><span class="co">#&gt;  [8] "archive_101/measurements/calibration"   </span></span>
+<span><span class="co">#&gt;  [9] "archive_101/status"                     </span></span>
+<span><span class="co">#&gt; [10] "archive_101/project_A"                  </span></span>
+<span><span class="co">#&gt; [11] "archive_101/project_A/simulation"       </span></span>
+<span><span class="co">#&gt; [12] "archive_101/project_A/simulation/run_01"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
+</h2>
+<p>You can remove groups or datasets using <code><a href="../reference/h5_delete.html">h5_delete()</a></code>.</p>
+<ul>
+<li>Deleting a dataset removes the data.</li>
+<li>Deleting a group removes the group <strong>and all of its
+children</strong> (recursively).</li>
+<li>The file size does not change, but the freed space can be
+reused.</li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Delete the entire archive group</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"archive_101"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># The file is now empty (except for the root)</span></span>
+<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span><span class="co">#&gt; character(0)</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

@@ -17,7 +17,19 @@ This function acts as a unified writer for datasets, groups (lists), and attribu
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/h5lite.html">Get started</a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
+    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
+    <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
+  </ul></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -103,9 +115,8 @@ logical, and character columns.</p>
 but cannot be compressed. Fixed-length strings allow for compression but do
 not support <code>NA</code>.</p>
 <p><strong>2. Automatic Selection (<code>as = "auto"</code>)</strong></p>
-<table class="table table"><tr><td><strong>R Type</strong></td><td><strong>HDF5 Type</strong></td><td><strong>Notes</strong></td></tr><tr><td><code>integer</code></td><td><code>H5T_STD_I32LE</code></td><td></td></tr><tr><td><code>double</code></td><td><code>H5T_IEEE_F64LE</code></td><td></td></tr><tr><td><code>logical</code></td><td><code>H5T_STD_U8LE</code></td><td>1-bit storage efficiency.</td></tr><tr><td><code>character</code></td><td><code>H5T_C_S1</code></td><td><code>H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM</code></td></tr><tr><td><code>factor</code></td><td><code>H5T_ENUM</code></td><td>Maps levels to integers.</td></tr><tr><td><code>data.frame</code></td><td><code>H5T_COMPOUND</code></td><td>Native table-like structure.</td></tr><tr><td><code>list</code></td><td><code>H5O_TYPE_GROUP</code></td><td>Written to HDF5 recursively.</td></tr><tr><td><code>complex</code></td><td><code>H5T_COMPLEX_IEEE_F64LE</code></td><td>Requires HDF5 &gt;= 2.0.0.</td></tr><tr><td><code>raw</code></td><td><code>H5T_OPAQUE</code></td><td>For binary data storage.</td></tr><tr><td><code>NULL</code></td><td><code>H5S_NULL</code></td><td>Null Dataspace</td></tr><tr><td><code>integer64</code></td><td><code>H5T_STD_I64LE</code></td><td>From the <code>bit64</code> R package.</td></tr><tr><td><code>POSIXt</code></td><td><code>H5T_C_S1</code></td><td>ISO 8601 string (<code>YYYY-MM-DDTHH:MM:SSZ</code>)</td></tr></table><p><em>NA Handling:</em> HDF5 integers do not support <code>NA</code>. If an R integer or logical
-vector contains <code>NA</code>, <code>h5lite</code> automatically promotes it to <code>float64</code> to
-preserve the <code>NA</code> value.</p>
+<table class="table table"><tr><td><strong>R Type</strong></td><td><strong>HDF5 Type</strong></td><td><strong>Notes</strong></td></tr><tr><td><code>numeric</code></td><td><em>various</em></td><td>Selects smallest type for data range.</td></tr><tr><td><code>logical</code></td><td><code>H5T_STD_U8LE</code></td><td>TRUE/FALSE stored as 1/0.</td></tr><tr><td><code>character</code></td><td><code>H5T_C_S1</code></td><td><code>H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM</code></td></tr><tr><td><code>factor</code></td><td><code>H5T_ENUM</code></td><td>Maps levels to integers.</td></tr><tr><td><code>data.frame</code></td><td><code>H5T_COMPOUND</code></td><td>Native table-like structure.</td></tr><tr><td><code>list</code></td><td><code>H5O_TYPE_GROUP</code></td><td>Written to HDF5 recursively.</td></tr><tr><td><code>complex</code></td><td><code>H5T_COMPLEX_IEEE_F64LE</code></td><td>Requires HDF5 &gt;= 2.0.0.</td></tr><tr><td><code>raw</code></td><td><code>H5T_OPAQUE</code></td><td>For binary data storage.</td></tr><tr><td><code>NULL</code></td><td><code>H5S_NULL</code></td><td>Null Dataspace</td></tr><tr><td><code>integer64</code></td><td><code>H5T_STD_I64LE</code></td><td>From the <code>bit64</code> R package.</td></tr><tr><td><code>POSIXt</code></td><td><code>H5T_C_S1</code></td><td>ISO 8601 string (<code>YYYY-MM-DDTHH:MM:SSZ</code>)</td></tr></table><p><em>NA Handling:</em> If an R numeric or logical vector contains <code>NA</code>, <code>h5lite</code>
+will store it as <code>float64</code> to preserve the <code>NA</code> value.</p>
 <p><strong>3. Column/Class Mapping</strong></p>
 <p>You can provide a named vector to map specific columns or classes:</p><ul><li><p><strong>Specific Name:</strong> <code>"col_name" = "type"</code> (e.g., <code>c(score = "float32")</code>)</p></li>
 <li><p><strong>Specific Attribute:</strong> <code>"@attr_name" = "type"</code></p></li>
@@ -161,8 +172,8 @@ link.</p>
 <span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/vector"</span>, attr <span class="op">=</span> <span class="st">"scale_factor"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 3. Controlling Data Types</span></span></span>
-<span class="r-in"><span><span class="co"># Store integers as 8-bit unsigned</span></span></span>
-<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="va">file</span>, <span class="st">"compressed/small_ints"</span>, as <span class="op">=</span> <span class="st">"uint8"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Store values as 32-bit signed integers</span></span></span>
+<span class="r-in"><span><span class="fu">h5_write</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="va">file</span>, <span class="st">"small_ints"</span>, as <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 4. Writing Complex Structures (Lists/Groups)</span></span></span>
 <span class="r-in"><span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
@@ -186,24 +197,26 @@ link.</p>
 <span class="r-in"><span><span class="co"># 7. Review the file structure</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> /</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ├── data</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── integers <span style="color: #555555;">&lt;int32 × 10&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── data/</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── integers <span style="color: #555555;">&lt;uint8 × 10&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── floats <span style="color: #555555;">&lt;float64 × 10&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── chars <span style="color: #555555;">&lt;utf8 × 5&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── vector <span style="color: #555555;">&lt;int32 × 10&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── @<span style="font-style: italic;">description</span> <span style="color: #555555;">&lt;utf8 scalar&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── @<span style="font-style: italic;">scale_factor</span> <span style="color: #555555;">&lt;float64 scalar&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ├── compressed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── small_ints <span style="color: #555555;">&lt;uint8 × 5&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ├── experiment_1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── meta</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── chars <span style="color: #555555;">&lt;utf8[1] × 5&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── vector <span style="color: #555555;">&lt;uint8 × 10&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── @<span style="font-style: italic;">description</span> <span style="color: #555555;">&lt;utf8[14] scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── @<span style="font-style: italic;">scale_factor</span> <span style="color: #555555;">&lt;uint8 scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── small_ints <span style="color: #555555;">&lt;int32 × 5&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── experiment_1/</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── meta/</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │   │   ├── id <span style="color: #555555;">&lt;uint16 × 1&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   │   └── name <span style="color: #555555;">&lt;utf8 × 1&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   │   └── name <span style="color: #555555;">&lt;utf8[12] × 1&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │   ├── results <span style="color: #555555;">&lt;float64 × 3 × 3&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── valid <span style="color: #555555;">&lt;int scalar&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> ├── fixed_str <span style="color: #555555;">&lt;ascii[10] × 2&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> └── records</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     └── scores <span style="color: #555555;">&lt;compound × 5 × 3&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── valid <span style="color: #555555;">&lt;uint8 scalar&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ├── records/</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │   └── scores <span style="color: #555555;">&lt;compound[3] × 5&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── $<span style="font-style: italic;">id</span> <span style="color: #555555;">&lt;uint8&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── $<span style="font-style: italic;">score</span> <span style="color: #555555;">&lt;float64&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── $<span style="font-style: italic;">grade</span> <span style="color: #555555;">&lt;enum&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> └── fixed_str <span style="color: #555555;">&lt;ascii[10] × 2&gt;</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 8. Clean up</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>

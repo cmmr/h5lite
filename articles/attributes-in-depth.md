@@ -1,202 +1,251 @@
 # Attributes In-Depth
 
+In HDF5, **attributes** are small pieces of metadata attached to groups
+or datasets. They are best used to store descriptive information: units,
+timestamps, descriptions, or experimental parameters—separately from the
+main data array.
+
+This vignette covers how to write, read, and manage these attributes
+using `h5lite`, as well as important limitations regarding their
+structure.
+
 ``` r
 library(h5lite)
-
-# We'll use a temporary file for this guide.
 file <- tempfile(fileext = ".h5")
-
-# Create a dataset to work with
-h5_write(file, "my_data", 1:10)
 ```
 
-## Introduction
+## Writing Attributes
 
-In HDF5, **attributes** are small, named pieces of metadata that can be
-attached to datasets or groups. They are distinct from **datasets**,
-which are designed to hold primary data.
+There are two ways to write attributes in `h5lite`: explicitly
+(targeting an object) or implicitly (saving R attributes).
 
-This vignette provides a deep dive into working with attributes in
-`h5lite`, covering: \* Basic attribute I/O. \* The powerful `attrs`
-argument for round-tripping R object attributes. \* Important
-limitations and special cases.
+### 1. Explicit Writing
 
-For an introduction to writing datasets, see
-[`vignette("h5lite")`](https://cmmr.github.io/h5lite/articles/h5lite.md).
-
-## Basic Attribute I/O
-
-The core functions for direct attribute manipulation are
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
-[`h5_read_attr()`](https://cmmr.github.io/h5lite/reference/h5_read_attr.md),
-and
-[`h5_ls_attr()`](https://cmmr.github.io/h5lite/reference/h5_ls_attr.md).
-
-Let’s add some metadata to our `my_data` dataset.
+You can write an attribute to any existing group or dataset using the
+`attr` argument in
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
+This is useful for adding metadata after the data has been saved.
 
 ``` r
-# Write a scalar string attribute
-h5_write_attr(file, "my_data", "units", I("meters/sec"))
+# First, write a dataset
+h5_write(1:10, file, "measurements/temperature")
 
-# Write a numeric vector attribute
-h5_write_attr(file, "my_data", "quality_flags", c(1, 1, 0, 1))
+# Now, attach attributes to it
+h5_write(I("Celsius"),    file, "measurements/temperature", attr = "units")
+h5_write(I("2023-10-27"), file, "measurements/temperature", attr = "date")
+h5_write(I(0.1),          file, "measurements/temperature", attr = "precision")
+```
 
-# List the attributes on the object
-h5_ls_attr(file, "my_data")
-#> [1] "units"         "quality_flags"
+*Note: If the attribute already exists, it will be overwritten.*
 
-# Read one of the attributes back
-units <- h5_read_attr(file, "my_data", "units")
+### 2. Implicit Writing (R Attributes)
+
+`h5lite` automatically preserves custom R attributes attached to your
+objects. When you write an R object, any attributes (except for standard
+internal ones like `dim`, `names`, or `class`) are written as HDF5
+attributes.
+
+``` r
+# Create a vector with custom R attributes
+data <- rnorm(5)
+attr(data, "description") <- I("Randomized control group")
+attr(data, "valid")       <- I(TRUE)
+
+# Write the object
+h5_write(data, file, "experiment/control")
+
+# Check the file - the attributes are there
+h5_attr_names(file, "experiment/control")
+#> [1] "description" "valid"
+
+h5_str(file)
+```
+
+``` fansi
+#> /
+#> ├── measurements/
+#> │   └── temperature <uint8 × 10>
+#> │       ├── @units <utf8[7] scalar>
+#> │       ├── @date <utf8[10] scalar>
+#> │       └── @precision <float64 scalar>
+#> └── experiment/
+#>     └── control <float64 × 5>
+#>         ├── @description <utf8[24] scalar>
+#>         └── @valid <uint8 scalar>
+```
+
+## Reading Attributes
+
+### 1. Accessing Specific Attributes
+
+If you only need a specific piece of metadata without reading the full
+dataset, you can use `h5_read(..., attr = "name")`.
+
+``` r
+# Read just the 'units' attribute
+units <- h5_read(file, "measurements/temperature", attr = "units")
 print(units)
-#> [1] "meters/sec"
+#> [1] "Celsius"
 ```
 
-## Automatic Round-tripping with the `attrs` Argument
+### 2. Reading with the Dataset
 
-While
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md)
-is useful for manual metadata, the real power comes from the `attrs`
-argument in
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md). This
-allows for high-fidelity round-trips of R objects by preserving their
-R-level attributes.
-
-Consider a named vector with a custom attribute.
+When you read a dataset, `h5lite` automatically reads all attached
+attributes and re-attaches them to the resulting R object.
 
 ``` r
+# Read the full dataset
+temps <- h5_read(file, "measurements/temperature")
+
+# The attributes are available in R
+attributes(temps)
+#> $units
+#> [1] "Celsius"
+#> 
+#> $date
+#> [1] "2023-10-27"
+#> 
+#> $precision
+#> [1] 0.1
+
+str(temps)
+#>  int [1:10] 1 2 3 4 5 6 7 8 9 10
+#>  - attr(*, "units")= chr "Celsius"
+#>  - attr(*, "date")= chr "2023-10-27"
+#>  - attr(*, "precision")= num 0.1
+```
+
+## Managing Attributes
+
+### Listing Attributes
+
+Use
+[`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md)
+to list the names of all attributes attached to a specific object.
+
+``` r
+h5_attr_names(file, "measurements/temperature")
+#> [1] "units"     "date"      "precision"
+```
+
+### Deleting Attributes
+
+You can remove a specific attribute using
+[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md).
+
+``` r
+# Delete the 'precision' attribute
+h5_delete(file, "measurements/temperature", attr = "precision")
+
+# Verify removal
+h5_attr_names(file, "measurements/temperature")
+#> [1] "units" "date"
+```
+
+## Important Limitations
+
+While attributes are powerful for storing metadata, they are
+fundamentally simpler structures than HDF5 Datasets. HDF5 enforces
+specific constraints that affect how `h5lite` can store complex R
+objects as attributes.
+
+### 1. No Dimension Scales (Loss of Names)
+
+HDF5 **Dimension Scales** (the mechanism `h5lite` uses to store `names`,
+`dimnames`, and `row.names`) can only be attached to **Datasets**. They
+cannot be attached to attributes.
+
+This means if you write a named vector, matrix, or array as an
+attribute, **the names will be lost**.
+
+``` r
+# A vector with names
 named_vec <- c(a = 1, b = 2, c = 3)
-attr(named_vec, "info") <- "My special vector"
 
-# Write the vector, telling h5lite to save its attributes
-h5_write(file, "named_vec", named_vec, attrs = TRUE)
+# Write as a standard Dataset -> Names are preserved
+h5_write(named_vec, file, "my_dataset")
+h5_names(file, "my_dataset")
+#> [1] "a" "b" "c"
 
-# Inspect the HDF5 attributes that were created
-h5_ls_attr(file, "named_vec")
-#> [1] "names" "info"
+# Write as an Attribute -> Names are LOST
+h5_write(named_vec, file, "measurements/temperature", attr = "meta_vec")
+h5_names(file, "measurements/temperature", attr = "meta_vec")
+#> character(0)
 ```
 
-When we read it back with `attrs = TRUE`, `h5lite` re-attaches the HDF5
-attributes as R attributes.
+**Exception: Data Frames** There is one major exception: `data.frame`
+objects.
+
+Because HDF5 stores data frames as **Compound Types**, the column names
+are baked into the type definition itself, not stored as side-loaded
+metadata. Therefore, **column names are preserved** even when writing a
+data frame as an attribute. However, `row.names` (which rely on
+dimension scales) will still be lost.
 
 ``` r
-read_vec <- h5_read(file, "named_vec", attrs = TRUE)
-
-# The object is perfectly restored
-all.equal(named_vec, read_vec)
-#> [1] TRUE
-str(read_vec)
-#>  Named num [1:3] 1 2 3
-#>  - attr(*, "names")= chr [1:3] "a" "b" "c"
-#>  - attr(*, "info")= chr "My special vector"
-```
-
-### Fine-Grained Control with Character Vectors
-
-The `attrs` argument also accepts a character vector to specify exactly
-which attributes to include or exclude.
-
-- **Inclusion list**: `attrs = c("names", "info")` will only write/read
-  those specific attributes.
-- **Exclusion list**: `attrs = c("-class", "-dim")` will write/read all
-  attributes *except* the ones listed.
-
-``` r
-# Write the vector, but only include the 'names' attribute
-h5_write(file, "selective_vec", named_vec, attrs = c("names"))
-
-# Only the 'names' attribute was written
-h5_ls_attr(file, "selective_vec")
-#> [1] "names"
-```
-
-## Limitations and Special Cases
-
-There are a few important rules and limitations to be aware of when
-working with attributes.
-
-### Limitation: List Attributes
-
-More generally, `h5lite` cannot write any R attribute that is a `list`.
-HDF5 attributes are designed to hold simple, atomic data, not nested
-structures.
-
-When using `attrs = TRUE` or
-[`h5_write_attr()`](https://cmmr.github.io/h5lite/reference/h5_write_attr.md),
-you can write attributes that are: \* Atomic vectors (`numeric`,
-`integer`, `character`, `logical`, `raw`) \* `factor`s \* `data.frame`s
-(which become compound attributes) \* `NULL`
-
-Attempting to write an object that has a `list` attribute will result in
-an error.
-
-``` r
-my_vec <- 1:3
-attr(my_vec, "bad_attr") <- list(a = 1, b = 2)
-h5_write(file, "my_vec_list_attr", my_vec, attrs = TRUE)
-#> Error in validate_attrs(data, attrs): Attribute 'bad_attr' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.
-```
-
-### Limitation: `dimnames`
-
-R stores the `dimnames` of a matrix or array as a `list` attribute. As
-explained above, `h5lite` **cannot** write list-like attributes.
-Attempting to write a named matrix with `attrs = TRUE` will fail.
-
-See
-[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md)
-for more details on this specific case.
-
-``` r
-named_matrix <- matrix(1:4, 2, dimnames = list(c("r1", "r2"), c("c1", "c2")))
-
-# This fails because the 'dimnames' attribute is a list
-h5_write(file, "named_matrix", named_matrix, attrs = TRUE)
-#> Error in validate_attrs(data, attrs): Attribute 'dimnames' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.
-```
-
-**Workaround:** Either remove the `dimnames` before writing, or write
-with `attrs = FALSE` (the default), which will save the matrix data but
-discard the names.
-
-#### Data Frames:
-
-Unlike matrices, the attributes of a `data.frame` can be safely
-round-tripped with `h5lite`. This is because its key metadata is stored
-in a format that `h5lite` can handle. See
-[`vignette("data-frames")`](https://cmmr.github.io/h5lite/articles/data-frames.md)
-for more on working with data frames.
-
-- The column names are stored in the `names` attribute, which is a
-  character vector.
-- The row names are stored in the `row.names` attribute, which is either
-  a character or integer vector.
-
-Since neither of these are `list` attributes (like the `dimnames` of a
-matrix), they can be written to HDF5 without issue. As a result, you can
-reliably use `attrs = TRUE` to preserve the structure of a `data.frame`
-during a write/read cycle.
-
-``` r
-# Create a data.frame with non-default row names
+# A data frame with metadata
 df <- data.frame(
-  x = 1:3, 
-  y = c("a", "b", "c"),
-  row.names = c("row1", "row2", "row3")
+  id = 1:3, 
+  status = c("ok", "fail", "ok")
 )
 
-# Write with attrs = TRUE to preserve names
-h5_write(file, "my_df", df, attrs = TRUE)
+# Write as attribute
+h5_write(df, file, "measurements/temperature", attr = "log")
 
-# Read it back
-read_df <- h5_read(file, "my_df", attrs = TRUE)
-
-# The data.frame is perfectly restored
-all.equal(df, read_df)
-#> [1] TRUE
+# Column names survive!
+h5_names(file, "measurements/temperature", attr = "log")
+#> [1] "id"     "status"
 ```
+
+### 2. No Attributes on Attributes (Nesting)
+
+In HDF5, you cannot attach attributes to other attributes. This
+hierarchy is strictly one level deep: Groups/Datasets can have
+attributes, but attributes cannot.
+
+Consequently, you cannot treat an attribute as a “Group” or folder to
+store other items. If you need a hierarchical structure for your
+metadata, you should create a Group (e.g., `/metadata`) and store your
+metadata as Datasets inside it, rather than attaching them as attributes
+to another object.
+
+## Controlling Attribute Types
+
+Attributes in HDF5 are typed just like datasets. `h5lite` allows you to
+control the storage type of attributes using the `as` argument in
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) or
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md).
+
+To target an attribute specifically, prefix the name with `@` in the
+`as` vector.
+
+### Customizing Storage Type
 
 ``` r
-# Clean up the temporary file
-unlink(file)
+# Write the temperature data again, but use a fixed length string for 'description'
+h5_write(data, file, "experiment/control", as = c("@description" = "ascii[]"))
+
+# Store an attribute as a `uint8` instead of the default `int32`
+h5_write(I(42), file, "measurements/temperature", "sensor_id", as = "uint8")
 ```
+
+### Customizing Read Type
+
+You can also coerce attributes when reading them.
+
+``` r
+# Force the 'valid' attribute to be read as logical, even if stored as integer
+meta <- h5_read(file, "experiment/control", attr = "valid", as = "logical")
+```
+
+## Special Note: Dimensions
+
+You might notice that standard R attributes like `dim` are not visible
+in
+[`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md).
+
+This is because `h5lite` handles structural attributes implicitly. The
+dimensions of the attribute data itself are stored in the HDF5
+Dataspace, not as a separate attribute. `h5lite` automatically restores
+the `dim` attribute on the R object when reading, ensuring matrices and
+arrays retain their shape.

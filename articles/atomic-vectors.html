@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,287 +73,213 @@
 
     
     
+<p>Atomic vectors are the fundamental data structure in R. They include
+<strong>numeric</strong> (integer and double), <strong>logical</strong>,
+<strong>character</strong>, <strong>complex</strong>, and
+<strong>raw</strong> vectors. This vignette explains how
+<code>h5lite</code> maps these R types to HDF5 datasets and provides
+guidance on controlling storage types and compression.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
 </h2>
-<p>Atomic vectors are the fundamental data structure in R. They are
-1-dimensional and all their elements must be of the same type (e.g.,
-<code>numeric</code>, <code>character</code>, <code>logical</code>).
-<code>h5lite</code> is designed to make saving and loading these vectors
-as simple as possible.</p>
-<p>This vignette explores how <code>h5lite</code> handles different
-atomic types, with a special focus on its automatic data type selection
-for numeric data and the distinction between vectors and scalars.</p>
-<p>For details on other data structures, see
-<code><a href="../articles/matrices.html">vignette("matrices")</a></code> and
-<code><a href="../articles/data-frames.html">vignette("data-frames")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="general-usage-writing-and-reading-vectors">1. General Usage: Writing and Reading Vectors<a class="anchor" aria-label="anchor" href="#general-usage-writing-and-reading-vectors"></a>
-</h2>
-<p>The <code><a href="../reference/h5_write.html">h5_write()</a></code> function is your primary tool for saving
-data. Let’s write a few different types of vectors.</p>
+<p>Writing a vector to HDF5 is straightforward using
+<code><a href="../reference/h5_write.html">h5_write()</a></code>. The package automatically creates the necessary
+dataset and handles dimensions.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A simple integer vector</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"trial_ids"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Write a numeric vector</span></span>
+<span><span class="va">vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="fl">2.3</span>, <span class="fl">4.2</span>, <span class="fl">5.1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">vec</span>, <span class="va">file</span>, <span class="st">"data/numeric_vector"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># A character vector</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"sample_names"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A1"</span>, <span class="st">"A2"</span>, <span class="st">"B1"</span>, <span class="st">"B2"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># A logical vector</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"qc_pass"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>You can inspect the contents of the file with <code><a href="../reference/h5_ls.html">h5_ls()</a></code>
-and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "trial_ids"    "sample_names" "qc_pass"</span></span>
-<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; ├── trial_ids <span style="color: #555555;">&lt;uint8 x 10&gt;</span></span></span>
-<span><span class="co">#&gt; ├── sample_names <span style="color: #555555;">&lt;string x 4&gt;</span></span></span>
-<span><span class="co">#&gt; └── qc_pass <span style="color: #555555;">&lt;uint8 x 4&gt;</span></span></span></code></pre></div>
-<p>Reading the data back is just as easy with
-<code><a href="../reference/h5_read.html">h5_read()</a></code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"trial_ids"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">ids</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1]  1  2  3  4  5  6  7  8  9 10</span></span>
-<span></span>
-<span><span class="va">qc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"qc_pass"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">qc</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1 1 0 1</span></span></code></pre></div>
-<blockquote>
-<p><strong>Safety First:</strong> Notice that both the integer and
-logical vectors were read back as R <code>numeric</code>
-(double-precision) vectors. This is an intentional design choice to
-prevent integer overflow, a common bug when reading data from other
-systems where an integer might be larger than R’s 32-bit integer
-limit.</p>
-</blockquote>
+<span><span class="co"># Read it back</span></span>
+<span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"data/numeric_vector"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 1.5 2.3 4.2 5.1</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="handling-specific-r-types">2. Handling Specific R Types<a class="anchor" aria-label="anchor" href="#handling-specific-r-types"></a>
+<h2 id="scalars-vs--1d-arrays">Scalars vs. 1D Arrays<a class="anchor" aria-label="anchor" href="#scalars-vs--1d-arrays"></a>
 </h2>
-<p><code>h5lite</code> maps R’s atomic types to appropriate HDF5 types.
-This section details how each type is handled, including storage details
-and the handling of missing values.</p>
+<p>In R, a “scalar” is simply a vector of length 1. However, HDF5
+distinguishes between a <strong>Scalar Dataspace</strong> (a single
+value with no dimensions) and a <strong>Simple Dataspace</strong> (an
+array) with dimensions <code>[1]</code>.</p>
+<p>By default, <code>h5lite</code> treats length-1 vectors as 1D arrays
+to maintain consistency with R’s vector behavior. To write a true HDF5
+scalar, you must wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code>.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. Default: 1D Array (Length 1)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">42</span>, <span class="va">file</span>, <span class="st">"structure/array_1d"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Explicit Scalar: Wrapped in I()</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"structure/scalar"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"structure"</span><span class="op">)</span></span></code></pre></div>
+<pre class="fansi fansi-output"><code><span><span class="co">#&gt; structure/</span></span>
+<span><span class="co">#&gt; ├── array_1d &lt;uint8 × 1&gt;</span></span>
+<span><span class="co">#&gt; └── scalar &lt;uint8 scalar&gt;</span></span></code></pre>
+<p><em>Note: When reading data back into R, both storage formats appear
+as standard R vectors of length 1.</em></p>
+</div>
+<div class="section level2">
+<h2 id="numeric-and-logical-data">Numeric and Logical Data<a class="anchor" aria-label="anchor" href="#numeric-and-logical-data"></a>
+</h2>
 <div class="section level3">
-<h3 id="numeric-and-integer-vectors">Numeric and Integer Vectors<a class="anchor" aria-label="anchor" href="#numeric-and-integer-vectors"></a>
+<h3 id="automatic-type-selection">Automatic Type Selection<a class="anchor" aria-label="anchor" href="#automatic-type-selection"></a>
 </h3>
-<p>A key feature of <code>h5lite</code> is its intelligent selection of
-on-disk data types for numeric data. This is controlled by the
-<code>dtype</code> argument in <code><a href="../reference/h5_write.html">h5_write()</a></code>, which defaults
-to <code>"auto"</code>.</p>
-<p>When <code>dtype = "auto"</code>, <code>h5lite</code> inspects your
-data and chooses the most space-efficient HDF5 integer type that can
-safely represent it (e.g., <code>uint8</code>, <code>int16</code>). This
-helps minimize file size without manual intervention.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># These values fit in an 8-bit unsigned integer (0 to 255)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"small_unsigned"</span>, <span class="fl">0</span><span class="op">:</span><span class="fl">200</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"small_unsigned"</span><span class="op">)</span></span>
+<p><code>h5lite</code> attempts to map R types to the most efficient
+HDF5 equivalents automatically (<code>as = "auto"</code>).</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Numeric:</strong> <code>h5lite</code> analyzes the range of
+your data and picks the smallest fitting HDF5 type (e.g.,
+<code>uint8</code>, <code>int16</code>, <code>int32</code>,
+<code>float64</code>).</li>
+<li>
+<strong>Logicals:</strong> <code>h5lite</code> maps these to
+<code>uint8</code> (0 or 1) in HDF5 to save space.</li>
+</ol>
+</div>
+<div class="section level3">
+<h3 id="handling-missing-values-na">Handling Missing Values (NA)<a class="anchor" aria-label="anchor" href="#handling-missing-values-na"></a>
+</h3>
+<p>A key challenge in HDF5 is that standard integer and boolean types do
+not have a native representation for <code>NA</code> (missing
+values).</p>
+<p>To ensure data safety, <code>h5lite</code> performs the following
+check:</p>
+<ul>
+<li>If an integer or logical vector contains <code>NA</code>, it is
+<strong>automatically promoted to <code>float64</code></strong>.</li>
+<li>The <code>NA</code> values are stored as an <code>NaN</code> variant
+in the file.</li>
+<li>When read back, <code><a href="../reference/h5_read.html">h5_read()</a></code> restores them as
+<code>numeric</code> vectors with <code>NA</code>.</li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Integer vector with NO missing values -&gt; Automatic optimal type (uint8)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">3L</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"safe/ints"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"safe/ints"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "uint8"</span></span>
 <span></span>
-<span><span class="co"># Adding a negative value requires a signed type (int8)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"small_signed"</span>, <span class="op">-</span><span class="fl">100</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"small_signed"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "int8"</span></span></code></pre></div>
-<p>You can also override this behavior by specifying an exact type,
-which is useful for ensuring compatibility with other software.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Store a vector as 32-bit floating point numbers</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"float_data"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span><span class="op">)</span>, dtype <span class="op">=</span> <span class="st">"float32"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"float_data"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "float32"</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="special-numeric-values-na-nan-inf">Special Numeric Values (<code>NA</code>, <code>NaN</code>,
-<code>Inf</code>)<a class="anchor" aria-label="anchor" href="#special-numeric-values-na-nan-inf"></a>
-</h4>
-<p>The HDF5 library uses the IEEE 754 standard for floating-point
-numbers, which has native representations for <code>Inf</code>,
-<code>-Inf</code>, and <code>NaN</code> (Not a Number).</p>
-<p>If a numeric or integer vector contains any non-finite value
-(<code>NA</code>, <code>NaN</code>, <code>Inf</code>, or
-<code>-Inf</code>), <code>h5lite</code> will automatically save the data
-using a floating-point type to ensure these special values are preserved
-perfectly. R’s <code>NA</code> for numeric types (<code>NA_real_</code>)
-is a special type of <code>NaN</code> and is also restored correctly on
-read.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A vector containing all special numeric values</span></span>
-<span><span class="va">special_vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="cn">Inf</span>, <span class="op">-</span><span class="cn">Inf</span>, <span class="cn">NaN</span>, <span class="cn">NA</span>, <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co"># Integer vector WITH missing values -&gt; Promoted to float64</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="cn">NA</span>, <span class="fl">3L</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"safe/ints_na"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"safe/ints_na"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "float64"</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="forcing-specific-types">Forcing Specific Types<a class="anchor" aria-label="anchor" href="#forcing-specific-types"></a>
+</h3>
+<p>If you know your data range fits into a smaller type (e.g.,
+<code>int8</code>, <code>uint16</code>), you can use the <code>as</code>
+argument to force a specific storage type.</p>
+<p><em>Warning: If you force an integer type on data containing
+<code>NA</code> or values outside the integer type’s range then
+<code>h5lite</code> will throw an error.</em></p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Store small integers as 8-bit signed integers</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="op">-</span><span class="fl">5</span>, <span class="fl">100</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"small_ints"</span>, as <span class="op">=</span> <span class="st">"int8"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># The presence of non-finite values forces the dtype to float64</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span>, <span class="va">special_vals</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "float16"</span></span>
-<span></span>
-<span><span class="co"># Reading the data back restores the values perfectly</span></span>
-<span><span class="va">read_vals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"special_vals"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">special_vals</span>, <span class="va">read_vals</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="co"># Store logicals as 8-bit unsigned integers</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">FALSE</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"bools"</span>, as <span class="op">=</span> <span class="st">"uint8"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
+<div class="section level2">
+<h2 id="character-vectors-strings">Character Vectors (Strings)<a class="anchor" aria-label="anchor" href="#character-vectors-strings"></a>
+</h2>
+<p>HDF5 supports two primary methods for storing strings:
+<strong>Variable-Length</strong> and <strong>Fixed-Length</strong>.</p>
 <div class="section level3">
-<h3 id="complex-vectors">Complex Vectors<a class="anchor" aria-label="anchor" href="#complex-vectors"></a>
+<h3 id="automatic-type-selection-1">Automatic Type Selection<a class="anchor" aria-label="anchor" href="#automatic-type-selection-1"></a>
 </h3>
-<p>In R, <code>complex</code> is a distinct atomic type from
-<code>numeric</code>. <code>h5lite</code> stores complex numbers using
-the native HDF5 <code>H5T_COMPLEX</code> type, which ensures full
-precision and allows them to be read by other modern HDF5 tools.</p>
-<p>Missing values (<code>NA_complex_</code>) are preserved perfectly
-during a write/read cycle.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">cplx_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">+</span><span class="fl">1i</span>, <span class="cn">NA</span>, <span class="fl">2</span><span class="op">+</span><span class="fl">2i</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"cplx_na"</span>, <span class="va">cplx_na</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">cplx_na</span>, <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"cplx_na"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="character-vectors">Character Vectors<a class="anchor" aria-label="anchor" href="#character-vectors"></a>
-</h3>
-<p>Character vectors are stored as variable-length UTF-8 encoded strings
-(<code>H5T_STRING</code>). This is highly flexible and supports any
-text. <code>NA</code> values are correctly written as null strings in
-HDF5 and are read back as <code>NA_character_</code>.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">char_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="cn">NA</span>, <span class="st">"c"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"char_na"</span>, <span class="va">char_na</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">char_na</span>, <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"char_na"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="logical-vectors">Logical Vectors<a class="anchor" aria-label="anchor" href="#logical-vectors"></a>
-</h3>
-<p>Since HDF5 has no native boolean type, <code>logical</code> vectors
-are handled similarly to integer vectors to ensure consistent
-<code>NA</code> preservation.</p>
+<p>By default (<code>as = "auto"</code>), <code>h5lite</code> chooses
+the most efficient string representation:</p>
 <ul>
-<li>If a logical vector contains <strong>no <code>NA</code>
-values</strong>, it is stored efficiently as an 8-bit unsigned integer
-(<code>uint8</code>), where <code>FALSE</code> is 0 and
-<code>TRUE</code> is 1.</li>
-<li>If a logical vector contains <strong>any <code>NA</code>
-values</strong>, it is automatically promoted and written as a
-<code>float16</code> dataset to correctly preserve <code>NA</code>.</li>
+<li>If the vector contains <code>NA</code>, it uses
+<strong>Variable-Length UTF-8</strong> (which natively supports missing
+values).</li>
+<li>If there are no missing values and the strings are relatively short
+and consistent in length, it uses <strong>Fixed-Length UTF-8</strong> to
+allow for compression and faster access.</li>
 </ul>
-<p>This ensures that missing values in logical vectors are handled
-consistently with other numeric types.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A logical vector with NA</span></span>
-<span><span class="va">logi_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">NA</span>, <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># The presence of NA forces the dtype to float16</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span>, <span class="va">logi_na</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "float16"</span></span>
-<span></span>
-<span><span class="co"># Reading it back restores the NA correctly</span></span>
-<span><span class="co"># Note: The result is a numeric vector (1, NA, 0), but is equal to the logical one.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">logi_na</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"logi_na"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="factor-vectors">Factor Vectors<a class="anchor" aria-label="anchor" href="#factor-vectors"></a>
+<h3 id="variable-length">Variable-Length<a class="anchor" aria-label="anchor" href="#variable-length"></a>
 </h3>
-<p>Factors are stored as a native HDF5 <code>enum</code> type, which
-robustly preserves both the underlying integer values and the character
-labels.</p>
-<p>However, <strong><code>NA</code> values are not supported for
-factors.</strong> Attempting to write a factor containing
-<code>NA</code>s will result in an error. This is because the underlying
-integer representation of an <code>NA</code> does not match any of the
-defined levels in the HDF5 <code>enum</code> type. If you need to
-preserve <code>NA</code>s, you must first convert the factor to a
-character vector with <code><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character()</a></code>.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Factor NA will cause an error</span></span>
-<span><span class="va">factor_na</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="cn">NA</span>, <span class="st">"b"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"factor_na"</span>, <span class="va">factor_na</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error in h5_write(file, "factor_na", factor_na): Factors with NA values cannot be written to HDF5 Enum types. Convert to character vector first.</span></span></code></pre></div>
+<p>You can explicitly request variable-length storage using
+<code>as = "utf8"</code> or <code>as = "ascii"</code>.</p>
+<ul>
+<li>
+<strong>Pros:</strong> Most flexible; exact memory usage per string;
+supports <code>NA</code> (stored as NULL pointers).</li>
+<li>
+<strong>Cons:</strong> Cannot be compressed using standard HDF5
+filters; slower to read/write for extreme dataset sizes.</li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Variable length strings (handles NA)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"apple"</span>, <span class="st">"banana"</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/var"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="raw-vectors">Raw Vectors<a class="anchor" aria-label="anchor" href="#raw-vectors"></a>
+<h3 id="fixed-length">Fixed-Length<a class="anchor" aria-label="anchor" href="#fixed-length"></a>
 </h3>
-<p>Raw vectors are stored as an <code>opaque</code> HDF5 type, which is
-a “black box” of bytes ideal for binary data. The <code>raw</code> type
-in R does not have an <code>NA</code> value.</p>
+<p>You can force fixed-length storage using the syntax <code>[n]</code>,
+where <code>n</code> is the number of bytes.</p>
+<ul>
+<li>
+<strong>Pros:</strong> Fast; allows compression.</li>
+<li>
+<strong>Cons:</strong> Truncates strings longer than <code>n</code>;
+pads shorter strings; <strong>does not support
+<code>NA</code></strong>.</li>
+</ul>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Fixed length strings (10 bytes per string)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/fixed"</span>, as <span class="op">=</span> <span class="st">"ascii[10]"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Auto-detect max length (converts to fixed length based on longest string)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"short"</span>, <span class="st">"longer"</span>, <span class="st">"longest"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/auto_fixed"</span>, as <span class="op">=</span> <span class="st">"ascii[]"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
-<h2 id="scalars-vs--1d-arrays">3. Scalars vs. 1D Arrays<a class="anchor" aria-label="anchor" href="#scalars-vs--1d-arrays"></a>
+<h2 id="compression">Compression<a class="anchor" aria-label="anchor" href="#compression"></a>
 </h2>
-<p>In HDF5, there is a distinction between a <strong>scalar</strong> (a
-single value with no dimensions) and a <strong>1D array of length
-1</strong>. By default, <code><a href="../reference/h5_write.html">h5_write()</a></code> saves all single-element
-R vectors as 1D arrays.</p>
-<p>To write a true HDF5 scalar, you must wrap the value in
-<code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it “as-is”.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># This creates a 1D array of length 1</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"version_array"</span>, <span class="fl">1.2</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># This creates a true scalar dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"version_scalar"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">1.2</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Let's inspect the dimensions</span></span>
-<span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"version_array"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 1</span></span>
-<span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"version_scalar"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; integer(0)</span></span></code></pre></div>
-<p>While <code><a href="../reference/h5_read.html">h5_read()</a></code> will read both of these back into an R
-vector of length 1, creating true scalars is a best practice for storing
-single-value metadata, as it correctly represents the data’s structure
-in the file.</p>
+<p>Compression in HDF5 requires the dataset to be “chunked”.
+<code>h5lite</code> handles chunking parameters automatically when you
+enable compression.</p>
+<p>You can enable compression using the <code>compress</code>
+argument:</p>
+<ul>
+<li>
+<code>compress = TRUE</code> (default): Uses zlib (deflate) level
+5.</li>
+<li>
+<code>compress = 9</code>: Uses zlib level 9 (max compression,
+slower).</li>
+</ul>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Write a large vector with compression</span></span>
+<span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, <span class="fl">100</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, <span class="st">"compressed_data"</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="round-tripping-attributes">4. Round-tripping Attributes<a class="anchor" aria-label="anchor" href="#round-tripping-attributes"></a>
+<h2 id="bit-integers">64-bit Integers<a class="anchor" aria-label="anchor" href="#bit-integers"></a>
 </h2>
-<p>R objects can have metadata attached to them as attributes (e.g., the
-<code>names</code> of a named vector). To preserve these during a
-write/read cycle, you must set <code>attrs = TRUE</code>. For a more
-detailed discussion, see
-<code><a href="../articles/attributes-in-depth.html">vignette("attributes-in-depth")</a></code>.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">named_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span>, c <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"My special vector"</span></span>
-<span></span>
-<span><span class="co"># Write without attributes</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_no_attrs"</span>, <span class="va">named_vec</span>, attrs <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">read_no_attrs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_no_attrs"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">read_no_attrs</span><span class="op">)</span> <span class="co"># Names and info are lost</span></span>
-<span><span class="co">#&gt;  num [1:3] 1 2 3</span></span>
-<span></span>
-<span><span class="co"># Write WITH attributes</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_with_attrs"</span>, <span class="va">named_vec</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Inspect the HDF5 attributes created</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_with_attrs"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "names" "info"</span></span>
-<span></span>
-<span><span class="co"># Read back with attributes</span></span>
-<span><span class="va">read_with_attrs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"vec_with_attrs"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">read_with_attrs</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  Named num [1:3] 1 2 3</span></span>
-<span><span class="co">#&gt;  - attr(*, "names")= chr [1:3] "a" "b" "c"</span></span>
-<span><span class="co">#&gt;  - attr(*, "info")= chr "My special vector"</span></span>
-<span></span>
-<span><span class="co"># Verify the round-trip</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="va">read_with_attrs</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>When <code>attrs = TRUE</code>, <code>h5lite</code> extracts all R
-attributes (except <code>dim</code>, which is handled by the HDF5
-dataspace) and <code>h5_write_attr</code> saves them as HDF5 attributes.
-The <code>h5_read</code> function re-attaches them, ensuring a
-high-fidelity round-trip.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<p>R does not natively support 64-bit integers, but the
+<code>bit64</code> package provides an <code>integer64</code> class.
+<code>h5lite</code> supports reading and writing these types directly to
+HDF5 <code>int64</code>.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"bit64"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">val</span> <span class="op">&lt;-</span> <span class="fu">bit64</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bit64/man/as.integer64.character.html" class="external-link">as.integer64</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"9223372036854775807"</span>, <span class="st">"-9223372036854775807"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  </span>
+<span>  <span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">val</span>, <span class="va">file</span>, <span class="st">"huge_ints"</span><span class="op">)</span></span>
+<span>  </span>
+<span>  <span class="va">in_val</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"huge_ints"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">in_val</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="co">#&gt; [1] "numeric"</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

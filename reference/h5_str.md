@@ -7,7 +7,7 @@ dimensions, and attributes.
 ## Usage
 
 ``` r
-h5_str(file, name = "/", attrs = TRUE)
+h5_str(file, name = "/", attrs = TRUE, members = TRUE)
 ```
 
 ## Arguments
@@ -23,8 +23,13 @@ h5_str(file, name = "/", attrs = TRUE)
 
 - attrs:
 
-  Set to `FALSE` to only groups and datasets. The default (`TRUE`) shows
-  attributes as well.
+  Set to `FALSE` to hide attributes. The default (`TRUE`) shows
+  attributes prefixed with `@`.
+
+- members:
+
+  Set to `FALSE` to hide compound dataset members. The default (`TRUE`)
+  shows members prefixed with `$`.
 
 ## Value
 
@@ -56,10 +61,10 @@ h5_write("metadata", file, "group", attr = "info")
 # Print structure
 h5_str(file)
 #> /
-#> └── group
-#>     ├── @info <utf8 × 1>
-#>     ├── x <int32 × 10>
-#>     └── y <int32 × 3 × 3>
+#> └── group/
+#>     ├── @info <utf8[8] × 1>
+#>     ├── x <uint8 × 10>
+#>     └── y <uint8 × 3 × 3>
 
 unlink(file)
 ```

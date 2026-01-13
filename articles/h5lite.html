@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,340 +73,287 @@
 
     
     
+<div class="section level2">
+<h2 id="get-started-with-h5lite">Get Started with h5lite<a class="anchor" aria-label="anchor" href="#get-started-with-h5lite"></a>
+</h2>
+<p>The <code>h5lite</code> package provides a simplified, user-friendly
+interface for interacting with HDF5 files in R. While HDF5 is a complex
+hierarchical data format, <code>h5lite</code> is designed to feel
+familiar to R users by mapping HDF5 concepts directly to R’s native data
+structures.</p>
+<p>This guide introduces the core concepts and basic usage. For detailed
+information on specific topics, please refer to the other vignettes: *
+<strong>Data Types &amp; Compression</strong>: Controlling storage types
+and compression. * <strong>Complex Data Structures</strong>: Handling
+<code>data.frame</code>s, <code>list</code>s, factors, and complex
+numbers. * <strong>Metadata &amp; Attributes</strong>: Working with R
+attributes, names, and dimnames. * <strong>File Management</strong>:
+Inspecting, organizing, and modifying HDF5 files.</p>
+<div class="section level3">
+<h3 id="hdf5-for-r-users">HDF5 for R Users<a class="anchor" aria-label="anchor" href="#hdf5-for-r-users"></a>
+</h3>
+<p>If you are new to HDF5, the easiest way to understand it is through R
+analogues. HDF5 files function like a file system within a single file,
+containing “groups” (folders) and “datasets” (files).</p>
+<table class="table">
+<colgroup>
+<col width="18%">
+<col width="19%">
+<col width="62%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">R Concept</th>
+<th align="left">HDF5 Concept</th>
+<th align="left">Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>List</strong></td>
+<td align="left"><strong>Group</strong></td>
+<td align="left">A container that holds other objects (datasets or other
+groups).</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Vector / Matrix</strong></td>
+<td align="left"><strong>Dataset</strong></td>
+<td align="left">A multidimensional array of data (numeric, character,
+etc.).</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Data Frame</strong></td>
+<td align="left"><strong>Compound Dataset</strong></td>
+<td align="left">A table where each column can have a different data
+type.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Attribute</strong></td>
+<td align="left"><strong>Attribute</strong></td>
+<td align="left">Metadata attached to a specific object (e.g., units,
+timestamps).</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Factor</strong></td>
+<td align="left"><strong>Enum</strong></td>
+<td align="left">An integer vector with associated string labels.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
+</h3>
+<p>The package uses two primary functions: <code><a href="../reference/h5_write.html">h5_write()</a></code> to
+save data and <code><a href="../reference/h5_read.html">h5_read()</a></code> to load it.</p>
+<div class="section level4">
+<h4 id="writing-numeric-data">Writing Numeric Data<a class="anchor" aria-label="anchor" href="#writing-numeric-data"></a>
+</h4>
+<p>You can write standard R arrays and vectors directly to an HDF5 file.
+<code>h5lite</code> automatically handles dimensions.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
+<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
-<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
-</h2>
-<p>The <code>h5lite</code> package provides a simple, lightweight, and
-user-friendly interface for reading and writing HDF5 files. It is
-designed for R users who want to save and load R objects (vectors,
-matrices, arrays) to an HDF5 file without needing to understand the
-low-level details of the HDF5 C API.</p>
-<p>This guide will walk you through a common use case: simulating
-experimental data, saving it to an HDF5 file along with metadata, and
-then reading it back for analysis.</p>
-<div class="section level3">
-<h3 id="what-is-an-hdf5-file">What is an HDF5 File?<a class="anchor" aria-label="anchor" href="#what-is-an-hdf5-file"></a>
-</h3>
-<p>Think of an HDF5 file as a self-contained file system. It’s a single
-file on disk that can hold an organized hierarchy of your data. The
-three most important concepts are:</p>
-<ul>
-<li>
-<strong>Groups:</strong> These are like folders or directories. You
-use them to organize your data. Groups can contain other groups to
-create a nested structure.</li>
-<li>
-<strong>Datasets:</strong> These are like files in a file system. A
-dataset stores your actual data, such as a vector, matrix, or
-multi-dimensional array. Every dataset resides inside a group.</li>
-<li>
-<strong>Attributes:</strong> These are small, named pieces of
-metadata that you can attach to either groups or datasets. They are
-perfect for storing extra information like units, descriptions, or
-configuration parameters.</li>
-</ul>
-<p><code>h5lite</code> is designed to make working with this structure
-feel natural to an R user.</p>
+<span><span class="co"># 1. 1D Array (Vector)</span></span>
+<span><span class="va">vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="fl">2.3</span>, <span class="fl">4.2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">vec</span>, <span class="va">file</span>, <span class="st">"examples/vector"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. 2D Array (Matrix)</span></span>
+<span><span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">9</span>, nrow <span class="op">=</span> <span class="fl">3</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mat</span>, <span class="va">file</span>, <span class="st">"examples/matrix"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. 3D Array</span></span>
+<span><span class="va">arr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">24</span>, dim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">3</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">arr</span>, <span class="va">file</span>, <span class="st">"examples/array_3d"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 4. Scalar</span></span>
+<span><span class="co"># By default, R treats length-1 vectors as arrays. </span></span>
+<span><span class="co"># Wrap in I() to write a true HDF5 scalar.</span></span>
+<span><span class="va">val</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">val</span>, <span class="va">file</span>, <span class="st">"examples/scalar"</span><span class="op">)</span></span></code></pre></div>
+<p><em>Note: While <code>h5lite</code> supports preserving row and
+column names for matrices and vectors, these examples omit them for
+simplicity. See the <strong>Metadata &amp; Attributes</strong> vignette
+for details on how dimension names are stored.</em></p>
 </div>
-</div>
-<div class="section level2">
-<h2 id="writing-datasets">1. Writing Datasets<a class="anchor" aria-label="anchor" href="#writing-datasets"></a>
-</h2>
-<p>The primary function for writing data is <code><a href="../reference/h5_write.html">h5_write()</a></code>. It
-creates a <strong>dataset</strong> inside the HDF5 file and
-automatically handles:</p>
-<ul>
-<li>Creating the HDF5 file itself if it doesn’t exist.</li>
-<li>Creating parent <strong>groups</strong> as needed.</li>
-<li>Overwriting any existing dataset at the same path.</li>
-</ul>
-<p>Let’s start by writing a matrix of simulated sensor readings to a
-dataset.</p>
+<div class="section level4">
+<h4 id="reading-data">Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
+</h4>
+<p>Data is read back into its native R format.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A 3x4 matrix of sensor data</span></span>
-<span><span class="va">sensor_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">12</span>, mean <span class="op">=</span> <span class="fl">25</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">3</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="va">sensor_data</span><span class="op">)</span></span></code></pre></div>
-<p>That’s it! You’ve just created an HDF5 file and stored a matrix in
-it.</p>
-<blockquote>
-<p><strong>Helpful Tip:</strong> Notice the name
-<code>"experiment_1/sensor_readings"</code>. <code>h5lite</code>
-automatically created the group <code>experiment_1</code> before
-creating the dataset <code>sensor_readings</code> inside it.</p>
-</blockquote>
+<code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"examples/matrix"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
+<span><span class="co">#&gt;      [,1] [,2] [,3]</span></span>
+<span><span class="co">#&gt; [1,]    1    4    7</span></span>
+<span><span class="co">#&gt; [2,]    2    5    8</span></span>
+<span><span class="co">#&gt; [3,]    3    6    9</span></span></code></pre></div>
+</div>
+</div>
 <div class="section level3">
-<h3 id="specifying-data-types">Specifying Data Types<a class="anchor" aria-label="anchor" href="#specifying-data-types"></a>
+<h3 id="data-type-mapping">Data Type Mapping<a class="anchor" aria-label="anchor" href="#data-type-mapping"></a>
 </h3>
-<p>By default (<code>dtype = "auto"</code>), <code>h5lite</code>
-automatically chooses the most space-efficient data type that can safely
-store your numeric data. For example, small integers are stored as
-<code>int8</code> or <code>uint8</code> instead of <code>double</code>
-to save space.</p>
-<p>You can override this by specifying a <code>dtype</code>. Let’s save
-some integer identifiers, explicitly telling <code>h5lite</code> to use
-a 32-bit integer type.</p>
+<p><code>h5lite</code> automatically selects the appropriate HDF5 data
+type based on the content of your R objects.</p>
+<table class="table">
+<colgroup>
+<col width="18%">
+<col width="21%">
+<col width="60%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">R Data Type</th>
+<th align="left">HDF5 Equivalent</th>
+<th align="left">Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Numeric</strong></td>
+<td align="left"><em>variable</em></td>
+<td align="left">Selects optimal type: <code>int8</code>,
+<code>float32</code>, etc.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Logical</strong></td>
+<td align="left"><code>H5T_STD_U8LE</code></td>
+<td align="left">Stored as 0 (FALSE) or 1 (TRUE)
+(<code>uint8</code>).</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Character</strong></td>
+<td align="left"><code>H5T_STRING</code></td>
+<td align="left">Variable or fixed-length UTF-8 strings.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Complex</strong></td>
+<td align="left"><code>H5T_COMPLEX</code></td>
+<td align="left">Native HDF5 2.0+ complex numbers.</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>Raw</strong></td>
+<td align="left"><code>H5T_OPAQUE</code></td>
+<td align="left">Raw bytes / binary data.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Factor</strong></td>
+<td align="left"><code>H5T_ENUM</code></td>
+<td align="left">Integer indices with label mapping.</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>integer64</strong></td>
+<td align="left"><code>H5T_STD_I64LE</code></td>
+<td align="left">64-bit signed integers via <code>bit64</code>
+package.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>POSIXt</strong></td>
+<td align="left"><code>H5T_STRING</code></td>
+<td align="left">ISO 8601 string
+(<code>YYYY-MM-DDTHH:MM:SSZ</code>).</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>List</strong></td>
+<td align="left"><code>H5O_TYPE_GROUP</code></td>
+<td align="left">Recursive container structure.</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Data Frame</strong></td>
+<td align="left"><code>H5T_COMPOUND</code></td>
+<td align="left">Table of mixed types.</td>
+</tr>
+<tr class="odd">
+<td align="left"><strong>NULL</strong></td>
+<td align="left"><code>H5S_NULL</code></td>
+<td align="left">Creates a placeholder.</td>
+</tr>
+</tbody>
+</table>
+<p>You can use the <code>as</code> argument to explicitly set the HDF5
+data type for numeric, logical, and character vectors. See the
+<strong>Data Types &amp; Compression</strong> vignette for details.</p>
+</div>
+<div class="section level3">
+<h3 id="complex-data-structures">Complex Data Structures<a class="anchor" aria-label="anchor" href="#complex-data-structures"></a>
+</h3>
+<div class="section level4">
+<h4 id="lists-as-groups">Lists as Groups<a class="anchor" aria-label="anchor" href="#lists-as-groups"></a>
+</h4>
+<p>R lists are naturally hierarchical, making them perfect for creating
+HDF5 groups.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">trial_ids</span> <span class="op">&lt;-</span> <span class="fl">1L</span><span class="op">:</span><span class="fl">12L</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span>, <span class="va">trial_ids</span>, dtype <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="writing-scalars">Writing Scalars<a class="anchor" aria-label="anchor" href="#writing-scalars"></a>
-</h3>
-<p>By default, <code>h5_write</code> saves single-element vectors as
-1-dimensional arrays. To write a true HDF5 scalar, wrap the value in
-<code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it “as-is”.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"run-abc-123"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="inspecting-the-file">2. Inspecting the File<a class="anchor" aria-label="anchor" href="#inspecting-the-file"></a>
-</h2>
-<p>Now that we’ve written some data, how do we see what’s in the
-file?</p>
-<div class="section level3">
-<h3 id="listing-objects">Listing Objects<a class="anchor" aria-label="anchor" href="#listing-objects"></a>
-</h3>
-<p><code><a href="../reference/h5_ls.html">h5_ls()</a></code> lists the objects (groups and datasets) in the
-file. By default, it lists everything recursively.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "experiment_1"                 "experiment_1/sensor_readings"</span></span>
-<span><span class="co">#&gt; [3] "experiment_1/trial_ids"       "experiment_1/run_id"</span></span></code></pre></div>
-<p>To see only the top-level objects, use
-<code>recursive = FALSE</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "experiment_1"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="getting-a-structural-summary">Getting a Structural Summary<a class="anchor" aria-label="anchor" href="#getting-a-structural-summary"></a>
-</h3>
-<p>For a more detailed, tree-like view of the file’s contents, similar
-to R’s <code><a href="https://rdrr.io/r/utils/str.html" class="external-link">str()</a></code> function, use <code><a href="../reference/h5_str.html">h5_str()</a></code>. It
-recursively prints the structure, showing groups, datasets, dimensions,
-and types. This is often the most convenient way to quickly inspect a
-file.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; └── experiment_1</span></span>
-<span><span class="co">#&gt;     ├── sensor_readings <span style="color: #555555;">&lt;float64 x 3 x 4&gt;</span></span></span>
-<span><span class="co">#&gt;     ├── trial_ids <span style="color: #555555;">&lt;int32 x 12&gt;</span></span></span>
-<span><span class="co">#&gt;     └── run_id <span style="color: #555555;">&lt;string scalar&gt;</span></span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="checking-dimensions-and-types">Checking Dimensions and Types<a class="anchor" aria-label="anchor" href="#checking-dimensions-and-types"></a>
-</h3>
-<p>You can inspect a dataset’s properties without reading all of its
-data. This is useful for very large datasets.</p>
-<ul>
-<li>
-<code><a href="../reference/h5_dim.html">h5_dim()</a></code> returns the dimensions in R’s standard,
-column-major order.</li>
-<li>
-<code><a href="../reference/h5_typeof.html">h5_typeof()</a></code> returns the underlying HDF5 storage
-type.</li>
-</ul>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">sensor_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 3 4</span></span>
-<span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 3 4</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "int32"</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "float64"</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="reading-data">3. Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
-</h2>
-<p>To read data back into R, use <code><a href="../reference/h5_read.html">h5_read()</a></code>. It
-automatically handles transposing the data from HDF5’s row-major order
-to R’s column-major order and restores the correct dimensions.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">read_sensor_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">read_sensor_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt;          [,1]     [,2]     [,3]     [,4]</span></span>
-<span><span class="co">#&gt; [1,] 24.29998 24.99721 24.08909 24.85865</span></span>
-<span><span class="co">#&gt; [2,] 25.12766 25.31078 24.87634 24.72315</span></span>
-<span><span class="co">#&gt; [3,] 23.78137 25.57421 24.87790 25.31449</span></span>
-<span></span>
-<span><span class="co"># Verify that the object is identical to the original</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">sensor_data</span>, <span class="va">read_sensor_data</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<blockquote>
-<p><strong>Safety First:</strong> <code>h5lite</code> reads all numeric
-HDF5 types (integers, floats, etc.) into R’s <code>numeric</code>
-(double-precision) vectors. This is an intentional design choice to
-prevent integer overflow, a common bug when reading data from other
-systems.</p>
-</blockquote>
-</div>
-<div class="section level2">
-<h2 id="working-with-metadata-attributes">4. Working with Metadata (Attributes)<a class="anchor" aria-label="anchor" href="#working-with-metadata-attributes"></a>
-</h2>
-<p>Attributes are small pieces of metadata attached to datasets or
-groups. They are perfect for storing things like units, configuration
-parameters, or version info.</p>
-<p>Let’s add some attributes to our <code>sensor_readings</code>
-dataset.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Add a scalar string attribute for units</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"units"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"celsius"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Add a numeric vector attribute for calibration coefficients</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.02</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>You can list and read attributes using <code><a href="../reference/h5_ls_attr.html">h5_ls_attr()</a></code> and
-<code><a href="../reference/h5_read_attr.html">h5_read_attr()</a></code>.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "units"       "calibration"</span></span>
-<span></span>
-<span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read_attr.html">h5_read_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"units"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "celsius"</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="recursive-io-with-lists">5. Recursive I/O with Lists<a class="anchor" aria-label="anchor" href="#recursive-io-with-lists"></a>
-</h2>
-<p>For more complex data structures, <code><a href="../reference/h5_write.html">h5_write()</a></code> and
-<code><a href="../reference/h5_read.html">h5_read()</a></code> seamlessly save and load nested R
-<code>list</code> objects.</p>
-<ul>
-<li>R <code>list</code> objects are written as HDF5
-<strong>groups</strong>.</li>
-<li>Attributes on a <code>list</code> are saved as attributes on the
-corresponding group.</li>
-<li>All other objects inside the list (vectors, matrices, etc.) are
-saved as <strong>datasets</strong>.</li>
-</ul>
-<p>This allows you to perform a “round-trip” for a complex R object,
-preserving its structure and metadata.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a nested list with attributes</span></span>
-<span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>user <span class="op">=</span> <span class="st">"test"</span>, version <span class="op">=</span> <span class="fl">1.2</span><span class="op">)</span>,</span>
-<span>  data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    matrix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span><span class="op">)</span>,</span>
-<span>    vector <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span>
-<span>  <span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">my_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>id <span class="op">=</span> <span class="fl">1L</span>, status <span class="op">=</span> <span class="st">"active"</span><span class="op">)</span>,</span>
+<span>  data   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"This is the data group"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_list</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">matrix</span>, <span class="st">"my_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"matrix attribute"</span></span>
-<span></span>
-<span><span class="co"># Write the entire list. This creates a group called "session_data".</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, <span class="va">my_list</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Read the group back into a list</span></span>
-<span><span class="va">read_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"session_data"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Verify the round-trip was successful</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">read_list</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<blockquote>
-<p><strong>Helpful Tip:</strong> HDF5 groups do not preserve the
-creation order of their members. When you read a group back with
-<code><a href="../reference/h5_read.html">h5_read()</a></code>, the elements in the resulting R
-<code>list</code> will always be sorted alphabetically by name. If you
-need to compare a read list with an original list, make sure to sort the
-original list by name first.</p>
-</blockquote>
+<span><span class="co"># Creates a group "/experiment" containing "config" (group) and "data" (dataset)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">file</span>, <span class="st">"experiment"</span><span class="op">)</span> </span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="handling-special-r-types">6. Handling Special R Types<a class="anchor" aria-label="anchor" href="#handling-special-r-types"></a>
-</h2>
-<p><code>h5lite</code> has special support for some of R’s unique data
-types.</p>
-<div class="section level3">
-<h3 id="factors">Factors<a class="anchor" aria-label="anchor" href="#factors"></a>
-</h3>
-<p>When you write an R <code>factor</code>, <code>h5lite</code>
-automatically saves it as a native HDF5 <code>enum</code> type,
-preserving both the integer values and the character labels. This is not
-supported for factors containing <code>NA</code> values.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"control"</span>, <span class="st">"treatment_A"</span>, <span class="st">"treatment_B"</span><span class="op">)</span>, <span class="fl">12</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span>, <span class="va">conditions</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Let's check the on-disk type</span></span>
-<span><span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "enum"</span></span>
-<span></span>
-<span><span class="co"># Read it back - it's a perfect match!</span></span>
-<span><span class="va">read_conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/conditions"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">conditions</span>, <span class="va">read_conditions</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<div class="section level4">
+<h4 id="data-frames-as-compound-datasets">Data Frames as Compound Datasets<a class="anchor" aria-label="anchor" href="#data-frames-as-compound-datasets"></a>
+</h4>
+<p>Data frames are written as native HDF5 compound datasets, allowing
+efficient storage of tabular data with mixed types.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  id <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>,</span>
+<span>  val <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span>, <span class="fl">4.4</span>, <span class="fl">5.5</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"study_data"</span><span class="op">)</span></span></code></pre></div>
+<p>For more details on these structures, including how to handle factors
+and nested lists, refer to the <strong>Complex Data Structures</strong>
+vignette.</p>
+</div>
 </div>
 <div class="section level3">
-<h3 id="raw-data">Raw Data<a class="anchor" aria-label="anchor" href="#raw-data"></a>
+<h3 id="attributes">Attributes<a class="anchor" aria-label="anchor" href="#attributes"></a>
 </h3>
-<p>To store binary data, use an R <code>raw</code> vector. This stores
-the data as a sequence of bytes.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">binary_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0xDE</span>, <span class="fl">0xAD</span>, <span class="fl">0xBE</span>, <span class="fl">0xEF</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span>, <span class="va">binary_blob</span><span class="op">)</span></span>
+<p>Attributes are small pieces of metadata attached to objects.
+<code>h5lite</code> writes R attributes (like <code>units</code> or
+<code>description</code>) as HDF5 attributes.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Write a dataset</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"measurements"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">read_blob</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/binary_config"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">binary_blob</span>, <span class="va">read_blob</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="managing-file-contents">7. Managing File Contents<a class="anchor" aria-label="anchor" href="#managing-file-contents"></a>
-</h2>
-<div class="section level3">
-<h3 id="overwriting">Overwriting<a class="anchor" aria-label="anchor" href="#overwriting"></a>
-</h3>
-<p><code>h5lite</code> follows an “overwrite-by-default” philosophy. If
-you write to an existing path, the old data is replaced.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "run-abc-123"</span></span>
-<span></span>
-<span><span class="co"># Overwrite with a new value</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"run-xyz-987"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/run_id"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "run-xyz-987"</span></span></code></pre></div>
+<span><span class="co"># Attach an attribute to it</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="st">"meters"</span>, <span class="va">file</span>, <span class="st">"measurements"</span>, attr <span class="op">=</span> <span class="st">"units"</span><span class="op">)</span></span></code></pre></div>
+<p>See the <strong>Metadata &amp; Attributes</strong> vignette for
+information on reading specific attributes and how special R attributes
+like <code>dimnames</code> are handled.</p>
 </div>
 <div class="section level3">
-<h3 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>
+<h3 id="file-inspection">File Inspection<a class="anchor" aria-label="anchor" href="#file-inspection"></a>
 </h3>
-<p>You can explicitly delete objects (datasets or groups) and
-attributes.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Delete a single dataset</span></span>
-<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/trial_ids"</span><span class="op">)</span></span>
+<p>You can inspect the contents of an HDF5 file without reading the data
+into memory using <code><a href="../reference/h5_ls.html">h5_ls()</a></code> and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># List contents</span></span>
+<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "examples"                 "examples/vector"         </span></span>
+<span><span class="co">#&gt;  [3] "examples/matrix"          "examples/array_3d"       </span></span>
+<span><span class="co">#&gt;  [5] "examples/scalar"          "experiment"              </span></span>
+<span><span class="co">#&gt;  [7] "experiment/config"        "experiment/config/id"    </span></span>
+<span><span class="co">#&gt;  [9] "experiment/config/status" "experiment/data"         </span></span>
+<span><span class="co">#&gt; [11] "study_data"               "measurements"</span></span>
 <span></span>
-<span><span class="co"># Delete an attribute</span></span>
-<span><span class="fu"><a href="../reference/h5_delete_attr.html">h5_delete_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment_1/sensor_readings"</span>, <span class="st">"calibration"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Delete an entire group (and all its contents)</span></span>
-<span><span class="fu"><a href="../reference/h5_create_group.html">h5_create_group</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span> <span class="co"># create a dummy group to delete</span></span>
-<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"old_data"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "experiment_1"                 "experiment_1/sensor_readings"</span></span>
-<span><span class="co">#&gt;  [3] "experiment_1/run_id"          "experiment_1/conditions"     </span></span>
-<span><span class="co">#&gt;  [5] "experiment_1/binary_config"   "session_data"                </span></span>
-<span><span class="co">#&gt;  [7] "session_data/config"          "session_data/config/user"    </span></span>
-<span><span class="co">#&gt;  [9] "session_data/config/version"  "session_data/data"           </span></span>
-<span><span class="co">#&gt; [11] "session_data/data/matrix"     "session_data/data/vector"</span></span></code></pre></div>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Print structure tree (like R's str())</span></span>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<pre class="fansi fansi-output"><code><span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; ├── examples/</span></span>
+<span><span class="co">#&gt; │   ├── vector &lt;float64 × 3&gt;</span></span>
+<span><span class="co">#&gt; │   ├── matrix &lt;uint8 × 3 × 3&gt;</span></span>
+<span><span class="co">#&gt; │   ├── array_3d &lt;uint8 × 4 × 3 × 2&gt;</span></span>
+<span><span class="co">#&gt; │   └── scalar &lt;uint8 scalar&gt;</span></span>
+<span><span class="co">#&gt; ├── experiment/</span></span>
+<span><span class="co">#&gt; │   ├── config/</span></span>
+<span><span class="co">#&gt; │   │   ├── id &lt;uint8 × 1&gt;</span></span>
+<span><span class="co">#&gt; │   │   └── status &lt;utf8[6] × 1&gt;</span></span>
+<span><span class="co">#&gt; │   └── data &lt;float64 × 10&gt;</span></span>
+<span><span class="co">#&gt; ├── study_data &lt;compound[2] × 5&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $id &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   └── $val &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; └── measurements &lt;uint8 × 10&gt;</span></span>
+<span><span class="co">#&gt;     └── @units &lt;utf8[6] × 1&gt;</span></span></code></pre>
+<p>For advanced file operations, including moving, deleting, and
+verifying objects, refer to the <strong>File Management</strong>
+vignette.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,338 +73,40 @@
 
     
     
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
-<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
+<p>Parallel processing allows you to speed up data workflows by
+performing operations simultaneously. However, the HDF5 library
+maintains complex internal states that can be easily corrupted if
+multiple workers attempt to write to the file at the exact same
+moment.</p>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="the-safety-rule-always-lock">The Safety Rule: Always Lock<a class="anchor" aria-label="anchor" href="#the-safety-rule-always-lock"></a>
 </h2>
-<p>In high-performance computing, it’s common to use parallel processing
-to speed up data analysis. R offers several parallel programming models,
-which can be broadly categorized into two types:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Multi-threading:</strong> Using packages like
-<code>RcppParallel</code>, where multiple threads operate within a
-single R process, sharing the same memory space.</li>
-<li>
-<strong>Multi-processing:</strong> Using packages like
-<code>future</code>, <code>parallel</code>, or <code>callr</code>, where
-multiple independent R processes are launched, each with its own memory
-space.</li>
-</ol>
-<p>When multiple threads or processes need to access the same HDF5 file,
-it’s critical to understand the concurrency guarantees provided by the
-HDF5 library to avoid data corruption. This vignette explains how
-<code>h5lite</code> behaves in these scenarios and provides best
-practices for safe parallel I/O.</p>
-</div>
-<div class="section level2">
-<h2 id="hdf5-thread-safety">HDF5 Thread-Safety<a class="anchor" aria-label="anchor" href="#hdf5-thread-safety"></a>
-</h2>
-<p><code>h5lite</code> links to the <code>hdf5lib</code> R package,
-which provides a static build of the HDF5 library (version 1.14.6 as of
-this writing). This version of HDF5 was compiled with the
-<code>--enable-threadsafe</code> option.</p>
-<p>What does this mean? According to the official HDF5 documentation,
-the thread-safety feature ensures that all HDF5 API calls are protected
-by a global mutex. [1] This means:</p>
-<ul>
-<li>Only one HDF5 function can execute at a time within a single
-process, even across multiple threads.</li>
-<li>It prevents race conditions and memory corruption when multiple
-threads in the same process (e.g., with <code>RcppParallel</code>) call
-<code>h5lite</code> functions concurrently.</li>
-<li>The library is “safe” in that it won’t crash or corrupt your file,
-but write operations are serialized, not performed in parallel.</li>
-</ul>
-<p><strong>Important:</strong> This built-in thread-safety <strong>only
-applies to multiple threads within a single process</strong>. It does
-<strong>not</strong> coordinate access between multiple independent
-processes.</p>
-</div>
-<div class="section level2">
-<h2 id="multi-threaded-access-e-g--rcppparallel">Multi-threaded Access (e.g., <code>RcppParallel</code>)<a class="anchor" aria-label="anchor" href="#multi-threaded-access-e-g--rcppparallel"></a>
-</h2>
-<p>When using a multi-threaded framework, the HDF5 library’s internal
-mutex handles synchronization for you.</p>
-<div class="section level3">
-<h3 id="best-practices">Best Practices<a class="anchor" aria-label="anchor" href="#best-practices"></a>
-</h3>
-<ol style="list-style-type: decimal">
-<li><p><strong>Concurrent Reads are Safe:</strong> Multiple threads can
-safely call <code><a href="../reference/h5_read.html">h5_read()</a></code> on the same file simultaneously. The
-HDF5 library will manage access, and each thread will receive the
-correct data.</p></li>
-<li><p><strong>Concurrent Writes are Serialized:</strong> Multiple
-threads can call <code><a href="../reference/h5_write.html">h5_write()</a></code> without corrupting the file.
-However, the global HDF5 lock means the writes will execute one at a
-time. This is safe but offers no performance benefit for writing. If
-multiple threads attempt to write, they will be blocked until the lock
-is released.</p></li>
-<li><p><strong>Avoid Writing to the Same Dataset:</strong> While the
-library prevents file corruption, having multiple threads attempt to
-write to the exact same dataset path can lead to unpredictable results
-(i.e., which thread’s data ends up in the file last is
-non-deterministic). It is much safer to have each thread write to a
-unique dataset.</p></li>
-</ol>
-</div>
-<div class="section level3">
-<h3 id="example-writing-from-multiple-threads">Example: Writing from Multiple Threads<a class="anchor" aria-label="anchor" href="#example-writing-from-multiple-threads"></a>
-</h3>
-<p>Here is a complete <code>Rcpp</code> example using the
-<code>RcppParallel</code> package. It demonstrates how multiple threads
-can safely call back to the R <code><a href="../reference/h5_write.html">h5_write()</a></code> function. The HDF5
-library’s internal mutex serializes these calls, preventing file
-corruption.</p>
+<p><strong><code>h5lite</code> is not inherently safe for concurrent
+writing.</strong></p>
+<p>While the underlying HDF5 library may support thread-safety for
+specific low-level operations, <code>h5lite</code> utilizes HDF5’s
+High-Level APIs (specifically the <strong>Dimension Scales API</strong>)
+to manage R attributes like <code>names</code> and
+<code>dimnames</code>. These High-Level APIs are <strong>not
+thread-safe</strong>.</p>
+<p>Therefore, strictly follow this rule:</p>
 <blockquote>
-<p><strong>Note:</strong> This pattern is safe but does not provide a
-performance boost for writing, as the writes happen one at a time. The
-primary benefit is for “read-heavy” parallel operations, or for
-simplifying code where a parallel section also needs to perform
-occasional, non-performance-critical writes.</p>
+<p><strong>If multiple processes or threads access the same HDF5 file,
+you must use an external locking mechanism (mutex or file lock) to
+serialize the write operations.</strong></p>
 </blockquote>
-<div class="sourceCode" id="cb2"><pre class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co">// [[Rcpp::depends(RcppParallel)]]</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;Rcpp.h&gt;</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="pp">#include </span><span class="im">&lt;RcppParallel.h&gt;</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="kw">struct</span> H5Writer <span class="op">:</span> <span class="kw">public</span> RcppParallel<span class="op">::</span>Worker <span class="op">{</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  <span class="at">const</span> <span class="bu">std::</span>string file<span class="op">;</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  Rcpp<span class="op">::</span>Function h5_write_r<span class="op">;</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  </span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>  <span class="co">// Constructor to receive the file path and the R function</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  H5Writer<span class="op">(</span><span class="at">const</span> <span class="bu">std::</span>string<span class="op">&amp;</span> file<span class="op">,</span> Rcpp<span class="op">::</span>Function h5_write_r<span class="op">)</span> </span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>    <span class="op">:</span> file<span class="op">(</span>file<span class="op">),</span> h5_write_r<span class="op">(</span>h5_write_r<span class="op">)</span> <span class="op">{}</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>  </span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>  <span class="co">// The parallel workhorse function</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>  <span class="dt">void</span> <span class="kw">operator</span><span class="op">()(</span><span class="bu">std::</span>size_t begin<span class="op">,</span> <span class="bu">std::</span>size_t end<span class="op">)</span> <span class="op">{</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="bu">std::</span>size_t i <span class="op">=</span> begin<span class="op">;</span> i <span class="op">&lt;</span> end<span class="op">;</span> <span class="op">++</span>i<span class="op">)</span> <span class="op">{</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>      <span class="co">// Each thread writes to a unique dataset path</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>      <span class="bu">std::</span>string dset_name <span class="op">=</span> <span class="st">"thread_data/"</span> <span class="op">+</span> <span class="bu">std::</span>to_string<span class="op">(</span>i<span class="op">);</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>      Rcpp<span class="op">::</span>NumericVector data <span class="op">=</span> Rcpp<span class="op">::</span>NumericVector<span class="op">::</span>create<span class="op">(</span>i<span class="op">);</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>      </span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>      <span class="co">// Call back into R. The HDF5 global lock makes this thread-safe.</span></span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>      h5_write_r<span class="op">(</span>file<span class="op">,</span> dset_name<span class="op">,</span> data<span class="op">);</span></span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>    <span class="op">}</span></span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>  <span class="op">}</span></span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="op">};</span></span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a></span>
-<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">// [[Rcpp::export]]</span></span>
-<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="dt">void</span> parallel_write_r_callback<span class="op">(</span><span class="bu">std::</span>string file<span class="op">,</span> <span class="dt">int</span> n_threads<span class="op">)</span> <span class="op">{</span></span>
-<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>  <span class="co">// Look up the h5lite::h5_write function from its namespace</span></span>
-<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a>  Rcpp<span class="op">::</span>Environment h5lite_ns <span class="op">=</span> Rcpp<span class="op">::</span>Environment<span class="op">::</span>namespace_env<span class="op">(</span><span class="st">"h5lite"</span><span class="op">);</span></span>
-<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a>  Rcpp<span class="op">::</span>Function h5_write_r <span class="op">=</span> h5lite_ns<span class="op">[</span><span class="st">"h5_write"</span><span class="op">];</span></span>
-<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a>  </span>
-<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a>  H5Writer writer<span class="op">(</span>file<span class="op">,</span> h5_write_r<span class="op">);</span></span>
-<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a>  RcppParallel<span class="op">::</span>parallelFor<span class="op">(</span><span class="dv">0</span><span class="op">,</span> n_threads<span class="op">,</span> writer<span class="op">);</span></span>
-<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
-</div>
+<p>Without locking, you risk race conditions that can corrupt your data
+or the HDF5 file structure itself.</p>
 </div>
 <div class="section level2">
-<h2 id="multi-process-access-e-g--future-callr">Multi-process Access (e.g., <code>future</code>,
-<code>callr</code>)<a class="anchor" aria-label="anchor" href="#multi-process-access-e-g--future-callr"></a>
+<h2 id="recommended-strategy-file-locking-with-flock">Recommended Strategy: File Locking with <code>flock</code><a class="anchor" aria-label="anchor" href="#recommended-strategy-file-locking-with-flock"></a>
 </h2>
-<p>When multiple independent processes access the same HDF5 file, the
-situation is more complex. The HDF5 library’s internal thread-safety
-lock is irrelevant because each process has its own memory and its own
-instance of the library.</p>
-<p>By default, the HDF5 library <strong>does not use file
-locking</strong> to coordinate access between processes. [2] This
-means:</p>
-<ul>
-<li>
-<strong>Concurrent Reads are Generally Safe:</strong> If the file is
-not being modified, multiple processes can read from it simultaneously
-without issue.</li>
-<li>
-<strong>Concurrent Writes are NOT Safe:</strong> If two or more
-processes attempt to write to the same HDF5 file at the same time, you
-are very likely to corrupt the file. This is a fundamental
-limitation.</li>
-<li>
-<strong>Mixed Read/Write is NOT Safe (by default):</strong> If one
-process is writing while another is reading, the reading process may see
-inconsistent or corrupted data.</li>
-</ul>
-<div class="section level3">
-<h3 id="best-practice-external-locking">Best Practice: External Locking<a class="anchor" aria-label="anchor" href="#best-practice-external-locking"></a>
-</h3>
-<p>To safely write to a single HDF5 file from multiple processes, you
-<strong>must</strong> implement an external locking mechanism. The goal
-is to ensure that only one process can have the file open for writing at
-any given time.</p>
-<p>The <code>interprocess</code> R package is an excellent tool for
-this. It provides a file-based mutex that works across different R
-processes.</p>
-<p>The workflow is: 1. Acquire a lock using
-<code>interprocess::lock()</code>. 2. Perform the <code>h5lite</code>
-write operation. 3. Release the lock using
-<code>interprocess::unlock()</code>.</p>
-</div>
-<div class="section level3">
-<h3 id="example-writing-from-multiple-processes-with-future-and-interprocess">Example: Writing from Multiple Processes with <code>future</code>
-and <code>interprocess</code><a class="anchor" aria-label="anchor" href="#example-writing-from-multiple-processes-with-future-and-interprocess"></a>
-</h3>
-<p>This example uses the <code>future</code> framework to spawn multiple
-R sessions. Each session attempts to write to the same HDF5 file, but
-access is protected by an <code>interprocess</code> lock.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://future.futureverse.org" class="external-link">future</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://future.apply.futureverse.org" class="external-link">future.apply</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://cmmr.github.io/interprocess/" class="external-link">interprocess</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Use a temporary file for the HDF5 data</span></span>
-<span><span class="va">h5_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create a lock file associated with our HDF5 file</span></span>
-<span><span class="co"># This lock file will coordinate access across processes.</span></span>
-<span><span class="va">lock_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">h5_file</span>, <span class="st">".lock"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Set up a parallel backend with 2 processes</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">multisession</span>, workers <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"HDF5 file: "</span>, <span class="va">h5_file</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Lock file: "</span>, <span class="va">lock_file</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Use future_lapply to run this code in parallel sessions</span></span>
-<span><span class="fu">future_lapply</span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  </span>
-<span>  <span class="co"># --- CRITICAL SECTION START ---</span></span>
-<span>  <span class="co"># Acquire the lock. This call will block until the lock is available.</span></span>
-<span>  <span class="co"># The timeout prevents it from waiting forever if something goes wrong.</span></span>
-<span>  <span class="va">lck</span> <span class="op">&lt;-</span> <span class="fu">interprocess</span><span class="fu">::</span><span class="fu">lock</span><span class="op">(</span><span class="va">lock_file</span>, timeout <span class="op">=</span> <span class="fl">30000</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Now that we have the lock, it is safe to write.</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Process %d acquired lock, writing..."</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getpid.html" class="external-link">Sys.getpid</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Create a unique name for this process's data</span></span>
-<span>  <span class="va">dset_name</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"process_data/"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getpid.html" class="external-link">Sys.getpid</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"_"</span>, <span class="va">i</span><span class="op">)</span></span>
-<span>  <span class="va">data_to_write</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Perform the write operation</span></span>
-<span>  <span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">h5_file</span>, <span class="va">dset_name</span>, <span class="va">data_to_write</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Simulate some work</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">0.5</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Release the lock so another process can acquire it</span></span>
-<span>  <span class="fu">interprocess</span><span class="fu">::</span><span class="fu">unlock</span><span class="op">(</span><span class="va">lck</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"Process %d released lock."</span>, <span class="fu"><a href="https://rdrr.io/r/base/Sys.getpid.html" class="external-link">Sys.getpid</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="co"># --- CRITICAL SECTION END ---</span></span>
-<span>  </span>
-<span>  <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="op">}</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Shut down the parallel workers</span></span>
-<span><span class="fu">plan</span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Inspect the final file - it contains data from all processes</span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">h5_file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Clean up</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">h5_file</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">lock_file</span><span class="op">)</span></span></code></pre></div>
-<p>Without the <code>interprocess::lock()</code> and
-<code>unlock()</code> calls, the above code would be a race condition
-with a high probability of creating a corrupted HDF5 file.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="advanced-topic-single-writermultiple-reader-swmr">Advanced Topic: Single-Writer/Multiple-Reader (SWMR)<a class="anchor" aria-label="anchor" href="#advanced-topic-single-writermultiple-reader-swmr"></a>
-</h2>
-<p>HDF5 offers a specific feature for the “one writer, many readers”
-scenario called SWMR. This allows one process to write to a file while
-multiple other processes read from it, without the readers needing to
-constantly re-open the file.</p>
-<p>Currently, <code>h5lite</code> does <strong>not</strong> provide an
-explicit API to enable or use SWMR mode. This is an advanced feature
-that requires careful setup of file access properties. For use cases
-requiring SWMR, a lower-level R package like <code>rhdf5</code> or
-<code>hdf5r</code> would be more appropriate.</p>
-</div>
-<div class="section level2">
-<h2 id="summary-of-recommendations">Summary of Recommendations<a class="anchor" aria-label="anchor" href="#summary-of-recommendations"></a>
-</h2>
-<table class="table">
-<colgroup>
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
-<col width="20%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Scenario</th>
-<th align="left">Environment</th>
-<th align="left">Safety</th>
-<th align="left">
-<code>h5lite</code> Action</th>
-<th align="left">Best Practice</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left"><strong>Concurrent Reads</strong></td>
-<td align="left">Multi-threaded</td>
-<td align="left"><strong>Safe</strong></td>
-<td align="left"><code><a href="../reference/h5_read.html">h5_read()</a></code></td>
-<td align="left">No special action needed.</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Concurrent Reads</strong></td>
-<td align="left">Multi-process</td>
-<td align="left"><strong>Safe</strong></td>
-<td align="left"><code><a href="../reference/h5_read.html">h5_read()</a></code></td>
-<td align="left">Safe as long as no process is writing.</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Concurrent Writes</strong></td>
-<td align="left">Multi-threaded</td>
-<td align="left"><strong>Safe</strong></td>
-<td align="left"><code><a href="../reference/h5_write.html">h5_write()</a></code></td>
-<td align="left">Safe, but writes are serialized. Write to unique
-datasets.</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Concurrent Writes</strong></td>
-<td align="left">Multi-process</td>
-<td align="left"><strong>UNSAFE</strong></td>
-<td align="left"><code><a href="../reference/h5_write.html">h5_write()</a></code></td>
-<td align="left">
-<strong>Must use an external lock</strong> (e.g.,
-<code>interprocess</code>).</td>
-</tr>
-<tr class="odd">
-<td align="left"><strong>Mixed Read/Write</strong></td>
-<td align="left">Multi-process</td>
-<td align="left"><strong>UNSAFE</strong></td>
-<td align="left">
-<code><a href="../reference/h5_read.html">h5_read()</a></code>/<code><a href="../reference/h5_write.html">h5_write()</a></code>
-</td>
-<td align="left">
-<strong>Must use an external lock</strong> for the
-writer.</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level2">
-<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
-</h2>
-<ol style="list-style-type: decimal">
-<li>The HDF5 Group. (2024). <em>Thread-safety in the HDF5 Library</em>.
-[Online]. Available: <a href="https://docs.hdfgroup.org/hdf5/v1_14/develop/threadsafe.html" class="external-link uri">https://docs.hdfgroup.org/hdf5/v1_14/develop/threadsafe.html</a>
-</li>
-<li>The HDF5 Group. (2024). <em>Concurrent Access to HDF5 Files</em>.
-[Online]. Available: <a href="https://docs.hdfgroup.org/hdf5/v1_14/develop/conc_access.html" class="external-link uri">https://docs.hdfgroup.org/hdf5/v1_14/develop/conc_access.html</a>
-</li>
-</ol>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<p>For R users relying on packages like <code>parallel</code>,
+<code>future</code>, or <code>foreach</code>, the most robust way to
+coordinate access is <strong>File Locking</strong>. We recommend the
+<strong><a href="https://cran.r-project.org/package=flock" class="external-link">flock</a></strong>
+package. It creates a lock directly on the file system, ensuring that
+even independent R processes respect the queue.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

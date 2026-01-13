@@ -68,6 +68,6 @@ metadata.
 file <- tempfile(fileext = ".h5")
 h5_write(1:10, file, "dset")
 h5_class(file, "dset") # "numeric"
-#> [1] "integer"
+#> [1] "numeric"
 unlink(file)
 ```

@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,190 +73,242 @@
 
     
     
+<p>In HDF5, <strong>attributes</strong> are small pieces of metadata
+attached to groups or datasets. They are best used to store descriptive
+information: units, timestamps, descriptions, or experimental
+parameters—separately from the main data array.</p>
+<p>This vignette covers how to write, read, and manage these attributes
+using <code>h5lite</code>, as well as important limitations regarding
+their structure.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
-<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create a dataset to work with</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="writing-attributes">Writing Attributes<a class="anchor" aria-label="anchor" href="#writing-attributes"></a>
 </h2>
-<p>In HDF5, <strong>attributes</strong> are small, named pieces of
-metadata that can be attached to datasets or groups. They are distinct
-from <strong>datasets</strong>, which are designed to hold primary
-data.</p>
-<p>This vignette provides a deep dive into working with attributes in
-<code>h5lite</code>, covering: * Basic attribute I/O. * The powerful
-<code>attrs</code> argument for round-tripping R object attributes. *
-Important limitations and special cases.</p>
-<p>For an introduction to writing datasets, see
-<code><a href="../articles/h5lite.html">vignette("h5lite")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="basic-attribute-io">Basic Attribute I/O<a class="anchor" aria-label="anchor" href="#basic-attribute-io"></a>
-</h2>
-<p>The core functions for direct attribute manipulation are
-<code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code>, <code><a href="../reference/h5_read_attr.html">h5_read_attr()</a></code>, and
-<code><a href="../reference/h5_ls_attr.html">h5_ls_attr()</a></code>.</p>
-<p>Let’s add some metadata to our <code>my_data</code> dataset.</p>
+<p>There are two ways to write attributes in <code>h5lite</code>:
+explicitly (targeting an object) or implicitly (saving R
+attributes).</p>
+<div class="section level3">
+<h3 id="explicit-writing">1. Explicit Writing<a class="anchor" aria-label="anchor" href="#explicit-writing"></a>
+</h3>
+<p>You can write an attribute to any existing group or dataset using the
+<code>attr</code> argument in <code><a href="../reference/h5_write.html">h5_write()</a></code>. This is useful
+for adding metadata after the data has been saved.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Write a scalar string attribute</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="st">"units"</span>, <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"meters/sec"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># First, write a dataset</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"measurements/temperature"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Write a numeric vector attribute</span></span>
-<span><span class="fu"><a href="../reference/h5_write_attr.html">h5_write_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="st">"quality_flags"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># List the attributes on the object</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "units"         "quality_flags"</span></span>
-<span></span>
-<span><span class="co"># Read one of the attributes back</span></span>
-<span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read_attr.html">h5_read_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_data"</span>, <span class="st">"units"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "meters/sec"</span></span></code></pre></div>
+<span><span class="co"># Now, attach attributes to it</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"Celsius"</span><span class="op">)</span>,    <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"units"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"2023-10-27"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"date"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">0.1</span><span class="op">)</span>,          <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"precision"</span><span class="op">)</span></span></code></pre></div>
+<p><em>Note: If the attribute already exists, it will be
+overwritten.</em></p>
 </div>
-<div class="section level2">
-<h2 id="automatic-round-tripping-with-the-attrs-argument">Automatic Round-tripping with the <code>attrs</code> Argument<a class="anchor" aria-label="anchor" href="#automatic-round-tripping-with-the-attrs-argument"></a>
-</h2>
-<p>While <code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code> is useful for manual metadata, the
-real power comes from the <code>attrs</code> argument in
-<code><a href="../reference/h5_write.html">h5_write()</a></code> and <code><a href="../reference/h5_read.html">h5_read()</a></code>. This allows for
-high-fidelity round-trips of R objects by preserving their R-level
+<div class="section level3">
+<h3 id="implicit-writing-r-attributes">2. Implicit Writing (R Attributes)<a class="anchor" aria-label="anchor" href="#implicit-writing-r-attributes"></a>
+</h3>
+<p><code>h5lite</code> automatically preserves custom R attributes
+attached to your objects. When you write an R object, any attributes
+(except for standard internal ones like <code>dim</code>,
+<code>names</code>, or <code>class</code>) are written as HDF5
 attributes.</p>
-<p>Consider a named vector with a custom attribute.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">named_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span>, c <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="st">"info"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">"My special vector"</span></span>
+<code class="sourceCode R"><span><span class="co"># Create a vector with custom R attributes</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"description"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="st">"Randomized control group"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"valid"</span><span class="op">)</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Write the vector, telling h5lite to save its attributes</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_vec"</span>, <span class="va">named_vec</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Write the object</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">file</span>, <span class="st">"experiment/control"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Inspect the HDF5 attributes that were created</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_vec"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "names" "info"</span></span></code></pre></div>
-<p>When we read it back with <code>attrs = TRUE</code>,
-<code>h5lite</code> re-attaches the HDF5 attributes as R attributes.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">read_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_vec"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Check the file - the attributes are there</span></span>
+<span><span class="fu"><a href="../reference/h5_attr_names.html">h5_attr_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment/control"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "description" "valid"</span></span>
 <span></span>
-<span><span class="co"># The object is perfectly restored</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="va">read_vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">read_vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  Named num [1:3] 1 2 3</span></span>
-<span><span class="co">#&gt;  - attr(*, "names")= chr [1:3] "a" "b" "c"</span></span>
-<span><span class="co">#&gt;  - attr(*, "info")= chr "My special vector"</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="fine-grained-control-with-character-vectors">Fine-Grained Control with Character Vectors<a class="anchor" aria-label="anchor" href="#fine-grained-control-with-character-vectors"></a>
-</h3>
-<p>The <code>attrs</code> argument also accepts a character vector to
-specify exactly which attributes to include or exclude.</p>
-<ul>
-<li>
-<strong>Inclusion list</strong>:
-<code>attrs = c("names", "info")</code> will only write/read those
-specific attributes.</li>
-<li>
-<strong>Exclusion list</strong>:
-<code>attrs = c("-class", "-dim")</code> will write/read all attributes
-<em>except</em> the ones listed.</li>
-</ul>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Write the vector, but only include the 'names' attribute</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"selective_vec"</span>, <span class="va">named_vec</span>, attrs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"names"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Only the 'names' attribute was written</span></span>
-<span><span class="fu"><a href="../reference/h5_ls_attr.html">h5_ls_attr</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"selective_vec"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "names"</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<pre class="fansi fansi-output"><code><span><span class="co">#&gt; /</span></span>
+<span><span class="co">#&gt; ├── measurements/</span></span>
+<span><span class="co">#&gt; │   └── temperature &lt;uint8 × 10&gt;</span></span>
+<span><span class="co">#&gt; │       ├── @units &lt;utf8[7] scalar&gt;</span></span>
+<span><span class="co">#&gt; │       ├── @date &lt;utf8[10] scalar&gt;</span></span>
+<span><span class="co">#&gt; │       └── @precision &lt;float64 scalar&gt;</span></span>
+<span><span class="co">#&gt; └── experiment/</span></span>
+<span><span class="co">#&gt;     └── control &lt;float64 × 5&gt;</span></span>
+<span><span class="co">#&gt;         ├── @description &lt;utf8[24] scalar&gt;</span></span>
+<span><span class="co">#&gt;         └── @valid &lt;uint8 scalar&gt;</span></span></code></pre>
 </div>
 </div>
 <div class="section level2">
-<h2 id="limitations-and-special-cases">Limitations and Special Cases<a class="anchor" aria-label="anchor" href="#limitations-and-special-cases"></a>
+<h2 id="reading-attributes">Reading Attributes<a class="anchor" aria-label="anchor" href="#reading-attributes"></a>
 </h2>
-<p>There are a few important rules and limitations to be aware of when
-working with attributes.</p>
 <div class="section level3">
-<h3 id="limitation-list-attributes">Limitation: List Attributes<a class="anchor" aria-label="anchor" href="#limitation-list-attributes"></a>
+<h3 id="accessing-specific-attributes">1. Accessing Specific Attributes<a class="anchor" aria-label="anchor" href="#accessing-specific-attributes"></a>
 </h3>
-<p>More generally, <code>h5lite</code> cannot write any R attribute that
-is a <code>list</code>. HDF5 attributes are designed to hold simple,
-atomic data, not nested structures.</p>
-<p>When using <code>attrs = TRUE</code> or <code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code>,
-you can write attributes that are: * Atomic vectors
-(<code>numeric</code>, <code>integer</code>, <code>character</code>,
-<code>logical</code>, <code>raw</code>) * <code>factor</code>s *
-<code>data.frame</code>s (which become compound attributes) *
-<code>NULL</code></p>
-<p>Attempting to write an object that has a <code>list</code> attribute
-will result in an error.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">my_vec</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">my_vec</span>, <span class="st">"bad_attr"</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_vec_list_attr"</span>, <span class="va">my_vec</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error in validate_attrs(data, attrs): Attribute 'bad_attr' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.</span></span></code></pre></div>
+<p>If you only need a specific piece of metadata without reading the
+full dataset, you can use <code>h5_read(..., attr = "name")</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Read just the 'units' attribute</span></span>
+<span><span class="va">units</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"units"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">units</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "Celsius"</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="limitation-dimnames">Limitation: <code>dimnames</code><a class="anchor" aria-label="anchor" href="#limitation-dimnames"></a>
+<h3 id="reading-with-the-dataset">2. Reading with the Dataset<a class="anchor" aria-label="anchor" href="#reading-with-the-dataset"></a>
 </h3>
-<p>R stores the <code>dimnames</code> of a matrix or array as a
-<code>list</code> attribute. As explained above, <code>h5lite</code>
-<strong>cannot</strong> write list-like attributes. Attempting to write
-a named matrix with <code>attrs = TRUE</code> will fail.</p>
-<p>See <code><a href="../articles/matrices.html">vignette("matrices")</a></code> for more details on this
-specific case.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">named_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fl">2</span>, dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"r1"</span>, <span class="st">"r2"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"c1"</span>, <span class="st">"c2"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<p>When you read a dataset, <code>h5lite</code> automatically reads all
+attached attributes and re-attaches them to the resulting R object.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Read the full dataset</span></span>
+<span><span class="va">temps</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># This fails because the 'dimnames' attribute is a list</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_matrix"</span>, <span class="va">named_matrix</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error in validate_attrs(data, attrs): Attribute 'dimnames' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.</span></span></code></pre></div>
-<p><strong>Workaround:</strong> Either remove the <code>dimnames</code>
-before writing, or write with <code>attrs = FALSE</code> (the default),
-which will save the matrix data but discard the names.</p>
-<div class="section level4">
-<h4 id="data-frames">Data Frames:<a class="anchor" aria-label="anchor" href="#data-frames"></a>
-</h4>
-<p>Unlike matrices, the attributes of a <code>data.frame</code> can be
-safely round-tripped with <code>h5lite</code>. This is because its key
-metadata is stored in a format that <code>h5lite</code> can handle. See
-<code><a href="../articles/data-frames.html">vignette("data-frames")</a></code> for more on working with data
-frames.</p>
-<ul>
-<li>The column names are stored in the <code>names</code> attribute,
-which is a character vector.</li>
-<li>The row names are stored in the <code>row.names</code> attribute,
-which is either a character or integer vector.</li>
-</ul>
-<p>Since neither of these are <code>list</code> attributes (like the
-<code>dimnames</code> of a matrix), they can be written to HDF5 without
-issue. As a result, you can reliably use <code>attrs = TRUE</code> to
-preserve the structure of a <code>data.frame</code> during a write/read
-cycle.</p>
+<span><span class="co"># The attributes are available in R</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attributes.html" class="external-link">attributes</a></span><span class="op">(</span><span class="va">temps</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $units</span></span>
+<span><span class="co">#&gt; [1] "Celsius"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $date</span></span>
+<span><span class="co">#&gt; [1] "2023-10-27"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $precision</span></span>
+<span><span class="co">#&gt; [1] 0.1</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">temps</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  int [1:10] 1 2 3 4 5 6 7 8 9 10</span></span>
+<span><span class="co">#&gt;  - attr(*, "units")= chr "Celsius"</span></span>
+<span><span class="co">#&gt;  - attr(*, "date")= chr "2023-10-27"</span></span>
+<span><span class="co">#&gt;  - attr(*, "precision")= num 0.1</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="managing-attributes">Managing Attributes<a class="anchor" aria-label="anchor" href="#managing-attributes"></a>
+</h2>
+<div class="section level3">
+<h3 id="listing-attributes">Listing Attributes<a class="anchor" aria-label="anchor" href="#listing-attributes"></a>
+</h3>
+<p>Use <code><a href="../reference/h5_attr_names.html">h5_attr_names()</a></code> to list the names of all attributes
+attached to a specific object.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_attr_names.html">h5_attr_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "units"     "date"      "precision"</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="deleting-attributes">Deleting Attributes<a class="anchor" aria-label="anchor" href="#deleting-attributes"></a>
+</h3>
+<p>You can remove a specific attribute using
+<code><a href="../reference/h5_delete.html">h5_delete()</a></code>.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Delete the 'precision' attribute</span></span>
+<span><span class="fu"><a href="../reference/h5_delete.html">h5_delete</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"precision"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Verify removal</span></span>
+<span><span class="fu"><a href="../reference/h5_attr_names.html">h5_attr_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "units" "date"</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="important-limitations">Important Limitations<a class="anchor" aria-label="anchor" href="#important-limitations"></a>
+</h2>
+<p>While attributes are powerful for storing metadata, they are
+fundamentally simpler structures than HDF5 Datasets. HDF5 enforces
+specific constraints that affect how <code>h5lite</code> can store
+complex R objects as attributes.</p>
+<div class="section level3">
+<h3 id="no-dimension-scales-loss-of-names">1. No Dimension Scales (Loss of Names)<a class="anchor" aria-label="anchor" href="#no-dimension-scales-loss-of-names"></a>
+</h3>
+<p>HDF5 <strong>Dimension Scales</strong> (the mechanism
+<code>h5lite</code> uses to store <code>names</code>,
+<code>dimnames</code>, and <code>row.names</code>) can only be attached
+to <strong>Datasets</strong>. They cannot be attached to attributes.</p>
+<p>This means if you write a named vector, matrix, or array as an
+attribute, <strong>the names will be lost</strong>.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a data.frame with non-default row names</span></span>
+<code class="sourceCode R"><span><span class="co"># A vector with names</span></span>
+<span><span class="va">named_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>a <span class="op">=</span> <span class="fl">1</span>, b <span class="op">=</span> <span class="fl">2</span>, c <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Write as a standard Dataset -&gt; Names are preserved</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="va">file</span>, <span class="st">"my_dataset"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_names.html">h5_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_dataset"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "a" "b" "c"</span></span>
+<span></span>
+<span><span class="co"># Write as an Attribute -&gt; Names are LOST</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">named_vec</span>, <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"meta_vec"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_names.html">h5_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"meta_vec"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; character(0)</span></span></code></pre></div>
+<p><strong>Exception: Data Frames</strong> There is one major exception:
+<code>data.frame</code> objects.</p>
+<p>Because HDF5 stores data frames as <strong>Compound Types</strong>,
+the column names are baked into the type definition itself, not stored
+as side-loaded metadata. Therefore, <strong>column names are
+preserved</strong> even when writing a data frame as an attribute.
+However, <code>row.names</code> (which rely on dimension scales) will
+still be lost.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># A data frame with metadata</span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  x <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, </span>
-<span>  y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span>,</span>
-<span>  row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"row1"</span>, <span class="st">"row2"</span>, <span class="st">"row3"</span><span class="op">)</span></span>
+<span>  id <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, </span>
+<span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ok"</span>, <span class="st">"fail"</span>, <span class="st">"ok"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Write with attrs = TRUE to preserve names</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, <span class="va">df</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Write as attribute</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Read it back</span></span>
-<span><span class="va">read_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_df"</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># The data.frame is perfectly restored</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">read_df</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Column names survive!</span></span>
+<span><span class="fu"><a href="../reference/h5_names.html">h5_names</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"measurements/temperature"</span>, attr <span class="op">=</span> <span class="st">"log"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "id"     "status"</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="no-attributes-on-attributes-nesting">2. No Attributes on Attributes (Nesting)<a class="anchor" aria-label="anchor" href="#no-attributes-on-attributes-nesting"></a>
+</h3>
+<p>In HDF5, you cannot attach attributes to other attributes. This
+hierarchy is strictly one level deep: Groups/Datasets can have
+attributes, but attributes cannot.</p>
+<p>Consequently, you cannot treat an attribute as a “Group” or folder to
+store other items. If you need a hierarchical structure for your
+metadata, you should create a Group (e.g., <code>/metadata</code>) and
+store your metadata as Datasets inside it, rather than attaching them as
+attributes to another object.</p>
 </div>
 </div>
+<div class="section level2">
+<h2 id="controlling-attribute-types">Controlling Attribute Types<a class="anchor" aria-label="anchor" href="#controlling-attribute-types"></a>
+</h2>
+<p>Attributes in HDF5 are typed just like datasets. <code>h5lite</code>
+allows you to control the storage type of attributes using the
+<code>as</code> argument in <code><a href="../reference/h5_write.html">h5_write()</a></code> or
+<code><a href="../reference/h5_read.html">h5_read()</a></code>.</p>
+<p>To target an attribute specifically, prefix the name with
+<code>@</code> in the <code>as</code> vector.</p>
+<div class="section level3">
+<h3 id="customizing-storage-type">Customizing Storage Type<a class="anchor" aria-label="anchor" href="#customizing-storage-type"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Write the temperature data again, but use a fixed length string for 'description'</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">file</span>, <span class="st">"experiment/control"</span>, as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"@description"</span> <span class="op">=</span> <span class="st">"ascii[]"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Store an attribute as a `uint8` instead of the default `int32`</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"measurements/temperature"</span>, <span class="st">"sensor_id"</span>, as <span class="op">=</span> <span class="st">"uint8"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="customizing-read-type">Customizing Read Type<a class="anchor" aria-label="anchor" href="#customizing-read-type"></a>
+</h3>
+<p>You can also coerce attributes when reading them.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Force the 'valid' attribute to be read as logical, even if stored as integer</span></span>
+<span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"experiment/control"</span>, attr <span class="op">=</span> <span class="st">"valid"</span>, as <span class="op">=</span> <span class="st">"logical"</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="special-note-dimensions">Special Note: Dimensions<a class="anchor" aria-label="anchor" href="#special-note-dimensions"></a>
+</h2>
+<p>You might notice that standard R attributes like <code>dim</code> are
+not visible in <code><a href="../reference/h5_attr_names.html">h5_attr_names()</a></code>.</p>
+<p>This is because <code>h5lite</code> handles structural attributes
+implicitly. The dimensions of the attribute data itself are stored in
+the HDF5 Dataspace, not as a separate attribute. <code>h5lite</code>
+automatically restores the <code>dim</code> attribute on the R object
+when reading, ensuring matrices and arrays retain their shape.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

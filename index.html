@@ -34,7 +34,21 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/h5lite.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/atomic-vectors.html">Atomic Vectors</a></li>
+    <li><a class="dropdown-item" href="articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><a class="dropdown-item" href="articles/data-frames.html">Data Frames</a></li>
+    <li><a class="dropdown-item" href="articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="articles/data-types.html">Data Types &amp; Compression</a></li>
+    <li><a class="dropdown-item" href="articles/matrices.html">Matrices and Arrays</a></li>
+    <li><a class="dropdown-item" href="articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="articles/parallel-io.html">Parallel Processing</a></li>
+  </ul>
+</li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
@@ -76,6 +90,7 @@
 <strong>Safe and Efficient:</strong>
 <ul>
 <li>Auto-selects a safe R data type for numeric data to prevent overflow.</li>
+<li>Automatic data type selection saves space by default (e.g., <code>1:100</code> is stored as an 8-bit integer).</li>
 <li>Built-in, easy-to-use compression (<code>compress = TRUE</code>).</li>
 </ul>
 </li>
@@ -139,23 +154,40 @@
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all objects recursively</span></span>
 <span><span class="fu"><a href="reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "data"          "data/vector"   "data/matrix"   "data/array"</span></span>
-<span><span class="co">#&gt; [5] "scalar_string" "factor_data"   "config"        "config/a"</span></span>
-<span><span class="co">#&gt; [9] "config/b"      "mtcars"</span></span>
+<span><span class="co">#&gt; [1] "data"          "data/vector"   "data/matrix"   "data/array"   </span></span>
+<span><span class="co">#&gt; [5] "scalar_string" "factor_data"   "mtcars"        "config"       </span></span>
+<span><span class="co">#&gt; [9] "config/a"      "config/b"</span></span>
 <span></span>
 <span><span class="co"># Preview the file structure (like h5ls -r)</span></span>
 <span><span class="fu"><a href="reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt; /</span></span>
-<span><span class="co">#&gt; ├── data</span></span>
-<span><span class="co">#&gt; │   ├── vector &lt;uint8 x 10&gt;</span></span>
-<span><span class="co">#&gt; │   ├── matrix &lt;float64 x 2 x 5&gt;</span></span>
-<span><span class="co">#&gt; │   └── array &lt;uint8 x 2 x 3 x 4&gt;</span></span>
-<span><span class="co">#&gt; ├── scalar_string &lt;string scalar&gt;</span></span>
-<span><span class="co">#&gt; ├── factor_data &lt;enum x 4&gt;</span></span>
-<span><span class="co">#&gt; ├── config</span></span>
-<span><span class="co">#&gt; │   ├── a &lt;uint8 x 1&gt;</span></span>
-<span><span class="co">#&gt; │   └── b &lt;uint8 x 1&gt;</span></span>
-<span><span class="co">#&gt; └── mtcars &lt;compound × 32 × 11&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt; ├── data/</span></span>
+<span><span class="co">#&gt; │   ├── vector &lt;uint8 × 10&gt;</span></span>
+<span><span class="co">#&gt; │   ├── matrix &lt;float64 × 2 × 5&gt;</span></span>
+<span><span class="co">#&gt; │   └── array &lt;uint8 × 2 × 3 × 4&gt;</span></span>
+<span><span class="co">#&gt; ├── scalar_string &lt;utf8[6] scalar&gt;</span></span>
+<span><span class="co">#&gt; ├── factor_data &lt;enum × 4&gt;</span></span>
+<span><span class="co">#&gt; ├── mtcars &lt;compound[11] × 32&gt;</span></span>
+<span><span class="co">#&gt; │   ├── @DIMENSION_LIST &lt;vlen × 1&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $mpg &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $cyl &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $disp &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $hp &lt;uint16&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $drat &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $wt &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $qsec &lt;float64&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $vs &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $am &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   ├── $gear &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; │   └── $carb &lt;uint8&gt;</span></span>
+<span><span class="co">#&gt; ├── mtcars_rownames &lt;utf8 × 32&gt;</span></span>
+<span><span class="co">#&gt; │   ├── @CLASS &lt;ascii[16] scalar&gt;</span></span>
+<span><span class="co">#&gt; │   └── @REFERENCE_LIST &lt;compound[2] × 1&gt;</span></span>
+<span><span class="co">#&gt; │       ├── $dataset &lt;reference&gt;</span></span>
+<span><span class="co">#&gt; │       └── $dimension &lt;uint32&gt;</span></span>
+<span><span class="co">#&gt; └── config/</span></span>
+<span><span class="co">#&gt;     ├── a &lt;uint8 × 1&gt;</span></span>
+<span><span class="co">#&gt;     └── b &lt;uint8 × 1&gt;</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="id_3-read-data">3. Read Data<a class="anchor" aria-label="anchor" href="#id_3-read-data"></a>
@@ -194,11 +226,13 @@
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/h5lite.html">Get Started</a></strong>: A general introduction.</li>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/atomic-vectors.html">Working with Atomic Vectors</a></strong>: Details on vectors and scalars.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/atomic-vectors.html">Atomic Vectors</a></strong>: Details on vectors and scalars.</li>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/matrices.html">Working with Matrices and Arrays</a></strong>: Handling multi-dimensional data.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-types.html">Data Types &amp; Compression</a></strong>: Controlling storage types and compression.</li>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/data-frames.html">Working with Data Frames</a></strong>: Using compound datasets.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/matrices.html">Matrices and Arrays</a></strong>: Handling multi-dimensional data.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-frames.html">Data Frames</a></strong>: Using compound datasets.</li>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/data-organization.html">Data Organization</a></strong>: Using groups and lists to structure files.</li>
 <li>
@@ -206,7 +240,7 @@
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/oo-interface.html">Object-Oriented Interface</a></strong>: A guide to the <code><a href="reference/h5_open.html">h5_open()</a></code> handle for a streamlined workflow.</li>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/parallel-io.html">Using h5lite with Parallel Processing</a></strong>: Guide for multi-threaded and multi-process access.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/parallel-io.html">Parallel Processing</a></strong>: Guide for multi-threaded and multi-process access.</li>
 </ul>
 <p>You can also access these vignettes from within R using <code>browseVignettes("h5lite")</code>.</p>
 </div>
@@ -279,8 +313,17 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Use <code>rhdf5</code> or <code>hdf5r</code> if you need to:</strong> - Work with complex or custom HDF5 data types not supported by <code>h5lite</code> (e.g., bitfields, references). - Have fine-grained control over file properties, chunking, or compression filters. - Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).</p>
-<p><strong>Use <code>h5lite</code> if you want to:</strong> - Quickly and safely get data into or out of a file. - Avoid thinking about low-level details.</p>
+<p><strong>Use <code>rhdf5</code> or <code>hdf5r</code> if you need to:</strong></p>
+<ul>
+<li>Work with complex or custom HDF5 data types not supported by <code>h5lite</code> (e.g., bitfields, references).</li>
+<li>Have fine-grained control over file properties, chunking, or compression filters.</li>
+<li>Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).</li>
+</ul>
+<p><strong>Use <code>h5lite</code> if you want to:</strong></p>
+<ul>
+<li>Quickly and safely get data into or out of a file.</li>
+<li>Avoid thinking about low-level details.</li>
+</ul>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

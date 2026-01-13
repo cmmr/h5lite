@@ -93,9 +93,8 @@ compression but do not support `NA`.
 |              |                          |                                               |
 |--------------|--------------------------|-----------------------------------------------|
 | **R Type**   | **HDF5 Type**            | **Notes**                                     |
-| `integer`    | `H5T_STD_I32LE`          |                                               |
-| `double`     | `H5T_IEEE_F64LE`         |                                               |
-| `logical`    | `H5T_STD_U8LE`           | 1-bit storage efficiency.                     |
+| `numeric`    | *various*                | Selects smallest type for data range.         |
+| `logical`    | `H5T_STD_U8LE`           | TRUE/FALSE stored as 1/0.                     |
 | `character`  | `H5T_C_S1`               | `H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM` |
 | `factor`     | `H5T_ENUM`               | Maps levels to integers.                      |
 | `data.frame` | `H5T_COMPOUND`           | Native table-like structure.                  |
@@ -106,9 +105,8 @@ compression but do not support `NA`.
 | `integer64`  | `H5T_STD_I64LE`          | From the `bit64` R package.                   |
 | `POSIXt`     | `H5T_C_S1`               | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`)      |
 
-*NA Handling:* HDF5 integers do not support `NA`. If an R integer or
-logical vector contains `NA`, `h5lite` automatically promotes it to
-`float64` to preserve the `NA` value.
+*NA Handling:* If an R numeric or logical vector contains `NA`, `h5lite`
+will store it as `float64` to preserve the `NA` value.
 
 **3. Column/Class Mapping**
 
@@ -174,8 +172,8 @@ h5_write(I("My Description"), file, "data/vector", attr = "description")
 h5_write(I(100), file, "data/vector", attr = "scale_factor")
 
 # 3. Controlling Data Types
-# Store integers as 8-bit unsigned
-h5_write(1:5, file, "compressed/small_ints", as = "uint8")
+# Store values as 32-bit signed integers
+h5_write(1:5, file, "small_ints", as = "int32")
 
 # 4. Writing Complex Structures (Lists/Groups)
 my_list <- list(
@@ -199,24 +197,26 @@ h5_write(c("A", "B"), file, "fixed_str", as = "ascii[10]")
 # 7. Review the file structure
 h5_str(file)
 #> /
-#> ├── data
-#> │   ├── integers <int32 × 10>
+#> ├── data/
+#> │   ├── integers <uint8 × 10>
 #> │   ├── floats <float64 × 10>
-#> │   ├── chars <utf8 × 5>
-#> │   └── vector <int32 × 10>
-#> │       ├── @description <utf8 scalar>
-#> │       └── @scale_factor <float64 scalar>
-#> ├── compressed
-#> │   └── small_ints <uint8 × 5>
-#> ├── experiment_1
-#> │   ├── meta
+#> │   ├── chars <utf8[1] × 5>
+#> │   └── vector <uint8 × 10>
+#> │       ├── @description <utf8[14] scalar>
+#> │       └── @scale_factor <uint8 scalar>
+#> ├── small_ints <int32 × 5>
+#> ├── experiment_1/
+#> │   ├── meta/
 #> │   │   ├── id <uint16 × 1>
-#> │   │   └── name <utf8 × 1>
+#> │   │   └── name <utf8[12] × 1>
 #> │   ├── results <float64 × 3 × 3>
-#> │   └── valid <int scalar>
-#> ├── fixed_str <ascii[10] × 2>
-#> └── records
-#>     └── scores <compound × 5 × 3>
+#> │   └── valid <uint8 scalar>
+#> ├── records/
+#> │   └── scores <compound[3] × 5>
+#> │       ├── $id <uint8>
+#> │       ├── $score <float64>
+#> │       └── $grade <enum>
+#> └── fixed_str <ascii[10] × 2>
 
 # 8. Clean up
 unlink(file)

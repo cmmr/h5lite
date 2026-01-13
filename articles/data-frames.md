@@ -1,170 +1,125 @@
-# Working with Data Frames
+# Data Frames
+
+Data frames are the workhorse of data analysis in R. In HDF5, data
+frames are stored as **Compound Datasets**. This allows different
+columns to have different data types (e.g., integer, float, string)
+within the same dataset, much like a SQL table.
+
+This vignette explains how `h5lite` handles data frames, including row
+names, factors, and missing values.
 
 ``` r
 library(h5lite)
-
-# We'll use a temporary file for this guide.
 file <- tempfile(fileext = ".h5")
 ```
 
-## Introduction
+## Basic Usage
 
-The `data.frame` is R’s primary data structure for tabular data,
-containing columns of potentially different types. `h5lite` provides
-first-class support for `data.frame` objects by mapping them to a native
-HDF5 structure called a **compound dataset**.
-
-This vignette explains how `data.frame` objects are written and read,
-and provides technical details on the underlying HDF5 implementation.
-
-For details on other data structures, see
-[`vignette("atomic-vectors")`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md)
-and
-[`vignette("matrices")`](https://cmmr.github.io/h5lite/articles/matrices.md).
-
-## 1. Writing and Reading Data Frames
-
-Writing a `data.frame` is a one-line command with
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
+Writing a data frame is as simple as writing any other object. `h5lite`
+automatically maps each column to its appropriate HDF5 type.
 
 ``` r
-my_df <- data.frame(
-  trial = 1:4,
-  sample_id = c("A1", "A2", "B1", "B2"),
-  value = c(10.2, 11.1, 9.8, 10.5),
-  pass_qc = c(TRUE, TRUE, FALSE, TRUE),
-  condition = factor(c("control", "treat", "control", "treat"))
+# Create a standard data frame
+df <- data.frame(
+  id = 1:5,
+  group = c("A", "A", "B", "B", "C"),
+  score = c(10.5, 9.2, 8.4, 7.1, 6.0),
+  passed = c(TRUE, TRUE, TRUE, FALSE, FALSE),
+  stringsAsFactors = FALSE
 )
 
-h5_write(file, "my_df", my_df)
+# Write to HDF5
+h5_write(df, file, "study_data/results")
+
+# Fetch the column names
+h5_names(file, "study_data/results")
+#> [1] "id"     "group"  "score"  "passed"
+
+# Read back
+df_in <- h5_read(file, "study_data/results")
+
+head(df_in)
+#>   id group score passed
+#> 1  1     A  10.5      1
+#> 2  2     A   9.2      1
+#> 3  3     B   8.4      1
+#> 4  4     B   7.1      0
+#> 5  5     C   6.0      0
 ```
 
-You can inspect the object with
-[`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md) and
-[`h5_class()`](https://cmmr.github.io/h5lite/reference/h5_class.md).
-Notice that `h5lite` correctly identifies it as a `data.frame` backed by
-a `compound` HDF5 type.
+## Customizing Column Types
+
+You can use the `as` argument to control the storage type for specific
+columns. This is passed as a named vector where the names correspond to
+the column names.
+
+This is particularly useful for optimizing storage (e.g., saving space
+by storing small integers as `int8` or single characters as `ascii[1]`).
 
 ``` r
+df_small <- data.frame(
+  id   = 1:10,
+  code = rep("A", 10)
+)
+
+# Force 'id' to be uint16 and 'code' to be an ascii string
+h5_write(df_small, file, "custom_df", 
+         as = c(id = "uint16", code = "ascii[]"))
+```
+
+## Row Names
+
+Standard HDF5 Compound Datasets do not have a concept of “row names”.
+However, `h5lite` preserves them using **Dimension Scales**.
+
+When you write a data frame with row names, `h5lite` creates a separate
+dataset (usually named `_rownames`) and links it to the main table. When
+reading, `h5lite` automatically restores these as the `row.names` of the
+data frame.
+
+``` r
+mtcars_subset <- head(mtcars, 3)
+
+h5_write(mtcars_subset, file, "cars")
+
 h5_str(file)
+```
+
+``` fansi
 #> /
-#> └── my_df <compound x 4>
-h5_class(file, "my_df")
-#> [1] "data.frame"
+#> ├── study_data/
+#> │   └── results <compound[4] × 5>
+#> │       ├── $id <uint8>
+#> │       ├── $group <utf8[1]>
+#> │       ├── $score <float64>
+#> │       └── $passed <uint8>
+#> ├── custom_df <compound[2] × 10>
+#> │   ├── $id <uint16>
+#> │   └── $code <ascii[1]>
+#> ├── cars <compound[11] × 3>
+#> │   ├── @DIMENSION_LIST <vlen × 1>
+#> │   ├── $mpg <float64>
+#> │   ├── $cyl <uint8>
+#> │   ├── $disp <uint8>
+#> │   ├── $hp <uint8>
+#> │   ├── $drat <float64>
+#> │   ├── $wt <float64>
+#> │   ├── $qsec <float64>
+#> │   ├── $vs <uint8>
+#> │   ├── $am <uint8>
+#> │   ├── $gear <uint8>
+#> │   └── $carb <uint8>
+#> └── cars_rownames <utf8 × 3>
+#>     ├── @CLASS <ascii[16] scalar>
+#>     └── @REFERENCE_LIST <compound[2] × 1>
+#>         ├── $dataset <reference>
+#>         └── $dimension <uint32>
 ```
 
-Reading the data back with
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
-restores it as an R `data.frame`.
-
 ``` r
-read_df <- h5_read(file, "my_df")
 
-str(read_df)
-#> 'data.frame':    4 obs. of  5 variables:
-#>  $ trial    : num  1 2 3 4
-#>  $ sample_id: chr  "A1" "A2" "B1" "B2"
-#>  $ value    : num  10.2 11.1 9.8 10.5
-#>  $ pass_qc  : num  1 1 0 1
-#>  $ condition: Factor w/ 2 levels "control","treat": 1 2 1 2
-```
-
-### Data Type Fidelity
-
-`h5lite` aims for a high-fidelity round-trip, but there are two
-important conversions to note:
-
-1.  **`integer` -\> `numeric`**: All integer columns (`trial` in our
-    example) are read back as `numeric` (double-precision) vectors. This
-    is a safety measure to prevent integer overflow.
-2.  **`logical` -\> `numeric`**: `logical` columns (`pass_qc`) are
-    stored as 8-bit integers (0/1) and are also read back as `numeric`.
-
-`factor` columns, however, are perfectly preserved.
-
-Let’s verify the round-trip by manually converting the original
-`data.frame` to match the expected output.
-
-    #> [1] TRUE
-
-``` r
-# To verify the round-trip, convert integer/logical columns to numeric
-my_df_cmp <- my_df
-my_df_cmp$trial <- as.numeric(my_df_cmp$trial)
-my_df_cmp$pass_qc <- as.numeric(my_df_cmp$pass_qc)
-
-all.equal(read_df, my_df_cmp)
-```
-
-## Advanced Details: The HDF5 Compound Type
-
-When you write a `data.frame`, `h5lite` does not save each column as a
-separate dataset. Instead, it creates a single HDF5 dataset with a
-**compound datatype**.
-
-A compound type is analogous to a `struct` in C. It is a collection of
-named members, where each member has its own datatype. For a
-`data.frame`, this structure looks like:
-
-- **HDF5 Dataset:** A 1D array, where the length is the number of rows
-  in the `data.frame`.
-- **HDF5 Datatype:** A compound type where:
-  - Each **member** of the struct corresponds to a **column** of the
-    `data.frame`.
-  - The member’s **name** is the column name.
-  - The member’s **datatype** is the HDF5 equivalent of the R column’s
-    type (e.g., `H5T_FLOAT64` for `numeric`, `H5T_STRING` for
-    `character`, `H5T_ENUM` for `factor`).
-
-This approach has several advantages for HDF5 experts and
-interoperability:
-
-1.  **Portability:** A compound dataset is a standard, self-describing
-    HDF5 structure. A Python user with `h5py` or a C++ user can read
-    this dataset and immediately get a structured array or a vector of
-    structs, with all column names and types preserved.
-2.  **Atomicity:** The entire table is a single object in the HDF5 file,
-    which can be easier to manage than a group containing many separate
-    column-datasets.
-3.  **Efficiency:** For many access patterns, reading a single
-    contiguous block of compound data can be more efficient than reading
-    from multiple disparate datasets.
-
-## Preserving `data.frame` Attributes
-
-Like other R objects, `data.frame`s can have metadata attached. The most
-common is `row.names`. To ensure these are saved, use `attrs = TRUE`.
-
-``` r
-df_with_attrs <- my_df
-row.names(df_with_attrs) <- df_with_attrs$sample_id
-attr(df_with_attrs, "description") <- "My experiment data"
-
-h5_write(file, "df_with_attrs", df_with_attrs, attrs = TRUE)
-
-# Inspect the HDF5 attributes created
-h5_ls_attr(file, "df_with_attrs")
-#> [1] "names"       "class"       "row.names"   "description"
-
-# Read back with attributes
-read_df_with_attrs <- h5_read(file, "df_with_attrs", attrs = TRUE)
-
-# Manually adjust for type conversions before comparing
-df_with_attrs$trial <- as.numeric(df_with_attrs$trial)
-df_with_attrs$pass_qc <- as.numeric(df_with_attrs$pass_qc)
-
-all.equal(read_df_with_attrs, df_with_attrs)
-#> [1] TRUE
-```
-
-> **Note:** The `row.names` attribute is read back correctly because of
-> a special rule in
-> [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md). It
-> detects the attribute named `"row.names"`, and if it is a `numeric`
-> vector, it is coerced back to `integer` to satisfy R’s requirements
-> for a valid `data.frame`.
-
-``` r
-# Clean up the temporary file
-unlink(file)
+# Read back
+result <- h5_read(file, "cars")
+print(row.names(result))
+#> [1] "Mazda RX4"     "Mazda RX4 Wag" "Datsun 710"
 ```

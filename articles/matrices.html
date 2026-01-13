@@ -38,8 +38,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Working with Data Frames</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
@@ -72,187 +73,160 @@
 
     
     
+<p>HDF5 is an excellent format for storing large, multi-dimensional
+numerical arrays. <code>h5lite</code> simplifies the process of reading
+and writing matrices and arrays by handling the complex memory layout
+differences between R and HDF5 automatically.</p>
+<p>This vignette covers writing matrices, preserving dimension names
+(<code>dimnames</code>), and understanding how <code>h5lite</code>
+manages dimension ordering.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># We'll use a temporary file for this guide.</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="writing-matrices">Writing Matrices<a class="anchor" aria-label="anchor" href="#writing-matrices"></a>
 </h2>
-<p>Matrices and multi-dimensional arrays are workhorses of data analysis
-in R. <code>h5lite</code> is designed to make saving and loading these
-objects to HDF5 files as seamless as possible, automatically handling
-dimensions and data layout.</p>
-<p>This vignette covers the basics of working with matrices and arrays,
-and then dives into two important technical details: the
-<code>dimnames</code> limitation and the automatic handling of row-major
-vs. column-major data ordering.</p>
-<p>For details on other data structures, see
-<code><a href="../articles/atomic-vectors.html">vignette("atomic-vectors")</a></code> and
-<code><a href="../articles/data-frames.html">vignette("data-frames")</a></code>.</p>
-</div>
-<div class="section level2">
-<h2 id="writing-and-reading-matrices">1. Writing and Reading Matrices<a class="anchor" aria-label="anchor" href="#writing-and-reading-matrices"></a>
-</h2>
-<p>Writing a matrix or array is as simple as calling
-<code><a href="../reference/h5_write.html">h5_write()</a></code>. <code>h5lite</code> will automatically detect
-the dimensions of your R object and create an HDF5 dataset with a
-corresponding dataspace.</p>
+<p>In R, matrices are simply 2-dimensional arrays. You can write them
+directly using <code><a href="../reference/h5_write.html">h5_write()</a></code>. <code>h5lite</code> preserves
+the dimensions exactly as they appear in R.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># A simple 2x3 matrix</span></span>
-<span><span class="va">my_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, nrow <span class="op">=</span> <span class="fl">2</span>, ncol <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">my_matrix</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3]</span></span>
-<span><span class="co">#&gt; [1,]    1    3    5</span></span>
-<span><span class="co">#&gt; [2,]    2    4    6</span></span>
+<code class="sourceCode R"><span><span class="co"># Create a 3x4 matrix</span></span>
+<span><span class="va">mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">12</span>, nrow <span class="op">=</span> <span class="fl">3</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_matrix"</span>, <span class="va">my_matrix</span><span class="op">)</span></span></code></pre></div>
-<p>You can verify the dimensions of the on-disk dataset using
-<code><a href="../reference/h5_dim.html">h5_dim()</a></code>.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_matrix"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 2 3</span></span></code></pre></div>
-<p>When you read the data back with <code><a href="../reference/h5_read.html">h5_read()</a></code>,
-<code>h5lite</code> restores the dimensions, giving you an identical R
-matrix.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">read_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_matrix"</span><span class="op">)</span></span>
+<span><span class="co"># Write to file</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mat</span>, <span class="va">file</span>, <span class="st">"linear_algebra/mat_a"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">my_matrix</span>, <span class="va">read_matrix</span><span class="op">)</span></span>
+<span><span class="co"># Read back</span></span>
+<span><span class="va">mat_in</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"linear_algebra/mat_a"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Verify</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">mat</span>, <span class="va">mat_in</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>The same process works for higher-dimensional arrays.</p>
+</div>
+<div class="section level2">
+<h2 id="writing-n-dimensional-arrays">Writing N-Dimensional Arrays<a class="anchor" aria-label="anchor" href="#writing-n-dimensional-arrays"></a>
+</h2>
+<p>The same logic applies to arrays with 3 or more dimensions.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a 3D array (e.g., spatial data over time: x, y, time)</span></span>
+<span><span class="va">vol</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">24</span><span class="op">)</span>, dim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">3</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">vol</span>, <span class="va">file</span>, <span class="st">"spatial/volume"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Check dimensions without reading the full data</span></span>
+<span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"spatial/volume"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 4 3 2</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="dimension-names-dimnames">Dimension Names (dimnames)<a class="anchor" aria-label="anchor" href="#dimension-names-dimnames"></a>
+</h2>
+<p>R objects often carry metadata in the form of <code>dimnames</code>
+(row names, column names, etc.). HDF5 does not have a native “row name”
+concept for numerical arrays, but it supports <strong>Dimension
+Scales</strong>.</p>
+<p><code>h5lite</code> automatically converts R <code>dimnames</code>
+into HDF5 Dimension Scales. This allows your row and column names to
+survive the round-trip to disk and back.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create a matrix with row and column names</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">6</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">rownames</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Sample_A"</span>, <span class="st">"Sample_B"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Gene_1"</span>, <span class="st">"Gene_2"</span>, <span class="st">"Gene_3"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">data</span>, <span class="va">file</span>, <span class="st">"genetics/expression"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Read back</span></span>
+<span><span class="va">data_in</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"genetics/expression"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">data_in</span><span class="op">)</span></span>
+<span><span class="co">#&gt;             Gene_1     Gene_2      Gene_3</span></span>
+<span><span class="co">#&gt; Sample_A  2.065025  0.5124269 -0.52201251</span></span>
+<span><span class="co">#&gt; Sample_B -1.630989 -1.8630115 -0.05260191</span></span></code></pre></div>
+<p><em>Technical Note: In the HDF5 file, the names are stored as
+separate datasets (e.g., <code>_rownames</code>, <code>_colnames</code>)
+and linked to the main dataset using HDF5 Dimension Scale
+attributes.</em></p>
+</div>
+<div class="section level2">
+<h2 id="dimension-ordering-row-major-vs--column-major">Dimension Ordering (Row-Major vs. Column-Major)<a class="anchor" aria-label="anchor" href="#dimension-ordering-row-major-vs--column-major"></a>
+</h2>
+<p>One of the most confusing aspects of HDF5 for R users is dimension
+ordering.</p>
+<ul>
+<li>
+<strong>R</strong> is <strong>Column-Major</strong>: The first
+dimension varies fastest.</li>
+<li>
+<strong>HDF5</strong> (and C/C++/Python) is
+<strong>Row-Major</strong>: The last dimension varies fastest.</li>
+</ul>
+<div class="section level3">
+<h3 id="how-h5lite-handles-it">How h5lite handles it<a class="anchor" aria-label="anchor" href="#how-h5lite-handles-it"></a>
+</h3>
+<p>To ensure that a <code>3x4</code> matrix in R looks like a
+<code>3x4</code> dataset in HDF5 tools (like <code>h5dump</code> or
+<code>HDFView</code>), <code>h5lite</code> physically
+<strong>transposes</strong> the data during read/write operations.</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Writing:</strong> <code>h5lite</code> converts R’s
+column-major memory layout to HDF5’s row-major layout.</li>
+<li>
+<strong>Reading:</strong> <code>h5lite</code> converts the data back
+to column-major for R.</li>
+</ol>
+<p>This ensures that <strong>indexing is preserved</strong>.
+<code>x[2, 1]</code> in R refers to the exact same value after reading
+it back from HDF5.</p>
+</div>
+<div class="section level3">
+<h3 id="interoperability-with-python">Interoperability with Python<a class="anchor" aria-label="anchor" href="#interoperability-with-python"></a>
+</h3>
+<p>Because <code>h5lite</code> writes the data in C-order (Row-Major) to
+match the HDF5 specification, files created with <code>h5lite</code> are
+perfectly readable by Python (<code>h5py</code> or
+<code>pandas</code>).</p>
+<ul>
+<li>
+<strong>R:</strong> Shape is <code>(3, 4)</code>
+</li>
+<li>
+<strong>Python:</strong> Shape is <code>(3, 4)</code>
+</li>
+</ul>
+<p><em>Note: Some other R packages create HDF5 files by swapping the
+dimensions (writing a 3x4 matrix as 4x3) to avoid the cost of
+transposing data. <code>h5lite</code> prioritizes correctness and
+interoperability over raw write speed.</em></p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="compression-and-chunking">Compression and Chunking<a class="anchor" aria-label="anchor" href="#compression-and-chunking"></a>
+</h2>
+<p>Matrices and arrays benefit significantly from compression. When you
+enable compression, <code>h5lite</code> automatically “chunks” the
+dataset (breaks it into smaller tiles).</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">my_array</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">24</span>, dim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_array"</span>, <span class="va">my_array</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Large matrix of zeros (highly compressible)</span></span>
+<span><span class="va">sparse_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, nrow <span class="op">=</span> <span class="fl">1000</span>, ncol <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
+<span><span class="va">sparse_mat</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/h5_dim.html">h5_dim</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_array"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 2 3 4</span></span></code></pre></div>
+<span><span class="co"># Write with compression (zlib level 5)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sparse_mat</span>, <span class="va">file</span>, <span class="st">"compressed/matrix"</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Write with high compression (zlib level 9)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sparse_mat</span>, <span class="va">file</span>, <span class="st">"compressed/matrix_max"</span>, compress <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="the-dimnames-limitation">The <code>dimnames</code> Limitation<a class="anchor" aria-label="anchor" href="#the-dimnames-limitation"></a>
+<h2 id="partial-io">Partial I/O<a class="anchor" aria-label="anchor" href="#partial-io"></a>
 </h2>
-<p>A crucial limitation to be aware of involves <code>dimnames</code>
-(the row and column names of a matrix). HDF5 does not have a native way
-to store these, and R implements them as a <code>list</code>
-attribute.</p>
-<p>The <code>h5lite</code> function <code><a href="../reference/h5_write_attr.html">h5_write_attr()</a></code> cannot
-write list-like attributes. Therefore, attempting to write a matrix with
-<code>dimnames</code> while <code>attrs = TRUE</code> will result in an
-error.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">named_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, nrow <span class="op">=</span> <span class="fl">2</span>, ncol <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>                       dimnames <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"row1"</span>, <span class="st">"row2"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col1"</span>, <span class="st">"col2"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/attributes.html" class="external-link">attributes</a></span><span class="op">(</span><span class="va">named_matrix</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; List of 2</span></span>
-<span><span class="co">#&gt;  $ dim     : int [1:2] 2 2</span></span>
-<span><span class="co">#&gt;  $ dimnames:List of 2</span></span>
-<span><span class="co">#&gt;   ..$ : chr [1:2] "row1" "row2"</span></span>
-<span><span class="co">#&gt;   ..$ : chr [1:2] "col1" "col2"</span></span>
-<span></span>
-<span><span class="co"># This will fail because the 'dimnames' attribute is a list.</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_matrix"</span>, <span class="va">named_matrix</span>, attrs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Error in validate_attrs(data, attrs): Attribute 'dimnames' cannot be written to HDF5 because its type ('list') is not supported. Only atomic vectors and factors can be written as attributes.</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="workaround">Workaround<a class="anchor" aria-label="anchor" href="#workaround"></a>
-</h3>
-<p>The solution is to either remove the <code>dimnames</code> before
-writing or, more simply, write with <code>attrs = FALSE</code> (the
-default). This will successfully write the matrix data but will discard
-the <code>dimnames</code>.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># This works, but the dimnames are not saved.</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_matrix"</span>, <span class="va">named_matrix</span>, attrs <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">read_named_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"named_matrix"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># The data is correct, but the names are gone.</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">read_named_matrix</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      [,1] [,2]</span></span>
-<span><span class="co">#&gt; [1,]    1    3</span></span>
-<span><span class="co">#&gt; [2,]    2    4</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/dimnames.html" class="external-link">dimnames</a></span><span class="op">(</span><span class="va">read_named_matrix</span><span class="op">)</span></span>
-<span><span class="co">#&gt; NULL</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="advanced-details-row-major-vs--column-major-order">Advanced Details: Row-Major vs. Column-Major Order<a class="anchor" aria-label="anchor" href="#advanced-details-row-major-vs--column-major-order"></a>
-</h2>
-<p>One of the most common sources of error when using HDF5 with R is
-managing the different data layouts.</p>
-<ul>
-<li>
-<strong>R</strong> stores matrices and arrays in
-<strong>column-major</strong> order. In memory, the elements of the
-first column are contiguous, followed by the second column, and so
-on.</li>
-<li>
-<strong>HDF5</strong> (along with C, C++, and Python’s NumPy) uses
-<strong>row-major</strong> order. The elements of the first row are
-contiguous in memory/on disk.</li>
-</ul>
-<p><code>h5lite</code> <strong>completely automates the
-transposition</strong> required to move between these two layouts.</p>
-<div class="section level3">
-<h3 id="how-it-works">How it Works<a class="anchor" aria-label="anchor" href="#how-it-works"></a>
-</h3>
-<p>Consider our 2x3 <code>my_matrix</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">my_matrix</span><span class="op">)</span></span>
-<span><span class="co">#&gt;      [,1] [,2] [,3]</span></span>
-<span><span class="co">#&gt; [1,]    1    3    5</span></span>
-<span><span class="co">#&gt; [2,]    2    4    6</span></span></code></pre></div>
-<ul>
-<li>
-<strong>On <code><a href="../reference/h5_write.html">h5_write()</a></code></strong>: The C-level code reads
-the R object’s column-major data (<code>1, 2, 3, 4, 5, 6</code>) and
-transposes it into a row-major buffer (<code>1, 3, 5, 2, 4, 6</code>)
-before writing it to the HDF5 file.</li>
-<li>
-<strong>On <code><a href="../reference/h5_read.html">h5_read()</a></code></strong>: The C-level code reads
-the row-major data from the file and transposes it back into R’s native
-column-major layout.</li>
-</ul>
-<p>This “it just works” behavior is a core design principle of
-<code>h5lite</code>. It ensures that the matrix you read back is
-identical to the one you wrote, without requiring you to perform manual
-array transpositions (<code><a href="https://rdrr.io/r/base/aperm.html" class="external-link">aperm()</a></code>) or think about data
-ordering. This is a significant convenience compared to lower-level HDF5
-interfaces.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="compression">Compression<a class="anchor" aria-label="anchor" href="#compression"></a>
-</h2>
-<p>For large matrices, using compression can significantly reduce file
-size. Simply set <code>compress = TRUE</code> (which uses a default
-compression level of 5) or specify an integer from 1-9.</p>
-<p><code>h5lite</code> automatically creates chunked storage when
-compression is enabled, which is a prerequisite for HDF5 compression
-filters.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">large_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e6</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Write with default compression</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"large_matrix_compressed"</span>, <span class="va">large_matrix</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Write without compression</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"large_matrix_uncompressed"</span>, <span class="va">large_matrix</span>, compress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compare file sizes (in a real scenario, the compressed version would be smaller)</span></span>
-<span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span>, full.names <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "my_matrix"                 "my_array"                 </span></span>
-<span><span class="co">#&gt; [3] "named_matrix"              "large_matrix_compressed"  </span></span>
-<span><span class="co">#&gt; [5] "large_matrix_uncompressed"</span></span></code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> For random data like in this example,
-compression is not very effective. It works best on data with repeating
-patterns or low entropy.</p>
-</blockquote>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Clean up the temporary file</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
+<p><code>h5lite</code> is designed for simplicity and currently
+reads/writes full datasets at once. It does <strong>not</strong> support
+partial I/O (hyperslabs), such as reading only rows 1-10 of a 1,000,000
+row matrix.</p>
+<p>If you need to read specific subsets of data that are too large to
+fit in memory, you should consider using the <code>rhdf5</code> or
+<code>hdf5r</code> packages.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
