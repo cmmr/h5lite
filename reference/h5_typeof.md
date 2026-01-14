@@ -1,8 +1,8 @@
 # Get HDF5 Storage Type of an Object or Attribute
 
 Returns the low-level HDF5 storage type of a dataset or an attribute
-(e.g., "int8", "float64", "string"). This allows inspecting the file
-storage type before reading the data into R.
+(e.g., "int8", "float64", "utf8", "ascii\[10\]"). This allows inspecting
+the file storage type before reading the data into R.
 
 ## Usage
 
@@ -28,7 +28,7 @@ h5_typeof(file, name, attr = NULL)
 ## Value
 
 A character string representing the HDF5 storage type (e.g., "float32",
-"uint32", "string").
+"uint32", "ascii\[10\]", "compound\[2\]").
 
 ## See also
 
@@ -39,8 +39,18 @@ A character string representing the HDF5 storage type (e.g., "float32",
 
 ``` r
 file <- tempfile(fileext = ".h5")
+
 h5_write(1L, file, "int32_val", as = "int32")
 h5_typeof(file, "int32_val") # "int32"
 #> [1] "int32"
+
+h5_write(mtcars, file, "mtcars")
+h5_typeof(file, "mtcars") # "compound[11]"
+#> [1] "compound[11]"
+
+h5_write(c("a", "b", "c"), file, "strings")
+h5_typeof(file, "strings") # "utf8[1]"
+#> [1] "utf8[1]"
+
 unlink(file)
 ```

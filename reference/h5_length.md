@@ -40,8 +40,21 @@ An integer representing the total length (number of elements).
 
 ``` r
 file <- tempfile(fileext = ".h5")
-h5_write(1:100, file, "dset")
-h5_length(file, "dset") # 100
+
+h5_write(1:100, file, "my_vec")
+h5_length(file, "my_vec") # 100
 #> [1] 100
+
+h5_write(mtcars, file, "my_df")
+h5_length(file, "my_df") # 11 (ncol(mtcars))
+#> [1] 11
+
+h5_write(as.matrix(mtcars), file, "my_mtx")
+h5_length(file, "my_mtx") # 352 (prod(dim(mtcars)))
+#> [1] 352
+
+h5_length(file, "/") # 3
+#> [1] 3
+
 unlink(file)
 ```

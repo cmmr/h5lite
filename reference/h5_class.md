@@ -40,7 +40,7 @@ metadata.
 
 - **Groups** are reported as `"list"`.
 
-- **Integer** datasets/attributes are reported as `"integer"`.
+- **Integer** datasets/attributes are reported as `"numeric"`.
 
 - **Floating Point** datasets/attributes are reported as `"numeric"`.
 
@@ -66,8 +66,22 @@ metadata.
 
 ``` r
 file <- tempfile(fileext = ".h5")
-h5_write(1:10, file, "dset")
-h5_class(file, "dset") # "numeric"
+
+h5_write(1:10, file, "my_ints", as = "int32")
+h5_class(file, "my_ints") # "numeric"
 #> [1] "numeric"
+
+h5_write(mtcars, file, "mtcars")
+h5_class(file, "mtcars") # "data.frame"
+#> [1] "data.frame"
+
+h5_write(c("a", "b", "c"), file, "strings")
+h5_class(file, "strings") # "character"
+#> [1] "character"
+
+h5_write(c(1, 2, 3), file, "my_floats", as = "float64")
+h5_class(file, "my_floats") # "numeric"
+#> [1] "numeric"
+
 unlink(file)
 ```

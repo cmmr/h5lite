@@ -38,8 +38,18 @@ otherwise (if it is a group, or does not exist).
 
 ``` r
 file <- tempfile(fileext = ".h5")
+
 h5_write(1, file, "dset")
 h5_is_dataset(file, "dset") # TRUE
 #> [1] TRUE
+
+h5_create_group(file, "grp")
+h5_is_dataset(file, "grp") # FALSE
+#> [1] FALSE
+
+h5_write(1, file, "grp", attr = "my_attr")
+h5_is_dataset(file, "grp", "my_attr") # TRUE
+#> [1] TRUE
+
 unlink(file)
 ```

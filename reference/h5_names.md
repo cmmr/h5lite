@@ -40,8 +40,20 @@ A character vector of names, or `NULL` if the object has no names.
 
 ``` r
 file <- tempfile(fileext = ".h5")
+
 h5_write(data.frame(x=1, y=2), file, "df")
 h5_names(file, "df") # "x" "y"
 #> [1] "x" "y"
+
+x <- 1:5
+names(x) <- letters[1:5]
+h5_write(x, file, "x")
+h5_names(file, "x") # "a" "b" "c" "d" "e"
+#> [1] "a" "b" "c" "d" "e"
+
+h5_write(mtcars[,c("mpg", "hp")], file, "dset")
+h5_names(file, "dset") # "mpg" "hp"
+#> [1] "mpg" "hp" 
+
 unlink(file)
 ```

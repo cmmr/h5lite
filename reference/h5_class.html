@@ -82,7 +82,7 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function determines the resulting R class by inspecting the storage metadata.</p>
 <ul><li><p><strong>Groups</strong> are reported as <code>"list"</code>.</p></li>
-<li><p><strong>Integer</strong> datasets/attributes are reported as <code>"integer"</code>.</p></li>
+<li><p><strong>Integer</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
 <li><p><strong>Floating Point</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
 <li><p><strong>String</strong> datasets/attributes are reported as <code>"character"</code>.</p></li>
 <li><p><strong>Complex</strong> datasets/attributes are reported as <code>"complex"</code>.</p></li>
@@ -99,9 +99,23 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"dset"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"dset"</span><span class="op">)</span> <span class="co"># "numeric"</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"my_ints"</span>, as <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_ints"</span><span class="op">)</span> <span class="co"># "numeric"</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "numeric"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mtcars</span>, <span class="va">file</span>, <span class="st">"mtcars"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"mtcars"</span><span class="op">)</span> <span class="co"># "data.frame"</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "data.frame"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"strings"</span><span class="op">)</span> <span class="co"># "character"</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "character"</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"my_floats"</span>, as <span class="op">=</span> <span class="st">"float64"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">h5_class</span><span class="op">(</span><span class="va">file</span>, <span class="st">"my_floats"</span><span class="op">)</span> <span class="co"># "numeric"</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "numeric"</span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>
     </div>

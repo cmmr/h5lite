@@ -59,10 +59,27 @@ This function provides a robust, error-free way to test for existence.
 
 ``` r
 file <- tempfile(fileext = ".h5")
+
+h5_exists(file) # FALSE
+#> [1] FALSE
+
 h5_create_file(file)
 h5_exists(file) # TRUE
 #> [1] TRUE
+
 h5_exists(file, "missing_object") # FALSE
 #> [1] FALSE
+
+h5_write(1:10, file, "my_ints")
+h5_exists(file, "my_ints") # TRUE
+#> [1] TRUE
+
+h5_exists(file, "my_ints", "missing_attr") # FALSE
+#> [1] FALSE
+
+h5_write(1:10, file, "my_ints", attr = "my_attr")
+h5_exists(file, "my_ints", "my_attr") # TRUE
+#> [1] TRUE
+
 unlink(file)
 ```
