@@ -3,7 +3,7 @@ Title: Simplified 'HDF5' Interface
 Version: 2.0.0.0
 Authors@R:
     person("Daniel P.", "Smith", , "dansmith01@gmail.com", role = c("aut", "cre"))
-Description: Provides a user-friendly interface for reading and writing 'HDF5' datasets and attributes. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
+Description: A user-friendly interface for the 'HDF5' library designed to "just work." It bundles the necessary system libraries to ensure easy installation on all platforms. Features smart defaults that automatically map R objects (vectors, matrices, data frames) to efficient 'HDF5' types, removing the need to manage low-level details like dataspaces or property lists. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
 URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
 BugReports: https://github.com/cmmr/h5lite/issues
 Depends: R (>= 4.2.0)
