@@ -24,7 +24,7 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 \item{as}{The target HDF5 data type. Defaults to \code{"auto"}.
 See the \strong{Data Type Selection} section for a full list of valid options
 (including \code{"int64"}, \code{"bfloat16"}, \code{"utf8[n]"}, etc.) and how to map
-specific columns.}
+sub-components of \code{data}.}
 
 \item{compress}{Compression configuration.
 \itemize{
@@ -52,8 +52,13 @@ For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, whil
 \section{Data Type Selection (\code{as} Argument)}{
 
 
-For the complete list of mappings between R and HDF5 data types, see
-\code{vignette("data-types")}.
+By default, \code{as = "auto"} will automatically select the most appropriate
+data type for the given object. For numeric types, this will be the smallest
+type that can represent all values in the vector. For character types,
+\code{h5lite} will use a ragged vs rectangular hueristic, favoring small file
+size over fast I/O. For R data types not mentioned below, see the
+\code{vignette("data-types")} for information on their fixed mappings to HDF5
+data types.
 \subsection{Numeric and Logical Vectors}{
 
 When writing a numeric or logical vector, you can specify one of the
@@ -64,10 +69,15 @@ following storage types for it:
 \item \strong{Unsigned Integer:} \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
 }
 
-\code{h5_write(1:100, file, "my_ints", as = "int64")}
-
 \strong{NOTE:} \code{NA} values must be stored as \code{float64}. \code{NaN}, \code{Inf}, and \code{-Inf}
 must be stored as a floating point type.
+\subsection{Examples}{
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{h5_write(1:100, file, "big_ints", as = "int64")
+h5_write(TRUE,  file, "my_bool",  as = "float32")
+}\if{html}{\out{</div>}}
+}
+
 }
 
 \subsection{Character Vectors}{
@@ -83,11 +93,16 @@ length strings, and whether to use UTF-8 or ASCII encoding.
 }
 }
 
-\code{h5_write(letters[1:5], file, "my_chars", as = "utf8[10]")}
-
 \strong{NOTE:} Variable-length strings allow for \code{NA} values but cannot be
 compressed on disk. Fixed-length strings allow for compression but do not
 support \code{NA}.
+\subsection{Examples}{
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{h5_write(letters[1:5],    file, "len10_strs", as = "utf8[10]")
+h5_write(c('X', 'Y', NA), file, "var_chars",  as = "ascii")
+}\if{html}{\out{</div>}}
+}
+
 }
 
 \subsection{Lists, Data Frames, and Attributes}{
@@ -102,14 +117,16 @@ Set \code{"skip"} as the type to skip a specific component.
 \item \strong{Global Fallback:} \code{"." = "type"}
 \item \strong{Global Attribute Fallback:} \code{"@." = "type"}
 }
+\subsection{Examples}{
 
-To not save attributes:
+\if{html}{\out{<div class="sourceCode">}}\preformatted{# To strip attributes when writing:
+h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))
 
-\code{h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))}
+# To only save the `hp` and `wt` columns:
+h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))
+}\if{html}{\out{</div>}}
+}
 
-To only save just the \code{hp} and \code{wt} columns:
-
-\code{h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))}
 }
 }
 
