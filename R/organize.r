@@ -13,7 +13,7 @@
 #' 
 #' # Create a nested group structure
 #' h5_create_group(file, "/data/experiment/run1")
-#' h5_ls(file, recursive = TRUE)
+#' h5_ls(file)
 #' 
 #' unlink(file)
 h5_create_group <- function (file, name) {
@@ -97,14 +97,21 @@ h5_create_file <- function (file) {
 #' @examples
 #' file <- tempfile(fileext = ".h5")
 #' h5_write(1:10, file, "group/dataset")
+#'
+#' # Review the file structure
+#' h5_str(file)
 #' 
 #' # Rename within the same group
 #' h5_move(file, "group/dataset", "group/renamed")
-#' h5_ls(file)
+#'
+#' # Review the file structure
+#' h5_str(file)
 #' 
 #' # Move to a new group (creates parent automatically)
 #' h5_move(file, "group/renamed", "archive/dataset")
-#' h5_ls(file, recursive = TRUE)
+#'
+#' # Review the file structure
+#' h5_str(file)
 #' 
 #' unlink(file)
 h5_move <- function (file, from, to) {
@@ -142,13 +149,20 @@ h5_move <- function (file, from, to) {
 #' h5_write(matrix(1:10, 2, 5), file, "matrix")
 #' h5_write("A note", file, "matrix", attr = "note")
 #'
+#' # Review the file structure
+#' h5_str(file)
+#' 
 #' # Delete the attribute
 #' h5_delete(file, "matrix", attr = "note")
-#' h5_attr_names(file, "matrix") # Returns character(0)
+#'
+#' # Review the file structure
+#' h5_str(file)
 #'
 #' # Delete the dataset
 #' h5_delete(file, "matrix")
-#' h5_ls(file) # Returns character(0)
+#'
+#' # Review the file structure
+#' h5_str(file)
 #'
 #' # Cleaning up
 #' unlink(file)

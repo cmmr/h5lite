@@ -27,15 +27,15 @@ that \code{h5_read()} would produce.
 This function determines the resulting R class by inspecting the storage metadata.
 
 \itemize{
-\item \strong{Groups} are reported as \code{"list"}.
-\item \strong{Integer} datasets/attributes are reported as \code{"numeric"}.
-\item \strong{Floating Point} datasets/attributes are reported as \code{"numeric"}.
-\item \strong{String} datasets/attributes are reported as \code{"character"}.
-\item \strong{Complex} datasets/attributes are reported as \code{"complex"}.
-\item \strong{Enum} datasets/attributes are reported as \code{"factor"}.
-\item \strong{1-byte Opaque} datasets/attributes are reported as \code{"raw"}.
-\item \strong{Compound} datasets/attributes are reported as \code{"data.frame"}.
-\item \strong{Null} datasets/attributes (with a null dataspace) are reported as \code{"NULL"}.
+\item \strong{Group} → \code{"list"}
+\item \strong{Integer} → \code{"numeric"}
+\item \strong{Floating Point} → \code{"numeric"}
+\item \strong{String} → \code{"character"}
+\item \strong{Complex} → \code{"complex"}
+\item \strong{Enum} → \code{"factor"}
+\item \strong{Opaque} → \code{"raw"}
+\item \strong{Compound} → \code{"data.frame"}
+\item \strong{Null} → \code{"NULL"}
 }
 }
 \examples{

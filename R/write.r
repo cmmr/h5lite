@@ -24,8 +24,12 @@
 #' 
 #' By default, `h5_write` saves single-element vectors as 1-dimensional arrays.
 #' To write a true HDF5 scalar, wrap the value in `I()` to treat it "as-is."
-#' For example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
-#' `h5_write(5, file, "x")` will create a 1D array of length 1.
+#' 
+#' #### Examples
+#' ```
+#' h5_write(I(5), file, "x") # Creates a scalar dataset
+#' h5_write(5, file, "x")    # Creates a 1D array of length 1
+#' ```
 #' 
 #' @section Data Type Selection (`as` Argument):
 #' 
@@ -33,7 +37,7 @@
 #' data type for the given object. For numeric types, this will be the smallest
 #' type that can represent all values in the vector. For character types, 
 #' `h5lite` will use a ragged vs rectangular hueristic, favoring small file 
-#' size over fast I/O. For R data types not mentioned below, see the 
+#' size over fast I/O. For R data types not mentioned below, see 
 #' `vignette("data-types")` for information on their fixed mappings to HDF5 
 #' data types.
 #' 

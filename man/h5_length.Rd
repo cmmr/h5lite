@@ -17,10 +17,11 @@ h5_length(file, name, attr = NULL)
 An integer representing the total length (number of elements).
 }
 \description{
-Returns the total number of elements in a dataset, attribute, or group.
+Behaves like \code{length()} for R objects.
 \itemize{
+\item For \strong{Compound Datasets} (data.frames), this is the number of columns.
 \item For \strong{Datasets} and \strong{Attributes}, this is the product of all dimensions (total number of elements).
-\item For \strong{Groups}, this is the number of objects directly contained in the group (similar to \code{length()} on a list).
+\item For \strong{Groups}, this is the number of objects directly contained in the group.
 \item Scalar datasets or attributes return 1.
 }
 }

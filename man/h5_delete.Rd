@@ -35,13 +35,20 @@ h5_create_file(file)
 h5_write(matrix(1:10, 2, 5), file, "matrix")
 h5_write("A note", file, "matrix", attr = "note")
 
+# Review the file structure
+h5_str(file)
+
 # Delete the attribute
 h5_delete(file, "matrix", attr = "note")
-h5_attr_names(file, "matrix") # Returns character(0)
+
+# Review the file structure
+h5_str(file)
 
 # Delete the dataset
 h5_delete(file, "matrix")
-h5_ls(file) # Returns character(0)
+
+# Review the file structure
+h5_str(file)
 
 # Cleaning up
 unlink(file)

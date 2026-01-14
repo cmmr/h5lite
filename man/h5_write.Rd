@@ -45,8 +45,12 @@ This function acts as a unified writer for datasets, groups (lists), and attribu
 
 By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
 To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
-For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, while
-\code{h5_write(5, file, "x")} will create a 1D array of length 1.
+\subsection{Examples}{
+
+\if{html}{\out{<div class="sourceCode">}}\preformatted{h5_write(I(5), file, "x") # Creates a scalar dataset
+h5_write(5, file, "x")    # Creates a 1D array of length 1
+}\if{html}{\out{</div>}}
+}
 }
 
 \section{Data Type Selection (\code{as} Argument)}{
@@ -56,7 +60,7 @@ By default, \code{as = "auto"} will automatically select the most appropriate
 data type for the given object. For numeric types, this will be the smallest
 type that can represent all values in the vector. For character types,
 \code{h5lite} will use a ragged vs rectangular hueristic, favoring small file
-size over fast I/O. For R data types not mentioned below, see the
+size over fast I/O. For R data types not mentioned below, see
 \code{vignette("data-types")} for information on their fixed mappings to HDF5
 data types.
 \subsection{Numeric and Logical Vectors}{

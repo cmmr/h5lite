@@ -7,15 +7,15 @@
 #' This function determines the resulting R class by inspecting the storage metadata.
 #'
 #' \itemize{
-#'   \item **Groups** are reported as `"list"`.
-#'   \item **Integer** datasets/attributes are reported as `"numeric"`.
-#'   \item **Floating Point** datasets/attributes are reported as `"numeric"`.
-#'   \item **String** datasets/attributes are reported as `"character"`.
-#'   \item **Complex** datasets/attributes are reported as `"complex"`.
-#'   \item **Enum** datasets/attributes are reported as `"factor"`.
-#'   \item **1-byte Opaque** datasets/attributes are reported as `"raw"`.
-#'   \item **Compound** datasets/attributes are reported as `"data.frame"`.
-#'   \item **Null** datasets/attributes (with a null dataspace) are reported as `"NULL"`.
+#'   \item **Group** &rarr; `"list"`
+#'   \item **Integer** &rarr; `"numeric"`
+#'   \item **Floating Point** &rarr; `"numeric"`
+#'   \item **String** &rarr; `"character"`
+#'   \item **Complex** &rarr; `"complex"`
+#'   \item **Enum** &rarr; `"factor"`
+#'   \item **Opaque** &rarr; `"raw"`
+#'   \item **Compound** &rarr; `"data.frame"`
+#'   \item **Null** &rarr; `"NULL"`
 #' }
 #'
 #' @param file The path to the HDF5 file.
@@ -348,9 +348,10 @@ h5_attr_names <- function (file, name = "/") {
 
 #' Get the Total Length of an HDF5 Object or Attribute
 #'
-#' Returns the total number of elements in a dataset, attribute, or group.
+#' Behaves like `length()` for R objects.
+#' * For **Compound Datasets** (data.frames), this is the number of columns.
 #' * For **Datasets** and **Attributes**, this is the product of all dimensions (total number of elements).
-#' * For **Groups**, this is the number of objects directly contained in the group (similar to `length()` on a list).
+#' * For **Groups**, this is the number of objects directly contained in the group.
 #' * Scalar datasets or attributes return 1.
 #'
 #' @param file The path to the HDF5 file.
