@@ -40,8 +40,8 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
   The target HDF5 data type. Defaults to `"auto"`. See the **Data Type
   Selection** section for a full list of valid options (including
-  `"int64"`, `"bfloat16"`, `"utf8[n]"`, etc.) and how to map specific
-  columns.
+  `"int64"`, `"bfloat16"`, `"utf8[n]"`, etc.) and how to map
+  sub-components of `data`.
 
 - compress:
 
@@ -67,8 +67,14 @@ example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
 
 ## Data Type Selection (`as` Argument)
 
-For the complete list of mappings between R and HDF5 data types, see
-[`vignette("data-types")`](https://cmmr.github.io/h5lite/articles/data-types.md).
+By default, `as = "auto"` will automatically select the most appropriate
+data type for the given object. For numeric types, this will be the
+smallest type that can represent all values in the vector. For character
+types, `h5lite` will use a ragged vs rectangular hueristic, favoring
+small file size over fast I/O. For R data types not mentioned below, see
+the
+[`vignette("data-types")`](https://cmmr.github.io/h5lite/articles/data-types.md)
+for information on their fixed mappings to HDF5 data types.
 
 ### Numeric and Logical Vectors
 
@@ -82,10 +88,13 @@ following storage types for it:
 
 - **Unsigned Integer:** `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
-`h5_write(1:100, file, "my_ints", as = "int64")`
-
 **NOTE:** `NA` values must be stored as `float64`. `NaN`, `Inf`, and
 `-Inf` must be stored as a floating point type.
+
+#### Examples
+
+    h5_write(1:100, file, "big_ints", as = "int64")
+    h5_write(TRUE,  file, "my_bool",  as = "float32")
 
 ### Character Vectors
 
@@ -100,11 +109,14 @@ fixed length strings, and whether to use UTF-8 or ASCII encoding.
 
   - `"utf8[n]"` or `"ascii[n]"` (where `n` is the length in bytes)
 
-`h5_write(letters[1:5], file, "my_chars", as = "utf8[10]")`
-
 **NOTE:** Variable-length strings allow for `NA` values but cannot be
 compressed on disk. Fixed-length strings allow for compression but do
 not support `NA`.
+
+#### Examples
+
+    h5_write(letters[1:5],    file, "len10_strs", as = "utf8[10]")
+    h5_write(c('X', 'Y', NA), file, "var_chars",  as = "ascii")
 
 ### Lists, Data Frames, and Attributes
 
@@ -125,13 +137,13 @@ Provide a named vector to apply type mappings to sub-components of
 
 - **Global Attribute Fallback:** `"@." = "type"`
 
-To not save attributes:
+#### Examples
 
-`h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))`
+    # To strip attributes when writing:
+    h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))
 
-To only save just the `hp` and `wt` columns:
-
-`h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))`
+    # To only save the `hp` and `wt` columns:
+    h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))
 
 ## Dimension Scales
 
