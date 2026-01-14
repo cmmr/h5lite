@@ -1,5 +1,8 @@
 ^\.
+^h5lite\.Rproj$
 ^LICENSE\.md$
+^cran-comments\.md$
+^rhub_check\.r$
 ^pkgdown$
 ^docs$
 ^pkgdown$
@@ -7,7 +10,4 @@
 ^src/.*\.o$
 ^src/.*\.dll$
 ^man/figures/logo_fullsize.png$
-^.*\.Rproj$
-^rhub_check\.r$
 ^\.Rproj\.user$
-compile_flags.txt

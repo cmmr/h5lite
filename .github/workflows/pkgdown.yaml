@@ -8,6 +8,7 @@ on:
       - R/**
       - man/**
       - vignettes/**
+      - README.md
       - .github/workflows/pkgdown.yaml
 
 name: pkgdown.yaml
