@@ -26,7 +26,7 @@ h5 <- h5_open(file)
 # The print method shows the file path and current internal working directory
 print(h5)
 #> <h5 handle>
-#>   File:  /tmp/Rtmp8MU9Rz/file28502edfc75d.h5 
+#>   File:  /tmp/Rtmp3FxJxl/file1f454dcd0ff5.h5 
 #>   WD:    / 
 #>   Size:  195 bytes 
 #>   Objects (root):  0

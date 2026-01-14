@@ -15,8 +15,8 @@ offers a fresh approach:
 
 1.  **It Just Works:** No need to understand HDF5 dataspaces,
     hyperslabs, or property lists. `h5lite` maps R objects (numeric,
-    logical, character, factor, complex, raw, list, data.frame, and
-    more) directly to their HDF5 equivalents.
+    character, factor, data.frame, and more) directly to their HDF5
+    equivalents.
 2.  **Zero System Dependencies:** `h5lite` bundles the HDF5 library (via
     `hdf5lib`). Users do **not** need to install HDF5 system libraries
     manually.
@@ -52,7 +52,7 @@ file <- tempfile(fileext = ".h5")
 
 # 1. Write simple objects
 h5_write(1:10, file, "my_vector")
-h5_write(I(42), file, "my_vector", attr = "my_id")
+h5_write(42, file, "my_vector", attr = "my_id")
 h5_write(matrix(rnorm(9), 3, 3), file, "my_matrix")
 
 # 2. Write a list (creates a group hierarchy)
@@ -144,18 +144,6 @@ h5_str(file)
 #>     ├── $score <float32>
 #>     └── $note <ascii>
 ```
-
-## For Package Developers
-
-If you are developing a package that needs to store large arrays or
-hierarchical data, `h5lite` is the safest dependency choice.
-
-- **No “System Requirements”:** Because `h5lite` links to `hdf5lib`,
-  your users don’t need to install `libhdf5-dev` (Linux) or
-  `brew install hdf5` (macOS). It compiles seamlessly on all major
-  platforms.
-- **Safe by Design:** `h5lite` prevents common HDF5 errors, such as
-  dimension mismatches or integer overflows, before they happen.
 
 ## Comparison
 
