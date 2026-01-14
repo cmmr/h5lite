@@ -50,15 +50,30 @@ parent group will be automatically created if it does not exist.
 file <- tempfile(fileext = ".h5")
 h5_write(1:10, file, "group/dataset")
 
+# Review the file structure
+h5_str(file)
+#> /
+#> └── group/
+#>     └── dataset <uint8 × 10>
+
 # Rename within the same group
 h5_move(file, "group/dataset", "group/renamed")
-h5_ls(file)
-#> [1] "group"         "group/renamed"
+
+# Review the file structure
+h5_str(file)
+#> /
+#> └── group/
+#>     └── renamed <uint8 × 10>
 
 # Move to a new group (creates parent automatically)
 h5_move(file, "group/renamed", "archive/dataset")
-h5_ls(file, recursive = TRUE)
-#> [1] "group"           "archive"         "archive/dataset"
+
+# Review the file structure
+h5_str(file)
+#> /
+#> ├── group/
+#> └── archive/
+#>     └── dataset <uint8 × 10>
 
 unlink(file)
 ```

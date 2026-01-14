@@ -38,24 +38,23 @@ read.
 This function determines the resulting R class by inspecting the storage
 metadata.
 
-- **Groups** are reported as `"list"`.
+- **Group** → `"list"`
 
-- **Integer** datasets/attributes are reported as `"numeric"`.
+- **Integer** → `"numeric"`
 
-- **Floating Point** datasets/attributes are reported as `"numeric"`.
+- **Floating Point** → `"numeric"`
 
-- **String** datasets/attributes are reported as `"character"`.
+- **String** → `"character"`
 
-- **Complex** datasets/attributes are reported as `"complex"`.
+- **Complex** → `"complex"`
 
-- **Enum** datasets/attributes are reported as `"factor"`.
+- **Enum** → `"factor"`
 
-- **1-byte Opaque** datasets/attributes are reported as `"raw"`.
+- **Opaque** → `"raw"`
 
-- **Compound** datasets/attributes are reported as `"data.frame"`.
+- **Compound** → `"data.frame"`
 
-- **Null** datasets/attributes (with a null dataspace) are reported as
-  `"NULL"`.
+- **Null** → `"NULL"`
 
 ## See also
 

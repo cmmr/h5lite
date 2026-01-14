@@ -81,15 +81,15 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function determines the resulting R class by inspecting the storage metadata.</p>
-<ul><li><p><strong>Groups</strong> are reported as <code>"list"</code>.</p></li>
-<li><p><strong>Integer</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
-<li><p><strong>Floating Point</strong> datasets/attributes are reported as <code>"numeric"</code>.</p></li>
-<li><p><strong>String</strong> datasets/attributes are reported as <code>"character"</code>.</p></li>
-<li><p><strong>Complex</strong> datasets/attributes are reported as <code>"complex"</code>.</p></li>
-<li><p><strong>Enum</strong> datasets/attributes are reported as <code>"factor"</code>.</p></li>
-<li><p><strong>1-byte Opaque</strong> datasets/attributes are reported as <code>"raw"</code>.</p></li>
-<li><p><strong>Compound</strong> datasets/attributes are reported as <code>"data.frame"</code>.</p></li>
-<li><p><strong>Null</strong> datasets/attributes (with a null dataspace) are reported as <code>"NULL"</code>.</p></li>
+<ul><li><p><strong>Group</strong> → <code>"list"</code></p></li>
+<li><p><strong>Integer</strong> → <code>"numeric"</code></p></li>
+<li><p><strong>Floating Point</strong> → <code>"numeric"</code></p></li>
+<li><p><strong>String</strong> → <code>"character"</code></p></li>
+<li><p><strong>Complex</strong> → <code>"complex"</code></p></li>
+<li><p><strong>Enum</strong> → <code>"factor"</code></p></li>
+<li><p><strong>Opaque</strong> → <code>"raw"</code></p></li>
+<li><p><strong>Compound</strong> → <code>"data.frame"</code></p></li>
+<li><p><strong>Null</strong> → <code>"NULL"</code></p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

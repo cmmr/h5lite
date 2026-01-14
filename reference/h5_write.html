@@ -103,9 +103,14 @@ sub-components of <code>data</code>.</p></dd>
 
 
 <p>By default, <code>h5_write</code> saves single-element vectors as 1-dimensional arrays.
-To write a true HDF5 scalar, wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it "as-is."
-For example, <code>h5_write(I(5), file, "x")</code> will create a scalar dataset, while
-<code>h5_write(5, file, "x")</code> will create a 1D array of length 1.</p>
+To write a true HDF5 scalar, wrap the value in <code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> to treat it "as-is."</p><div class="section">
+<h3 id="examples">Examples<a class="anchor" aria-label="anchor" href="#examples"></a></h3>
+
+
+<p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">h5_write</span>(<span class="fu">I</span>(<span class="dv">5</span>), file, <span class="st">"x"</span>) <span class="co"># Creates a scalar dataset</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">h5_write</span>(<span class="dv">5</span>, file, <span class="st">"x"</span>)    <span class="co"># Creates a 1D array of length 1</span></span></code></pre><p></p></div>
+</div>
+
     </div>
     <div class="section level2">
     <h2 id="data-type-selection-as-argument-">Data Type Selection (<code>as</code> Argument)<a class="anchor" aria-label="anchor" href="#data-type-selection-as-argument-"></a></h2>
@@ -116,7 +121,7 @@ For example, <code>h5_write(I(5), file, "x")</code> will create a scalar dataset
 data type for the given object. For numeric types, this will be the smallest
 type that can represent all values in the vector. For character types,
 <code>h5lite</code> will use a ragged vs rectangular hueristic, favoring small file
-size over fast I/O. For R data types not mentioned below, see the
+size over fast I/O. For R data types not mentioned below, see
 <code><a href="../articles/data-types.html">vignette("data-types")</a></code> for information on their fixed mappings to HDF5
 data types.</p><div class="section">
 <h3 id="numeric-and-logical-vectors">Numeric and Logical Vectors<a class="anchor" aria-label="anchor" href="#numeric-and-logical-vectors"></a></h3>
@@ -128,7 +133,7 @@ following storage types for it:</p><ul><li><p><strong>Floating Point:</strong> <
 <li><p><strong>Unsigned Integer:</strong> <code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
 </ul><p><strong>NOTE:</strong> <code>NA</code> values must be stored as <code>float64</code>. <code>NaN</code>, <code>Inf</code>, and <code>-Inf</code>
 must be stored as a floating point type.</p><div class="section">
-<h4 id="examples">Examples<a class="anchor" aria-label="anchor" href="#examples"></a></h4>
+<h4 id="examples-1">Examples<a class="anchor" aria-label="anchor" href="#examples-1"></a></h4>
 
 
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">h5_write</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>, file, <span class="st">"big_ints"</span>, <span class="at">as =</span> <span class="st">"int64"</span>)</span>
@@ -150,7 +155,7 @@ length strings, and whether to use UTF-8 or ASCII encoding.</p><ul><li><p><stron
 </ul><p><strong>NOTE:</strong> Variable-length strings allow for <code>NA</code> values but cannot be
 compressed on disk. Fixed-length strings allow for compression but do not
 support <code>NA</code>.</p><div class="section">
-<h4 id="examples-1">Examples<a class="anchor" aria-label="anchor" href="#examples-1"></a></h4>
+<h4 id="examples-2">Examples<a class="anchor" aria-label="anchor" href="#examples-2"></a></h4>
 
 
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">h5_write</span>(letters[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>],    file, <span class="st">"len10_strs"</span>, <span class="at">as =</span> <span class="st">"utf8[10]"</span>)</span>
@@ -172,7 +177,7 @@ Set <code>"skip"</code> as the type to skip a specific component.</p><ul><li><p>
 <li><p><strong>Global Fallback:</strong> <code>"." = "type"</code></p></li>
 <li><p><strong>Global Attribute Fallback:</strong> <code>"@." = "type"</code></p></li>
 </ul><div class="section">
-<h4 id="examples-2">Examples<a class="anchor" aria-label="anchor" href="#examples-2"></a></h4>
+<h4 id="examples-3">Examples<a class="anchor" aria-label="anchor" href="#examples-3"></a></h4>
 
 
 <p></p><div class="sourceCode"><pre><code><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># To strip attributes when writing:</span></span>

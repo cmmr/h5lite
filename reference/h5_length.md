@@ -1,13 +1,16 @@
 # Get the Total Length of an HDF5 Object or Attribute
 
-Returns the total number of elements in a dataset, attribute, or group.
+Behaves like [`length()`](https://rdrr.io/r/base/length.html) for R
+objects.
+
+- For **Compound Datasets** (data.frames), this is the number of
+  columns.
 
 - For **Datasets** and **Attributes**, this is the product of all
   dimensions (total number of elements).
 
 - For **Groups**, this is the number of objects directly contained in
-  the group (similar to [`length()`](https://rdrr.io/r/base/length.html)
-  on a list).
+  the group.
 
 - Scalar datasets or attributes return 1.
 

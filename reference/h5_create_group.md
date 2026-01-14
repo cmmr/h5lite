@@ -31,7 +31,7 @@ h5_create_file(file)
 
 # Create a nested group structure
 h5_create_group(file, "/data/experiment/run1")
-h5_ls(file, recursive = TRUE)
+h5_ls(file)
 #> [1] "data"                 "data/experiment"      "data/experiment/run1"
 
 unlink(file)
