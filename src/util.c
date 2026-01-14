@@ -3,21 +3,24 @@
 
 // # nocov start
 SEXP errmsg_1(const char *fmt, const char *str1) {
-  int   len    = snprintf(NULL, 0, fmt, str1);
+  char dummy; // Dummy buffer to satisfy -Wformat-truncation
+  int   len    = snprintf(&dummy, 0, fmt, str1); 
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
   snprintf(buffer, len + 1, fmt, str1);
   return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_2(const char *fmt, const char *str1, const char *str2) {
-  int   len    = snprintf(NULL, 0, fmt, str1, str2);
+  char dummy;
+  int   len    = snprintf(&dummy, 0, fmt, str1, str2);
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
   snprintf(buffer, len + 1, fmt, str1, str2);
   return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_3(const char *fmt, const char *str1, const char *str2, const char *str3) {
-  int   len    = snprintf(NULL, 0, fmt, str1, str2, str3);
+  char dummy;
+  int   len    = snprintf(&dummy, 0, fmt, str1, str2, str3);
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
   snprintf(buffer, len + 1, fmt, str1, str2, str3);
   return mkCharCE(buffer, CE_UTF8);
