@@ -1,0 +1,26 @@
+name: Manual Clear Cache
+
+on:
+  # Trigger manually via the Actions tab
+  workflow_dispatch:
+
+permissions:
+  # Required to delete caches
+  actions: write
+
+jobs:
+  clear-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete all caches
+        env:
+          # The GH CLI automatically uses this token for authentication
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching list of cache keys..."
+          
+          # "|| true" ensures the workflow remains green even if 
+          # the cache list is empty (which otherwise returns an error code)
+          gh cache delete --all || true 
+          
+          echo "Done. Caches cleared."
