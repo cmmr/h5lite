@@ -1,7 +1,10 @@
-name: Manual Clear Cache
+name: Clear Workflow Cache
 
 on:
   workflow_dispatch:
+  schedule:
+    # 2:00 AM PST every day
+    - cron: '0 10 * * *'
 
 permissions:
   actions: write

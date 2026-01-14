@@ -3,8 +3,8 @@ name: Cleanup Completed Runs
 on:
   workflow_dispatch:
   schedule:
-    # Midnight PST every day
-    - cron: '0 8 * * *'
+    # 3:00 AM PST every day
+    - cron: '0 11 * * *'
 
 permissions:
   actions: write
