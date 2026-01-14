@@ -1,182 +1,189 @@
 # h5lite
 
-**h5lite** is an R package that provides a simple and lightweight
-interface for reading and writing HDF5 files.
+[![covr](https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov)](https://app.codecov.io/gh/cmmr/h5lite)
 
-It is designed for R users who want to save and load common R objects
-(vectors, factors, matrices, data.frames, lists, and NULLs) to an HDF5
-file without needing to understand the low-level details of the HDF5
-library.
+**h5lite** is the pain-free way to work with HDF5 files in R.
 
-## Why use h5lite?
+It is designed for data scientists who want to read/write objects and
+move on, and for package developers who need a reliable, dependency-free
+storage backend.
 
-`h5lite` is “opinionated” software that prioritizes simplicity and
-safety for the most common use cases. It handles the tricky parts of
-HDF5 automatically so you can focus on your data.
+## Why h5lite?
 
-- **Simple, R-native API:** Use familiar functions like
-  [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) and
-  [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
-  No need to learn a complex new syntax.
-- **“It Just Works” Philosophy:**
-  - Dimensions are handled automatically. R matrices are saved as
-    matrices and read back as matrices.
-  - Parent groups are created as needed (e.g., writing to `"group/data"`
-    works even if `"group"` doesn’t exist).
-  - Writing to an existing dataset path overwrites it, just like
-    re-assigning a variable.
-- **Safe and Efficient:**
-  - Auto-selects a safe R data type for numeric data to prevent
-    overflow.
-  - Automatic data type selection saves space by default (e.g., `1:100`
-    is stored as an 8-bit integer).
-  - Built-in, easy-to-use compression (`compress = TRUE`).
-- **Easy Installation:** `h5lite` bundles its HDF5 dependency, so
-  installation is a simple `install.packages("h5lite")`. No need to
-  manage system libraries.
+If you’ve struggled with complex HDF5 bindings in the past, `h5lite`
+offers a fresh approach:
 
-This package uses the HDF5 library developed by The HDF Group
-(<https://www.hdfgroup.org/>).
+1.  **It Just Works:** No need to understand HDF5 dataspaces,
+    hyperslabs, or property lists. `h5lite` maps R objects (numeric,
+    logical, character, factor, complex, raw, list, data.frame, and
+    more) directly to their HDF5 equivalents.
+2.  **Zero System Dependencies:** `h5lite` bundles the HDF5 library (via
+    `hdf5lib`). Users do **not** need to install HDF5 system libraries
+    manually.
+3.  **Smart Defaults, Full Control:** It automatically selects the most
+    efficient data types (e.g., saving space by storing small integers
+    as `int8`), but gives you granular control when you need to conform
+    to a strict spec.
 
 ## Installation
 
-You can install the released version of `h5lite` from CRAN:
+Install the released version from CRAN:
 
 ``` r
 install.packages("h5lite")
 ```
 
-Alternatively, you can install the development version from GitHub:
+Or the development version from GitHub:
 
 ``` r
-# install.packages("devtools")  
+# install.packages("devtools")
 devtools::install_github("cmmr/h5lite")
 ```
 
 ## Quick Start
 
-The API is designed to be simple and predictable.
+The API consists primarily of two functions:
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md).
 
 ``` r
 library(h5lite)
-
 file <- tempfile(fileext = ".h5")
-```
 
-### 1. Write Data
+# 1. Write simple objects
+h5_write(1:10, file, "my_vector")
+h5_write(I(42), file, "my_vector", attr = "my_id")
+h5_write(matrix(rnorm(9), 3, 3), file, "my_matrix")
 
-Use [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
-to save R objects. It automatically handles dimensions and chooses an
-efficient on-disk data type. It also acts as a unified writer for
-datasets, groups (from lists), and attributes.
+# 2. Write a list (creates a group hierarchy)
+config <- list(version = 1.0, params = list(a = 1, b = 2))
+h5_write(config, file, "simulation_config")
 
-``` r
-# Write a vector
-h5_write(1:10, file, "data/vector")
+# 3. Read it back
+my_vec <- h5_read(file, "my_vector")
 
-# Write an R matrix
-mat <- matrix(c(1:7, 8.5, NA, Inf), nrow = 2, ncol = 5)
-h5_write(mat, file, "data/matrix")
+# 4. Inspect the file
+h5_ls(file)
+#> [1] "my_vector"                  "my_matrix"                  "simulation_config"         
+#> [4] "simulation_config/version"  "simulation_config/params"   "simulation_config/params/a"
+#> [7] "simulation_config/params/b"
 
-# Write a 3D array
-arr <- array(1L:24L, dim = c(2, 3, 4))
-h5_write(arr, file, "data/array")
-
-# Write a scalar (wrap in I() to write as HDF5 scalar)
-h5_write(I("Hello!"), file, "scalar_string")
-
-# Write a factor
-fac <- as.factor(c("a", "b", "a", "c"))
-h5_write(fac, file, "factor_data")
-
-# Write a data.frame (as a compound dataset)
-h5_write(mtcars, file, "mtcars")
-
-# Write a list (recursively creates groups and datasets)
-h5_write(list(a = 1, b = 2), file, "config")
-```
-
-### 2. Inspect Content
-
-Use [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md) to see
-the file structure as a character vector, or
-[`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md) for a
-formatted preview.
-
-``` r
-# List all objects recursively
-h5_ls(file, recursive = TRUE)
-#> [1] "data"          "data/vector"   "data/matrix"   "data/array"   
-#> [5] "scalar_string" "factor_data"   "mtcars"        "config"       
-#> [9] "config/a"      "config/b"
-
-# Preview the file structure (like h5ls -r)
 h5_str(file)
 #> /
-#> ├── data/
-#> │   ├── vector <uint8 × 10>
-#> │   ├── matrix <float64 × 2 × 5>
-#> │   └── array <uint8 × 2 × 3 × 4>
-#> ├── scalar_string <utf8[6] scalar>
-#> ├── factor_data <enum × 4>
-#> ├── mtcars <compound[11] × 32>
-#> │   ├── @DIMENSION_LIST <vlen × 1>
-#> │   ├── $mpg <float64>
-#> │   ├── $cyl <uint8>
-#> │   ├── $disp <float64>
-#> │   ├── $hp <uint16>
-#> │   ├── $drat <float64>
-#> │   ├── $wt <float64>
-#> │   ├── $qsec <float64>
-#> │   ├── $vs <uint8>
-#> │   ├── $am <uint8>
-#> │   ├── $gear <uint8>
-#> │   └── $carb <uint8>
-#> ├── mtcars_rownames <utf8 × 32>
-#> │   ├── @CLASS <ascii[16] scalar>
-#> │   └── @REFERENCE_LIST <compound[2] × 1>
-#> │       ├── $dataset <reference>
-#> │       └── $dimension <uint32>
-#> └── config/
-#>     ├── a <uint8 × 1>
-#>     └── b <uint8 × 1>
+#> ├── my_vector <uint8 × 10>
+#> │   └── @my_id <uint8 scalar>
+#> ├── my_matrix <float64 × 3 × 3>
+#> └── simulation_config/
+#>     ├── version <uint8 × 1>
+#>     └── params/
+#>         ├── a <uint8 × 1>
+#>         └── b <uint8 × 1>
 ```
 
-### 3. Read Data
+## Smart Data Typing
 
-Use [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) to
-read data back into R. The function automatically restores the correct
-dimensions.
+`h5lite` inspects your data and chooses the safest, most compact HDF5
+data type automatically. You don’t need to know the specific HDF5 type
+codes; `h5lite` handles the translation.
 
 ``` r
-# Read the matrix
-mat_in <- h5_read(file, "data/matrix")
-all.equal(mat, mat_in)
-#> [1] TRUE
+# R uses 32-bit integers by default
+x <- 1:100 
+
+# h5lite detects these values fit in 8 bits and saves space automatically
+h5_write(x, file, "smart_ints")
+
+h5_str(file)
+#> ...
+#> └── smart_ints <uint8 x 100>
 ```
 
-### 4. Attributes
+## Power User Features: The `as` Argument
 
-Metadata can be attached to any object using the `attr` parameter.
+Need to conform to a specific file specification? The `as` argument
+allows you to override automatic behavior and explicitly define on-disk
+types.
+
+### Precise Type Control
 
 ``` r
-# Attach attributes to the "data/matrix" dataset
-h5_write(I("meters"), file, "data/matrix", attr = "units")
-h5_write(c(1.0, 1.0), file, "data/matrix", attr = "scale")
+# Force specific numeric types
+h5_write(1:10, file, "dataset_a", as = "int32")
+h5_write(rnorm(10), file, "dataset_b", as = "float32")
 
-# List attributes
-h5_attr_names(file, "data/matrix")
-#> [1] "units" "scale"
+# Control string lengths (e.g., fixed-length ASCII for compatibility)
+h5_write(c("A", "B"), file, "fixed_strs", as = "ascii[10]")
 
-# Read an attribute
-units <- h5_read(file, "data/matrix", attr = "units")
-print(units)
-#> [1] "meters"
+h5_str(file)
+#> ...
+#> ├── dataset_a <int32 × 10>
+#> ├── dataset_b <float32 × 10>
+#> └── fixed_strs <ascii[10] × 2>
 ```
 
-## See Also
+### Complex Dataset Mapping
 
-For more detailed guides on specific topics, see the package vignettes:
+When writing Data Frames, you can map types for specific columns using a
+named vector.
+
+``` r
+df <- data.frame(
+  id    = 1:5, 
+  score = c(1.1, 2.2, 3.3, 4.4, 5.5),
+  note  = c("a", "b", "c", "d", "e")
+)
+
+# Store 'id' as 16-bit integer, 'score' as 32-bit float, and coerce 'note' to ascii
+h5_write(df, file, "experiment_data", 
+         as = c(id = "uint16", score = "float32", note = "ascii"))
+
+h5_str(file)
+#> ...
+#> └── experiment_data <compound[3] × 5>
+#>     ├── $id <uint16>
+#>     ├── $score <float32>
+#>     └── $note <ascii>
+```
+
+## For Package Developers
+
+If you are developing a package that needs to store large arrays or
+hierarchical data, `h5lite` is the safest dependency choice.
+
+- **No “System Requirements”:** Because `h5lite` links to `hdf5lib`,
+  your users don’t need to install `libhdf5-dev` (Linux) or
+  `brew install hdf5` (macOS). It compiles seamlessly on all major
+  platforms.
+- **Safe by Design:** `h5lite` prevents common HDF5 errors, such as
+  dimension mismatches or integer overflows, before they happen.
+
+## Comparison
+
+How does `h5lite` compare to the other major R HDF5 packages?
+
+| Feature               | h5lite                    | rhdf5 / hdf5r                                          |
+|:----------------------|:--------------------------|:-------------------------------------------------------|
+| **Philosophy**        | “Opinionated” & Simple    | Comprehensive Wrapper                                  |
+| **API Style**         | Native R (`read`/`write`) | Low-level (Files, Dataspaces, Memspaces)               |
+| **HDF5 Installation** | **Bundled** (Zero-config) | **System Requirement** (Manual install often required) |
+| **Data Typing**       | Automatic (safe defaults) | Manual (user specified)                                |
+| **Learning Curve**    | Low (Minutes)             | High (Days)                                            |
+
+**Use `rhdf5` or `hdf5r` if you need to:**
+
+- Work with complex or custom HDF5 data types not supported by `h5lite`
+  (e.g., bitfields, references).
+- Have fine-grained control over file properties, chunking, or
+  compression filters.
+- Perform partial I/O (i.e., read or write a small slice of a very large
+  on-disk dataset).
+
+**Use `h5lite` if you want to:**
+
+- Quickly and safely get data into or out of a file.
+- Avoid thinking about low-level details.
+
+## Documentation
 
 - **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**:
   A general introduction.
@@ -206,40 +213,6 @@ For more detailed guides on specific topics, see the package vignettes:
 - **[Parallel
   Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**:
   Guide for multi-threaded and multi-process access.
-
-You can also access these vignettes from within R using
-`browseVignettes("h5lite")`.
-
-## When to Use Another HDF5 Package
-
-`h5lite` is intentionally simple. If you need advanced control over HDF5
-features, you should use a more comprehensive package like **`rhdf5`**
-(from Bioconductor) or **`hdf5r`** (from CRAN).
-
-| Feature              | `h5lite`                                   | `rhdf5` / `hdf5r`                                           |
-|----------------------|--------------------------------------------|-------------------------------------------------------------|
-| **Primary Goal**     | Simplicity and safety for common R objects | Comprehensive control over all HDF5 features                |
-| **API Style**        | Simple R functions (`h5_read`, `h5_write`) | Wrappers for the complete HDF5 C-API                        |
-| **Ease of Use**      | **High**. Designed for R users.            | **Medium**. Requires some HDF5 knowledge.                   |
-| **Installation**     | **Easy**. Bundled HDF5 library.            | Can be complex (`hdf5r` requires system library).           |
-| **Dimension Order**  | **Automatic**. Transposes for you.         | **Manual**. User must manage C vs. R order.                 |
-| **Numeric Safety**   | **Safe**. Auto-selects safe R type.        | **User’s choice**. Can read as integers (risk of overflow). |
-| **Object Overwrite** | **Automatic**.                             | **Manual**. Requires check/delete first.                    |
-| **Compression**      | Simple on/off (`compress = TRUE`).         | Full control over filters, chunking, etc.                   |
-
-**Use `rhdf5` or `hdf5r` if you need to:**
-
-- Work with complex or custom HDF5 data types not supported by `h5lite`
-  (e.g., bitfields, references).
-- Have fine-grained control over file properties, chunking, or
-  compression filters.
-- Perform partial I/O (i.e., read or write a small slice of a very large
-  on-disk dataset).
-
-**Use `h5lite` if you want to:**
-
-- Quickly and safely get data into or out of a file.
-- Avoid thinking about low-level details.
 
 # Package index
 
