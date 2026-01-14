@@ -1,4 +1,4 @@
-name: Cleanup Completed Runs
+name: Clear Completed Runs
 
 on:
   workflow_dispatch:

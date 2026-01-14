@@ -3,26 +3,38 @@
 
 // # nocov start
 SEXP errmsg_1(const char *fmt, const char *str1) {
-  char dummy; // Dummy buffer to satisfy -Wformat-truncation
-  int   len    = snprintf(&dummy, 0, fmt, str1); 
+  const char *a = str1 ? str1 : "(null)";
+  
+  size_t len = strlen(fmt) - 2 + strlen(a);
+  
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-  snprintf(buffer, len + 1, fmt, str1);
+  snprintf(buffer, len + 1, fmt, a);
+  
   return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_2(const char *fmt, const char *str1, const char *str2) {
-  char dummy;
-  int   len    = snprintf(&dummy, 0, fmt, str1, str2);
+  const char *a = str1 ? str1 : "(null)";
+  const char *b = str2 ? str2 : "(null)";
+  
+  size_t len = strlen(fmt) - 4 + strlen(a) + strlen(b);
+  
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-  snprintf(buffer, len + 1, fmt, str1, str2);
+  snprintf(buffer, len + 1, fmt, a, b);
+  
   return mkCharCE(buffer, CE_UTF8);
 }
 
 SEXP errmsg_3(const char *fmt, const char *str1, const char *str2, const char *str3) {
-  char dummy;
-  int   len    = snprintf(&dummy, 0, fmt, str1, str2, str3);
+  const char *a = str1 ? str1 : "(null)";
+  const char *b = str2 ? str2 : "(null)";
+  const char *c = str3 ? str3 : "(null)";
+  
+  size_t len = strlen(fmt) - 6 + strlen(a) + strlen(b) + strlen(c);
+  
   char *buffer = (char *) R_alloc(len + 1, sizeof(char));
-  snprintf(buffer, len + 1, fmt, str1, str2, str3);
+  snprintf(buffer, len + 1, fmt, a, b, c);
+  
   return mkCharCE(buffer, CE_UTF8);
 }
 // # nocov end

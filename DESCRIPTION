@@ -7,7 +7,7 @@ Description: A user-friendly interface for the 'HDF5' library designed to "just 
 URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
 BugReports: https://github.com/cmmr/h5lite/issues
 Depends: R (>= 4.2.0)
-LinkingTo: hdf5lib (>= 2.0.0)
+LinkingTo: hdf5lib (>= 2.0.0.5)
 Suggests: bit64, knitr, rmarkdown, testthat (>= 3.0.0)
 NeedsCompilation: yes
 License: MIT + file LICENSE
