@@ -23,7 +23,18 @@ These dimensions match the R-style (column-major) interpretation.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_write(matrix(1:10, 2, 5), file, "matrix")
 h5_dim(file, "matrix") # 2 5
+
+h5_write(mtcars, file, "mtcars")
+h5_dim(file, "mtcars") # 32 11
+
+h5_write(I(TRUE), file, "my_bool")
+h5_dim(file, "my_bool") # integer(0)
+
+h5_write(1:10, file, "my_ints")
+h5_dim(file, "my_ints") # 10
+
 unlink(file)
 }

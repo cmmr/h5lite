@@ -28,7 +28,7 @@ This function determines the resulting R class by inspecting the storage metadat
 
 \itemize{
 \item \strong{Groups} are reported as \code{"list"}.
-\item \strong{Integer} datasets/attributes are reported as \code{"integer"}.
+\item \strong{Integer} datasets/attributes are reported as \code{"numeric"}.
 \item \strong{Floating Point} datasets/attributes are reported as \code{"numeric"}.
 \item \strong{String} datasets/attributes are reported as \code{"character"}.
 \item \strong{Complex} datasets/attributes are reported as \code{"complex"}.
@@ -40,8 +40,19 @@ This function determines the resulting R class by inspecting the storage metadat
 }
 \examples{
 file <- tempfile(fileext = ".h5")
-h5_write(1:10, file, "dset")
-h5_class(file, "dset") # "numeric"
+
+h5_write(1:10, file, "my_ints", as = "int32")
+h5_class(file, "my_ints") # "numeric"
+
+h5_write(mtcars, file, "mtcars")
+h5_class(file, "mtcars") # "data.frame"
+
+h5_write(c("a", "b", "c"), file, "strings")
+h5_class(file, "strings") # "character"
+
+h5_write(c(1, 2, 3), file, "my_floats", as = "float64")
+h5_class(file, "my_floats") # "numeric"
+
 unlink(file)
 }
 \seealso{

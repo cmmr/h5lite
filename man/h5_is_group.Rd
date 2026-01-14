@@ -23,8 +23,13 @@ Checks if the object at a given path is a group.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_create_group(file, "grp")
 h5_is_group(file, "grp") # TRUE
+
+h5_write(1:10, file, "my_ints")
+h5_is_group(file, "my_ints") # FALSE
+
 unlink(file)
 }
 \seealso{

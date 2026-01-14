@@ -23,8 +23,16 @@ Checks if the object at a given path is a dataset.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_write(1, file, "dset")
 h5_is_dataset(file, "dset") # TRUE
+
+h5_create_group(file, "grp")
+h5_is_dataset(file, "grp") # FALSE
+
+h5_write(1, file, "grp", attr = "my_attr")
+h5_is_dataset(file, "grp", "my_attr") # TRUE
+
 unlink(file)
 }
 \seealso{

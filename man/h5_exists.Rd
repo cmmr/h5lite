@@ -41,9 +41,22 @@ if that attribute exists on the specified object \code{name}.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
+h5_exists(file) # FALSE
+
 h5_create_file(file)
 h5_exists(file) # TRUE
+
 h5_exists(file, "missing_object") # FALSE
+
+h5_write(1:10, file, "my_ints")
+h5_exists(file, "my_ints") # TRUE
+
+h5_exists(file, "my_ints", "missing_attr") # FALSE
+
+h5_write(1:10, file, "my_ints", attr = "my_attr")
+h5_exists(file, "my_ints", "my_attr") # TRUE
+
 unlink(file)
 }
 \seealso{

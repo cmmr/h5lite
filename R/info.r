@@ -8,7 +8,7 @@
 #'
 #' \itemize{
 #'   \item **Groups** are reported as `"list"`.
-#'   \item **Integer** datasets/attributes are reported as `"integer"`.
+#'   \item **Integer** datasets/attributes are reported as `"numeric"`.
 #'   \item **Floating Point** datasets/attributes are reported as `"numeric"`.
 #'   \item **String** datasets/attributes are reported as `"character"`.
 #'   \item **Complex** datasets/attributes are reported as `"complex"`.
@@ -30,8 +30,19 @@
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#' h5_write(1:10, file, "dset")
-#' h5_class(file, "dset") # "numeric"
+#' 
+#' h5_write(1:10, file, "my_ints", as = "int32")
+#' h5_class(file, "my_ints") # "numeric"
+#' 
+#' h5_write(mtcars, file, "mtcars")
+#' h5_class(file, "mtcars") # "data.frame"
+#' 
+#' h5_write(c("a", "b", "c"), file, "strings")
+#' h5_class(file, "strings") # "character"
+#' 
+#' h5_write(c(1, 2, 3), file, "my_floats", as = "float64")
+#' h5_class(file, "my_floats") # "numeric"
+#' 
 #' unlink(file)
 h5_class <- function (file, name, attr = NULL) {
 
@@ -60,21 +71,30 @@ h5_class <- function (file, name, attr = NULL) {
 #' Get HDF5 Storage Type of an Object or Attribute
 #'
 #' Returns the low-level HDF5 storage type of a dataset or an attribute
-#' (e.g., "int8", "float64", "string"). This allows inspecting the file storage
-#' type before reading the data into R.
+#' (e.g., "int8", "float64", "utf8", "ascii\[10\]"). This allows inspecting the 
+#' file storage type before reading the data into R.
 #'
 #' @param file The path to the HDF5 file.
 #' @param name Name of the dataset or object.
 #' @param attr The name of an attribute to check. If `NULL` (default), the function
 #'   returns the type of the object itself.
-#' @return A character string representing the HDF5 storage type (e.g., "float32", "uint32", "string").
+#' @return A character string representing the HDF5 storage type 
+#'   (e.g., "float32", "uint32", "ascii\[10\]", "compound\[2\]").
 #'
 #' @seealso [h5_class()], [h5_exists()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_write(1L, file, "int32_val", as = "int32")
 #' h5_typeof(file, "int32_val") # "int32"
+#' 
+#' h5_write(mtcars, file, "mtcars")
+#' h5_typeof(file, "mtcars") # "compound[11]"
+#' 
+#' h5_write(c("a", "b", "c"), file, "strings")
+#' h5_typeof(file, "strings") # "utf8[1]"
+#' 
 #' unlink(file)
 h5_typeof <- function (file, name, attr = NULL) {
 
@@ -99,8 +119,19 @@ h5_typeof <- function (file, name, attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_write(matrix(1:10, 2, 5), file, "matrix")
 #' h5_dim(file, "matrix") # 2 5
+#' 
+#' h5_write(mtcars, file, "mtcars")
+#' h5_dim(file, "mtcars") # 32 11
+#' 
+#' h5_write(I(TRUE), file, "my_bool")
+#' h5_dim(file, "my_bool") # integer(0)
+#' 
+#' h5_write(1:10, file, "my_ints")
+#' h5_dim(file, "my_ints") # 10
+#' 
 #' unlink(file)
 h5_dim <- function (file, name, attr = NULL) {
 
@@ -142,9 +173,22 @@ h5_dim <- function (file, name, attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
+#' h5_exists(file) # FALSE
+#' 
 #' h5_create_file(file)
 #' h5_exists(file) # TRUE
+#' 
 #' h5_exists(file, "missing_object") # FALSE
+#' 
+#' h5_write(1:10, file, "my_ints")
+#' h5_exists(file, "my_ints") # TRUE
+#' 
+#' h5_exists(file, "my_ints", "missing_attr") # FALSE
+#' 
+#' h5_write(1:10, file, "my_ints", attr = "my_attr")
+#' h5_exists(file, "my_ints", "my_attr") # TRUE
+#' 
 #' unlink(file)
 h5_exists <- function (file, name = "/", attr = NULL, assert = FALSE) {
   
@@ -175,8 +219,13 @@ h5_exists <- function (file, name = "/", attr = NULL, assert = FALSE) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_create_group(file, "grp")
 #' h5_is_group(file, "grp") # TRUE
+#' 
+#' h5_write(1:10, file, "my_ints")
+#' h5_is_group(file, "my_ints") # FALSE
+#' 
 #' unlink(file)
 h5_is_group <- function (file, name, attr = NULL) {
 
@@ -203,8 +252,16 @@ h5_is_group <- function (file, name, attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_write(1, file, "dset")
 #' h5_is_dataset(file, "dset") # TRUE
+#' 
+#' h5_create_group(file, "grp")
+#' h5_is_dataset(file, "grp") # FALSE
+#' 
+#' h5_write(1, file, "grp", attr = "my_attr")
+#' h5_is_dataset(file, "grp", "my_attr") # TRUE
+#' 
 #' unlink(file)
 h5_is_dataset <- function (file, name, attr = NULL) {
 
@@ -232,8 +289,18 @@ h5_is_dataset <- function (file, name, attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_write(data.frame(x=1, y=2), file, "df")
 #' h5_names(file, "df") # "x" "y"
+#' 
+#' x <- 1:5
+#' names(x) <- letters[1:5]
+#' h5_write(x, file, "x")
+#' h5_names(file, "x") # "a" "b" "c" "d" "e"
+#' 
+#' h5_write(mtcars[,c("mpg", "hp")], file, "dset")
+#' h5_names(file, "dset") # "mpg" "hp"
+#' 
 #' unlink(file)
 h5_names <- function (file, name = "/", attr = NULL) {
 
@@ -263,11 +330,12 @@ h5_names <- function (file, name = "/", attr = NULL) {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
+#' 
 #' h5_write(1:10,          file, "data")
 #' h5_write(I("meters"),   file, "data", attr = "unit")
 #' h5_write(I(Sys.time()), file, "data", attr = "timestamp")
 #' 
-#' h5_attr_names(file, "data")
+#' h5_attr_names(file, "data") # "unit" "timestamp"
 #' 
 #' unlink(file)
 h5_attr_names <- function (file, name = "/") {
@@ -292,8 +360,18 @@ h5_attr_names <- function (file, name = "/") {
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
-#' h5_write(1:100, file, "dset")
-#' h5_length(file, "dset") # 100
+#' 
+#' h5_write(1:100, file, "my_vec")
+#' h5_length(file, "my_vec") # 100
+#' 
+#' h5_write(mtcars, file, "my_df")
+#' h5_length(file, "my_df") # 11 (ncol(mtcars))
+#' 
+#' h5_write(as.matrix(mtcars), file, "my_mtx")
+#' h5_length(file, "my_mtx") # 352 (prod(dim(mtcars)))
+#' 
+#' h5_length(file, "/") # 3
+#' 
 #' unlink(file)
 h5_length <- function (file, name, attr = NULL) {
 

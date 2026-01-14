@@ -27,7 +27,17 @@ Returns the names of the object.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_write(data.frame(x=1, y=2), file, "df")
 h5_names(file, "df") # "x" "y"
+
+x <- 1:5
+names(x) <- letters[1:5]
+h5_write(x, file, "x")
+h5_names(file, "x") # "a" "b" "c" "d" "e"
+
+h5_write(mtcars[,c("mpg", "hp")], file, "dset")
+h5_names(file, "dset") # "mpg" "hp"
+
 unlink(file)
 }

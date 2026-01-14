@@ -15,17 +15,26 @@ h5_typeof(file, name, attr = NULL)
 returns the type of the object itself.}
 }
 \value{
-A character string representing the HDF5 storage type (e.g., "float32", "uint32", "string").
+A character string representing the HDF5 storage type
+(e.g., "float32", "uint32", "ascii[10]", "compound[2]").
 }
 \description{
 Returns the low-level HDF5 storage type of a dataset or an attribute
-(e.g., "int8", "float64", "string"). This allows inspecting the file storage
-type before reading the data into R.
+(e.g., "int8", "float64", "utf8", "ascii[10]"). This allows inspecting the
+file storage type before reading the data into R.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_write(1L, file, "int32_val", as = "int32")
 h5_typeof(file, "int32_val") # "int32"
+
+h5_write(mtcars, file, "mtcars")
+h5_typeof(file, "mtcars") # "compound[11]"
+
+h5_write(c("a", "b", "c"), file, "strings")
+h5_typeof(file, "strings") # "utf8[1]"
+
 unlink(file)
 }
 \seealso{

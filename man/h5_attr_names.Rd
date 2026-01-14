@@ -20,11 +20,12 @@ Lists the names of attributes attached to a specific HDF5 object.
 }
 \examples{
 file <- tempfile(fileext = ".h5")
+
 h5_write(1:10,          file, "data")
 h5_write(I("meters"),   file, "data", attr = "unit")
 h5_write(I(Sys.time()), file, "data", attr = "timestamp")
 
-h5_attr_names(file, "data")
+h5_attr_names(file, "data") # "unit" "timestamp"
 
 unlink(file)
 }
