@@ -14,9 +14,9 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
 - data:
 
-  The R object to write. Supported: `numeric`, `integer`, `complex`,
-  `logical`, `character`, `factor`, `raw`, `matrix`, `data.frame`,
-  `NULL`, and nested `list`s.
+  The R object to write. Supported: `numeric`, `complex`, `logical`,
+  `character`, `factor`, `raw`, `matrix`, `data.frame`, `integer64`,
+  `POSIXt`, `NULL`, and nested `list`s.
 
 - file:
 
@@ -57,12 +57,23 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
 Invisibly returns `file`. This function is called for its side effects.
 
+## Writing Scalars
+
+By default, `h5_write` saves single-element vectors as 1-dimensional
+arrays. To write a true HDF5 scalar, wrap the value in
+[`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
+example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
+`h5_write(5, file, "x")` will create a 1D array of length 1.
+
 ## Data Type Selection (`as` Argument)
 
-The `as` argument controls the on-disk storage type for integer, double,
-logical, and character columns.
+For the complete list of mappings between R and HDF5 data types, see
+[`vignette("data-types")`](https://cmmr.github.io/h5lite/articles/data-types.md).
 
-**1. Available Types**
+### Numeric and Logical Vectors
+
+When writing a numeric or logical vector, you can specify one of the
+following storage types for it:
 
 - **Floating Point:** `"float16"`, `"float32"`, `"float64"`,
   `"bfloat16"`
@@ -71,46 +82,34 @@ logical, and character columns.
 
 - **Unsigned Integer:** `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
+`h5_write(1:100, file, "my_ints", as = "int64")`
+
+**NOTE:** `NA` values must be stored as `float64`. `NaN`, `Inf`, and
+`-Inf` must be stored as a floating point type.
+
+### Character Vectors
+
+You can control whether character vectors are stored as variable or
+fixed length strings, and whether to use UTF-8 or ASCII encoding.
+
 - **Variable Length Strings:** `"utf8"`, `"ascii"`
 
 - **Fixed Length Strings:**
 
-  - `"utf8[]"` or `"ascii[]"` (auto-detects the longest string in the
-    data)
+  - `"utf8[]"` or `"ascii[]"` (length is set to the longest string)
 
-  - `"utf8[n]"` or `"ascii[n]"` (where `n` is the length in bytes, e.g.,
-    `"utf8[10]"`)
+  - `"utf8[n]"` or `"ascii[n]"` (where `n` is the length in bytes)
 
-- **Other:** `"auto"`, `"skip"` (to skip a column/attribute of any R
-  type)
+`h5_write(letters[1:5], file, "my_chars", as = "utf8[10]")`
 
-*Strings:* Variable-length strings allow for `NA` values (via NULL
-pointers) but cannot be compressed. Fixed-length strings allow for
-compression but do not support `NA`.
+**NOTE:** Variable-length strings allow for `NA` values but cannot be
+compressed on disk. Fixed-length strings allow for compression but do
+not support `NA`.
 
-**2. Automatic Selection (`as = "auto"`)**
+### Lists, Data Frames, and Attributes
 
-|              |                          |                                               |
-|--------------|--------------------------|-----------------------------------------------|
-| **R Type**   | **HDF5 Type**            | **Notes**                                     |
-| `numeric`    | *various*                | Selects smallest type for data range.         |
-| `logical`    | `H5T_STD_U8LE`           | TRUE/FALSE stored as 1/0.                     |
-| `character`  | `H5T_C_S1`               | `H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM` |
-| `factor`     | `H5T_ENUM`               | Maps levels to integers.                      |
-| `data.frame` | `H5T_COMPOUND`           | Native table-like structure.                  |
-| `list`       | `H5O_TYPE_GROUP`         | Written to HDF5 recursively.                  |
-| `complex`    | `H5T_COMPLEX_IEEE_F64LE` | Requires HDF5 \>= 2.0.0.                      |
-| `raw`        | `H5T_OPAQUE`             | For binary data storage.                      |
-| `NULL`       | `H5S_NULL`               | Null Dataspace                                |
-| `integer64`  | `H5T_STD_I64LE`          | From the `bit64` R package.                   |
-| `POSIXt`     | `H5T_C_S1`               | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`)      |
-
-*NA Handling:* If an R numeric or logical vector contains `NA`, `h5lite`
-will store it as `float64` to preserve the `NA` value.
-
-**3. Column/Class Mapping**
-
-You can provide a named vector to map specific columns or classes:
+Provide a named vector to apply type mappings to sub-components of
+`data`. Set `"skip"` as the type to skip a specific component.
 
 - **Specific Name:** `"col_name" = "type"` (e.g.,
   `c(score = "float32")`)
@@ -126,16 +125,13 @@ You can provide a named vector to map specific columns or classes:
 
 - **Global Attribute Fallback:** `"@." = "type"`
 
-*Numeric Class:* `".numeric"` targets both `integer` and `double` with a
-lower priority than `".integer"` and `".double"`.
+To not save attributes:
 
-## Writing Scalars
+`h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))`
 
-By default, `h5_write` saves single-element vectors as 1-dimensional
-arrays. To write a true HDF5 scalar, wrap the value in
-[`I()`](https://rdrr.io/r/base/AsIs.html) to treat it "as-is." For
-example, `h5_write(I(5), file, "x")` will create a scalar dataset, while
-`h5_write(5, file, "x")` will create a 1D array of length 1.
+To only save just the `hp` and `wt` columns:
+
+`h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))`
 
 ## Dimension Scales
 
