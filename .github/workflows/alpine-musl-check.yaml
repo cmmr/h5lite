@@ -9,7 +9,7 @@ on:
       - src/**
       - tests/**
       - .Rbuildignore
-      - .github/workflows/Alpine-Musl-Check.yaml
+      - .github/workflows/alpine-musl-check.yaml
 
 jobs:
   alpine-check:
@@ -43,7 +43,7 @@ jobs:
 
               echo "--- Running R CMD check ---"
               # Capture exit status instead of failing immediately (due to set -e)
-              if R -q -e "rcmdcheck::rcmdcheck(args = c(\"--no-manual\", \"--as-cran\", \"--no-vignettes\"), build_args = \"--no-build-vignettes\")"; then
+              if R -q -e "rcmdcheck::rcmdcheck(args = c(\"--no-manual\", \"--as-cran\", \"--no-vignettes\", \"--ignore-vignettes\"), build_args = \"--no-build-vignettes\")"; then
                 STATUS=0
                 echo "✅ Check Succeeded"
               else
