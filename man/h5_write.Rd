@@ -7,9 +7,9 @@
 h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 }
 \arguments{
-\item{data}{The R object to write. Supported: \code{numeric}, \code{integer}, \code{complex},
-\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{NULL},
-and nested \code{list}s.}
+\item{data}{The R object to write. Supported: \code{numeric}, \code{complex},
+\code{logical}, \code{character}, \code{factor}, \code{raw}, \code{matrix}, \code{data.frame}, \code{integer64},
+\code{POSIXt}, \code{NULL}, and nested \code{list}s.}
 
 \item{file}{The path to the HDF5 file.}
 
@@ -40,52 +40,60 @@ Invisibly returns \code{file}. This function is called for its side effects.
 Writes an R object to an HDF5 file, creating the file if it does not exist.
 This function acts as a unified writer for datasets, groups (lists), and attributes.
 }
+\section{Writing Scalars}{
+
+
+By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
+To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
+For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, while
+\code{h5_write(5, file, "x")} will create a 1D array of length 1.
+}
+
 \section{Data Type Selection (\code{as} Argument)}{
 
-The \code{as} argument controls the on-disk storage type for integer, double,
-logical, and character columns.
 
-\strong{1. Available Types}
+For the complete list of mappings between R and HDF5 data types, see
+\code{vignette("data-types")}.
+\subsection{Numeric and Logical Vectors}{
+
+When writing a numeric or logical vector, you can specify one of the
+following storage types for it:
 \itemize{
 \item \strong{Floating Point:} \code{"float16"}, \code{"float32"}, \code{"float64"}, \code{"bfloat16"}
 \item \strong{Signed Integer:} \code{"int8"}, \code{"int16"}, \code{"int32"}, \code{"int64"}
 \item \strong{Unsigned Integer:} \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
+}
+
+\code{h5_write(1:100, file, "my_ints", as = "int64")}
+
+\strong{NOTE:} \code{NA} values must be stored as \code{float64}. \code{NaN}, \code{Inf}, and \code{-Inf}
+must be stored as a floating point type.
+}
+
+\subsection{Character Vectors}{
+
+You can control whether character vectors are stored as variable or fixed
+length strings, and whether to use UTF-8 or ASCII encoding.
+\itemize{
 \item \strong{Variable Length Strings:} \code{"utf8"}, \code{"ascii"}
 \item \strong{Fixed Length Strings:}
 \itemize{
-\item \code{"utf8[]"} or \code{"ascii[]"} (auto-detects the longest string in the data)
-\item \code{"utf8[n]"} or \code{"ascii[n]"} (where \code{n} is the length in bytes, e.g., \code{"utf8[10]"})
+\item \code{"utf8[]"} or \code{"ascii[]"} (length is set to the longest string)
+\item \code{"utf8[n]"} or \code{"ascii[n]"} (where \code{n} is the length in bytes)
 }
-\item \strong{Other:} \code{"auto"}, \code{"skip"} (to skip a column/attribute of any R type)
-}
-
-\emph{Strings:} Variable-length strings allow for \code{NA} values (via NULL pointers)
-but cannot be compressed. Fixed-length strings allow for compression but do
-not support \code{NA}.
-
-\strong{2. Automatic Selection (\code{as = "auto"})}
-
-\tabular{lll}{
-\strong{R Type} \tab \strong{HDF5 Type} \tab \strong{Notes} \cr
-\code{numeric}    \tab \emph{various}        \tab Selects smallest type for data range. \cr
-\code{logical}    \tab \code{H5T_STD_U8LE}   \tab TRUE/FALSE stored as 1/0. \cr
-\code{character}  \tab \code{H5T_C_S1}       \tab \verb{H5T_CSET_UTF8 H5T_VARIABLE H5T_STR_NULLTERM} \cr
-\code{factor}     \tab \code{H5T_ENUM}       \tab Maps levels to integers. \cr
-\code{data.frame} \tab \code{H5T_COMPOUND}   \tab Native table-like structure. \cr
-\code{list}       \tab \code{H5O_TYPE_GROUP} \tab Written to HDF5 recursively. \cr
-\code{complex}    \tab \code{H5T_COMPLEX_IEEE_F64LE} \tab Requires HDF5 >= 2.0.0. \cr
-\code{raw}        \tab \code{H5T_OPAQUE}     \tab For binary data storage. \cr
-\code{NULL}       \tab \code{H5S_NULL}       \tab Null Dataspace \cr
-\code{integer64}  \tab \code{H5T_STD_I64LE}  \tab From the \code{bit64} R package. \cr
-\code{POSIXt}     \tab \code{H5T_C_S1}       \tab ISO 8601 string (\code{YYYY-MM-DDTHH:MM:SSZ}) \cr
 }
 
-\emph{NA Handling:} If an R numeric or logical vector contains \code{NA}, \code{h5lite}
-will store it as \code{float64} to preserve the \code{NA} value.
+\code{h5_write(letters[1:5], file, "my_chars", as = "utf8[10]")}
 
-\strong{3. Column/Class Mapping}
+\strong{NOTE:} Variable-length strings allow for \code{NA} values but cannot be
+compressed on disk. Fixed-length strings allow for compression but do not
+support \code{NA}.
+}
 
-You can provide a named vector to map specific columns or classes:
+\subsection{Lists, Data Frames, and Attributes}{
+
+Provide a named vector to apply type mappings to sub-components of \code{data}.
+Set \code{"skip"} as the type to skip a specific component.
 \itemize{
 \item \strong{Specific Name:} \code{"col_name" = "type"} (e.g., \code{c(score = "float32")})
 \item \strong{Specific Attribute:} \code{"@attr_name" = "type"}
@@ -95,16 +103,14 @@ You can provide a named vector to map specific columns or classes:
 \item \strong{Global Attribute Fallback:} \code{"@." = "type"}
 }
 
-\emph{Numeric Class:} \code{".numeric"} targets both \code{integer} and \code{double} with a
-lower priority than \code{".integer"} and \code{".double"}.
+To not save attributes:
+
+\code{h5_write(data, file, 'no_attrs_obj', as = c('@.' = "skip"))}
+
+To only save just the \code{hp} and \code{wt} columns:
+
+\code{h5_write(mtcars, file, 'my_df', as = c('hp' = "auto", 'wt' = "float32", '.' = "skip"))}
 }
-
-\section{Writing Scalars}{
-
-By default, \code{h5_write} saves single-element vectors as 1-dimensional arrays.
-To write a true HDF5 scalar, wrap the value in \code{I()} to treat it "as-is."
-For example, \code{h5_write(I(5), file, "x")} will create a scalar dataset, while
-\code{h5_write(5, file, "x")} will create a 1D array of length 1.
 }
 
 \section{Dimension Scales}{
