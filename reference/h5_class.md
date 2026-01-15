@@ -38,23 +38,23 @@ read.
 This function determines the resulting R class by inspecting the storage
 metadata.
 
-- **Group** → `"list"`
+- **Group** \\\rightarrow\\ `"list"`
 
-- **Integer** → `"numeric"`
+- **Integer** \\\rightarrow\\ `"numeric"`
 
-- **Floating Point** → `"numeric"`
+- **Floating Point** \\\rightarrow\\ `"numeric"`
 
-- **String** → `"character"`
+- **String** \\\rightarrow\\ `"character"`
 
-- **Complex** → `"complex"`
+- **Complex** \\\rightarrow\\ `"complex"`
 
-- **Enum** → `"factor"`
+- **Enum** \\\rightarrow\\ `"factor"`
 
-- **Opaque** → `"raw"`
+- **Opaque** \\\rightarrow\\ `"raw"`
 
-- **Compound** → `"data.frame"`
+- **Compound** \\\rightarrow\\ `"data.frame"`
 
-- **Null** → `"NULL"`
+- **Null** \\\rightarrow\\ `"NULL"`
 
 ## See also
 

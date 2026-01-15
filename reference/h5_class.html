@@ -30,6 +30,7 @@ that h5_read() would produce."><meta property="og:image" content="https://cmmr.g
     <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
     <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
   </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/cmmr/h5lite/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -81,15 +82,15 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function determines the resulting R class by inspecting the storage metadata.</p>
-<ul><li><p><strong>Group</strong> → <code>"list"</code></p></li>
-<li><p><strong>Integer</strong> → <code>"numeric"</code></p></li>
-<li><p><strong>Floating Point</strong> → <code>"numeric"</code></p></li>
-<li><p><strong>String</strong> → <code>"character"</code></p></li>
-<li><p><strong>Complex</strong> → <code>"complex"</code></p></li>
-<li><p><strong>Enum</strong> → <code>"factor"</code></p></li>
-<li><p><strong>Opaque</strong> → <code>"raw"</code></p></li>
-<li><p><strong>Compound</strong> → <code>"data.frame"</code></p></li>
-<li><p><strong>Null</strong> → <code>"NULL"</code></p></li>
+<ul><li><p><strong>Group</strong> \(\rightarrow\) <code>"list"</code></p></li>
+<li><p><strong>Integer</strong> \(\rightarrow\) <code>"numeric"</code></p></li>
+<li><p><strong>Floating Point</strong> \(\rightarrow\) <code>"numeric"</code></p></li>
+<li><p><strong>String</strong> \(\rightarrow\) <code>"character"</code></p></li>
+<li><p><strong>Complex</strong> \(\rightarrow\) <code>"complex"</code></p></li>
+<li><p><strong>Enum</strong> \(\rightarrow\) <code>"factor"</code></p></li>
+<li><p><strong>Opaque</strong> \(\rightarrow\) <code>"raw"</code></p></li>
+<li><p><strong>Compound</strong> \(\rightarrow\) <code>"data.frame"</code></p></li>
+<li><p><strong>Null</strong> \(\rightarrow\) <code>"NULL"</code></p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -124,7 +125,7 @@ Returns <code>NA_character_</code> for HDF5 types that <code>h5lite</code> canno
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Daniel P. Smith.</p>
+  <p>Developed by Daniel P. Smith, Alkek Center for Metagenomics and Microbiome Research.</p>
 </div>
 
 <div class="pkgdown-footer-right">

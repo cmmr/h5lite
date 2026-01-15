@@ -38,3 +38,9 @@ Key functions:
 ## Author
 
 **Maintainer**: Daniel P. Smith <dansmith01@gmail.com>
+([ORCID](https://orcid.org/0000-0002-2479-2044))
+
+Other contributors:
+
+- Alkek Center for Metagenomics and Microbiome Research \[copyright
+  holder, funder\]
