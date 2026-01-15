@@ -32,7 +32,12 @@ Useful links:
 Key functions: \code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_write]{h5_write()}}, \code{\link[=h5_ls]{h5_ls()}}, \code{\link[=h5_str]{h5_str()}}
 }
 \author{
-\strong{Maintainer}: Daniel P. Smith \email{dansmith01@gmail.com}
+\strong{Maintainer}: Daniel P. Smith \email{dansmith01@gmail.com} (\href{https://orcid.org/0000-0002-2479-2044}{ORCID})
+
+Other contributors:
+\itemize{
+  \item Alkek Center for Metagenomics and Microbiome Research [copyright holder, funder]
+}
 
 }
 \keyword{internal}

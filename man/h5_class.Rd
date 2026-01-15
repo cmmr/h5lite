@@ -27,15 +27,15 @@ that \code{h5_read()} would produce.
 This function determines the resulting R class by inspecting the storage metadata.
 
 \itemize{
-\item \strong{Group} → \code{"list"}
-\item \strong{Integer} → \code{"numeric"}
-\item \strong{Floating Point} → \code{"numeric"}
-\item \strong{String} → \code{"character"}
-\item \strong{Complex} → \code{"complex"}
-\item \strong{Enum} → \code{"factor"}
-\item \strong{Opaque} → \code{"raw"}
-\item \strong{Compound} → \code{"data.frame"}
-\item \strong{Null} → \code{"NULL"}
+\item \strong{Group} \eqn{\rightarrow} \code{"list"}
+\item \strong{Integer} \eqn{\rightarrow} \code{"numeric"}
+\item \strong{Floating Point} \eqn{\rightarrow} \code{"numeric"}
+\item \strong{String} \eqn{\rightarrow} \code{"character"}
+\item \strong{Complex} \eqn{\rightarrow} \code{"complex"}
+\item \strong{Enum} \eqn{\rightarrow} \code{"factor"}
+\item \strong{Opaque} \eqn{\rightarrow} \code{"raw"}
+\item \strong{Compound} \eqn{\rightarrow} \code{"data.frame"}
+\item \strong{Null} \eqn{\rightarrow} \code{"NULL"}
 }
 }
 \examples{

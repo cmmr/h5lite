@@ -7,15 +7,15 @@
 #' This function determines the resulting R class by inspecting the storage metadata.
 #'
 #' \itemize{
-#'   \item **Group** &rarr; `"list"`
-#'   \item **Integer** &rarr; `"numeric"`
-#'   \item **Floating Point** &rarr; `"numeric"`
-#'   \item **String** &rarr; `"character"`
-#'   \item **Complex** &rarr; `"complex"`
-#'   \item **Enum** &rarr; `"factor"`
-#'   \item **Opaque** &rarr; `"raw"`
-#'   \item **Compound** &rarr; `"data.frame"`
-#'   \item **Null** &rarr; `"NULL"`
+#'   \item **Group** \eqn{\rightarrow} `"list"`
+#'   \item **Integer** \eqn{\rightarrow} `"numeric"`
+#'   \item **Floating Point** \eqn{\rightarrow} `"numeric"`
+#'   \item **String** \eqn{\rightarrow} `"character"`
+#'   \item **Complex** \eqn{\rightarrow} `"complex"`
+#'   \item **Enum** \eqn{\rightarrow} `"factor"`
+#'   \item **Opaque** \eqn{\rightarrow} `"raw"`
+#'   \item **Compound** \eqn{\rightarrow} `"data.frame"`
+#'   \item **Null** \eqn{\rightarrow} `"NULL"`
 #' }
 #'
 #' @param file The path to the HDF5 file.

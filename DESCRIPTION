@@ -1,9 +1,16 @@
 Package: h5lite
 Title: Simplified 'HDF5' Interface
 Version: 2.0.0.0
-Authors@R:
-    person("Daniel P.", "Smith", , "dansmith01@gmail.com", role = c("aut", "cre"))
-Description: A user-friendly interface for the 'HDF5' library designed to "just work." It bundles the necessary system libraries to ensure easy installation on all platforms. Features smart defaults that automatically map R objects (vectors, matrices, data frames) to efficient 'HDF5' types, removing the need to manage low-level details like dataspaces or property lists. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
+Authors@R: c(
+    person(
+      "Daniel P.", "Smith",
+      email   = "dansmith01@gmail.com",
+      role    = c("aut", "cre"),
+      comment = c(ORCID = "0000-0002-2479-2044")),
+    person(
+      "Alkek Center for Metagenomics and Microbiome Research", 
+      role = c("cph", "fnd") ))
+Description: A user-friendly interface for the 'HDF5' (Heirarchical Data Format) library designed to "just work." It bundles the necessary system libraries to ensure easy installation on all platforms. Features smart defaults that automatically map R objects (vectors, matrices, data frames) to efficient 'HDF5' types, removing the need to manage low-level details like dataspaces or property lists. Uses the 'HDF5' library developed by 'The HDF Group' <https://www.hdfgroup.org/>.
 URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
 BugReports: https://github.com/cmmr/h5lite/issues
 Depends: R (>= 4.2.0)
