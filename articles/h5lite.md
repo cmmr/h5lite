@@ -7,14 +7,6 @@ interacting with HDF5 files in R. While HDF5 is a complex hierarchical
 data format, `h5lite` is designed to feel familiar to R users by mapping
 HDF5 concepts directly to R’s native data structures.
 
-This guide introduces the core concepts and basic usage. For detailed
-information on specific topics, please refer to the other vignettes: \*
-**Data Types & Compression**: Controlling storage types and compression.
-\* **Complex Data Structures**: Handling `data.frame`s, `list`s,
-factors, and complex numbers. \* **Metadata & Attributes**: Working with
-R attributes, names, and dimnames. \* **File Management**: Inspecting,
-organizing, and modifying HDF5 files.
-
 ### HDF5 for R Users
 
 If you are new to HDF5, the easiest way to understand it is through R
@@ -66,9 +58,9 @@ h5_write(val, file, "examples/scalar")
 ```
 
 *Note: While `h5lite` supports preserving row and column names for
-matrices and vectors, these examples omit them for simplicity. See the
-**Metadata & Attributes** vignette for details on how dimension names
-are stored.*
+matrices and vectors, these examples omit them for simplicity. See
+[`vignette('attributes-in-depth')`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+for details on how dimension names are stored.*
 
 #### Reading Data
 
@@ -103,8 +95,9 @@ the content of your R objects.
 | **NULL**       | `H5S_NULL`       | Creates a placeholder.                        |
 
 You can use the `as` argument to explicitly set the HDF5 data type for
-numeric, logical, and character vectors. See the **Data Types &
-Compression** vignette for details.
+numeric, logical, and character vectors. See
+[`vignette('data-types')`](https://cmmr.github.io/h5lite/articles/data-types.md)
+for details.
 
 ### Complex Data Structures
 
@@ -136,7 +129,8 @@ h5_write(df, file, "study_data")
 ```
 
 For more details on these structures, including how to handle factors
-and nested lists, refer to the **Complex Data Structures** vignette.
+and nested lists, refer to
+[`vignette('data-frames')`](https://cmmr.github.io/h5lite/articles/data-frames.md).
 
 ### Attributes
 
@@ -151,9 +145,10 @@ h5_write(1:10, file, "measurements")
 h5_write("meters", file, "measurements", attr = "units")
 ```
 
-See the **Metadata & Attributes** vignette for information on reading
-specific attributes and how special R attributes like `dimnames` are
-handled.
+See
+[`vignette('attributes-in-depth')`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+for information on reading specific attributes and how special R
+attributes like `dimnames` are handled.
 
 ### File Inspection
 
@@ -193,4 +188,5 @@ h5_str(file)
 ```
 
 For advanced file operations, including moving, deleting, and verifying
-objects, refer to the **File Management** vignette.
+objects, refer to
+[`vignette('data-organization')`](https://cmmr.github.io/h5lite/articles/data-organization.md).

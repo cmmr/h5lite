@@ -54,8 +54,8 @@ h5_write(c(1, 2, 3), file, "structure/vector")
 h5_write(matrix(1:9, 3, 3), file, "structure/matrix")
 ```
 
-*For more complex dimensional structures, refer to the **“Matrices and
-Arrays”** vignette.*
+*For more complex dimensional structures, refer to
+[`vignette('matrices')`](https://cmmr.github.io/h5lite/articles/matrices.md).*
 
 ## Numeric Data
 
@@ -239,7 +239,8 @@ Data Frames are stored as HDF5 **Compound** types (tables). This ensures
 that rows are kept together in memory. You can use the `as` argument to
 specify the type of individual columns.
 
-*For a comprehensive guide, see the **“Data Frames”** vignette.*
+*For a comprehensive guide, see
+[`vignette('data-frames')`](https://cmmr.github.io/h5lite/articles/data-frames.md).*
 
 ``` r
 df <- data.frame(

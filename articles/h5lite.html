@@ -82,14 +82,6 @@ interface for interacting with HDF5 files in R. While HDF5 is a complex
 hierarchical data format, <code>h5lite</code> is designed to feel
 familiar to R users by mapping HDF5 concepts directly to R’s native data
 structures.</p>
-<p>This guide introduces the core concepts and basic usage. For detailed
-information on specific topics, please refer to the other vignettes: *
-<strong>Data Types &amp; Compression</strong>: Controlling storage types
-and compression. * <strong>Complex Data Structures</strong>: Handling
-<code>data.frame</code>s, <code>list</code>s, factors, and complex
-numbers. * <strong>Metadata &amp; Attributes</strong>: Working with R
-attributes, names, and dimnames. * <strong>File Management</strong>:
-Inspecting, organizing, and modifying HDF5 files.</p>
 <div class="section level3">
 <h3 id="hdf5-for-r-users">HDF5 for R Users<a class="anchor" aria-label="anchor" href="#hdf5-for-r-users"></a>
 </h3>
@@ -173,8 +165,8 @@ save data and <code><a href="../reference/h5_read.html">h5_read()</a></code> to 
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">val</span>, <span class="va">file</span>, <span class="st">"examples/scalar"</span><span class="op">)</span></span></code></pre></div>
 <p><em>Note: While <code>h5lite</code> supports preserving row and
 column names for matrices and vectors, these examples omit them for
-simplicity. See the <strong>Metadata &amp; Attributes</strong> vignette
-for details on how dimension names are stored.</em></p>
+simplicity. See <code><a href="../articles/attributes-in-depth.html">vignette('attributes-in-depth')</a></code> for details
+on how dimension names are stored.</em></p>
 </div>
 <div class="section level4">
 <h4 id="reading-data">Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
@@ -268,8 +260,8 @@ package.</td>
 </tbody>
 </table>
 <p>You can use the <code>as</code> argument to explicitly set the HDF5
-data type for numeric, logical, and character vectors. See the
-<strong>Data Types &amp; Compression</strong> vignette for details.</p>
+data type for numeric, logical, and character vectors. See
+<code><a href="../articles/data-types.html">vignette('data-types')</a></code> for details.</p>
 </div>
 <div class="section level3">
 <h3 id="complex-data-structures">Complex Data Structures<a class="anchor" aria-label="anchor" href="#complex-data-structures"></a>
@@ -299,8 +291,7 @@ efficient storage of tabular data with mixed types.</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">file</span>, <span class="st">"study_data"</span><span class="op">)</span></span></code></pre></div>
 <p>For more details on these structures, including how to handle factors
-and nested lists, refer to the <strong>Complex Data Structures</strong>
-vignette.</p>
+and nested lists, refer to <code><a href="../articles/data-frames.html">vignette('data-frames')</a></code>.</p>
 </div>
 </div>
 <div class="section level3">
@@ -315,9 +306,9 @@ vignette.</p>
 <span></span>
 <span><span class="co"># Attach an attribute to it</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="st">"meters"</span>, <span class="va">file</span>, <span class="st">"measurements"</span>, attr <span class="op">=</span> <span class="st">"units"</span><span class="op">)</span></span></code></pre></div>
-<p>See the <strong>Metadata &amp; Attributes</strong> vignette for
-information on reading specific attributes and how special R attributes
-like <code>dimnames</code> are handled.</p>
+<p>See <code><a href="../articles/attributes-in-depth.html">vignette('attributes-in-depth')</a></code> for information on
+reading specific attributes and how special R attributes like
+<code>dimnames</code> are handled.</p>
 </div>
 <div class="section level3">
 <h3 id="file-inspection">File Inspection<a class="anchor" aria-label="anchor" href="#file-inspection"></a>
@@ -353,8 +344,8 @@ into memory using <code><a href="../reference/h5_ls.html">h5_ls()</a></code> and
 <span><span class="co">#&gt; └── measurements &lt;uint8 × 10&gt;</span></span>
 <span><span class="co">#&gt;     └── @units &lt;utf8[6] × 1&gt;</span></span></code></pre></div>
 <p>For advanced file operations, including moving, deleting, and
-verifying objects, refer to the <strong>File Management</strong>
-vignette.</p>
+verifying objects, refer to
+<code><a href="../articles/data-organization.html">vignette('data-organization')</a></code>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
