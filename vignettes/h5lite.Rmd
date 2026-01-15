@@ -15,12 +15,6 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 The `h5lite` package provides a simplified, user-friendly interface for interacting with HDF5 files in R. While HDF5 is a complex hierarchical data format, `h5lite` is designed to feel familiar to R users by mapping HDF5 concepts directly to R's native data structures.
 
-This guide introduces the core concepts and basic usage. For detailed information on specific topics, please refer to the other vignettes:
-* **Data Types & Compression**: Controlling storage types and compression.
-* **Complex Data Structures**: Handling `data.frame`s, `list`s, factors, and complex numbers.
-* **Metadata & Attributes**: Working with R attributes, names, and dimnames.
-* **File Management**: Inspecting, organizing, and modifying HDF5 files.
-
 ## HDF5 for R Users
 
 If you are new to HDF5, the easiest way to understand it is through R analogues. HDF5 files function like a file system within a single file, containing "groups" (folders) and "datasets" (files).
@@ -64,7 +58,7 @@ val <- I(42)
 h5_write(val, file, "examples/scalar")
 ```
 
-*Note: While `h5lite` supports preserving row and column names for matrices and vectors, these examples omit them for simplicity. See the **Metadata & Attributes** vignette for details on how dimension names are stored.*
+*Note: While `h5lite` supports preserving row and column names for matrices and vectors, these examples omit them for simplicity. See `vignette('attributes-in-depth')` for details on how dimension names are stored.*
 
 ### Reading Data
 
@@ -93,7 +87,7 @@ print(x)
 | **Data Frame** | `H5T_COMPOUND`   | Table of mixed types.                         |
 | **NULL**       | `H5S_NULL`       | Creates a placeholder.                        |
 
-You can use the `as` argument to explicitly set the HDF5 data type for numeric, logical, and character vectors. See the **Data Types & Compression** vignette for details.
+You can use the `as` argument to explicitly set the HDF5 data type for numeric, logical, and character vectors. See `vignette('data-types')` for details.
 
 ## Complex Data Structures
 
@@ -120,7 +114,7 @@ df <- data.frame(
 h5_write(df, file, "study_data")
 ```
 
-For more details on these structures, including how to handle factors and nested lists, refer to the **Complex Data Structures** vignette.
+For more details on these structures, including how to handle factors and nested lists, refer to `vignette('data-frames')`.
 
 ## Attributes
 
@@ -134,7 +128,7 @@ h5_write(1:10, file, "measurements")
 h5_write("meters", file, "measurements", attr = "units")
 ```
 
-See the **Metadata & Attributes** vignette for information on reading specific attributes and how special R attributes like `dimnames` are handled.
+See `vignette('attributes-in-depth')` for information on reading specific attributes and how special R attributes like `dimnames` are handled.
 
 ## File Inspection
 
@@ -148,4 +142,4 @@ h5_ls(file)
 h5_str(file)
 ```
 
-For advanced file operations, including moving, deleting, and verifying objects, refer to the **File Management** vignette.
+For advanced file operations, including moving, deleting, and verifying objects, refer to `vignette('data-organization')`.
