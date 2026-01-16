@@ -59,9 +59,9 @@ available as methods on the \code{h5} object, without the \code{h5_} prefix.
 For example, \code{h5$write(data, "dset")} is equivalent to
 \code{h5_write(data, file, "dset")}.
 
-The available methods are: \code{read}, \code{write}, \code{class}, \code{dim}, \code{exists},
-\code{is_dataset}, \code{is_group}, \code{ls}, \code{names}, \code{str}, \code{typeof}, \code{create_group},
-\code{attr_names}, \code{delete}, \code{move}.
+The available methods are: \code{attr_names}, \code{cd}, \code{class}, \code{close},
+\code{create_group}, \code{delete}, \code{dim}, \code{exists}, \code{is_dataset}, \code{is_group},
+\code{length}, \code{ls}, \code{move}, \code{names}, \code{pwd}, \code{read}, \code{str}, \code{typeof}, \code{write}.
 }
 
 \subsection{Navigation (\verb{$cd()}, \verb{$pwd()})}{

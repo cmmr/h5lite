@@ -407,10 +407,10 @@ static herr_t op_visit_cb(hid_t obj, const char *name, const H5O_info_t *info, v
   if (data->names != R_NilValue) {
     if (data->full_names) {
       int gname_is_root = (strcmp(data->gname, "/") == 0);
-      size_t len = (gname_is_root ? 0 : strlen(data->gname)) + 1 + strlen(name) + 1;
+      size_t len = (gname_is_root ? 1 : strlen(data->gname)) + 1 + strlen(name) + 1;
       char *full_name = (char *)malloc(len);
       if (gname_is_root) {
-        snprintf(full_name, len, "%s", name);
+        snprintf(full_name, len, "/%s", name);
       } else {
         snprintf(full_name, len, "%s/%s", data->gname, name);
       }
@@ -448,10 +448,10 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
   if (data->names != R_NilValue) {
     if (data->full_names) {
       int gname_is_root = (strcmp(data->gname, "/") == 0);
-      size_t len = (gname_is_root ? 0 : strlen(data->gname)) + 1 + strlen(name) + 1;
+      size_t len = (gname_is_root ? 1 : strlen(data->gname)) + 1 + strlen(name) + 1;
       char *full_name = (char *)malloc(len);
       if (gname_is_root) {
-        snprintf(full_name, len, "%s", name);
+        snprintf(full_name, len, "/%s", name);
       } else {
         snprintf(full_name, len, "%s/%s", data->gname, name);
       }
@@ -475,9 +475,9 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
 SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
-  int is_recursive = LOGICAL(recursive)[0];
+  int is_recursive   = LOGICAL(recursive)[0];
   int use_full_names = LOGICAL(full_names)[0];
-  int show_scales = LOGICAL(scales)[0];
+  int show_scales    = LOGICAL(scales)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);

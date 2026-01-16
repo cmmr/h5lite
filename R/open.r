@@ -41,9 +41,9 @@
 #'   For example, `h5$write(data, "dset")` is equivalent to
 #'   `h5_write(data, file, "dset")`.
 #'
-#'   The available methods are: `read`, `write`, `class`, `dim`, `exists`,
-#'   `is_dataset`, `is_group`, `ls`, `names`, `str`, `typeof`, `create_group`,
-#'   `attr_names`, `delete`, `move`.
+#'   The available methods are: `attr_names`, `cd`, `class`, `close`, 
+#'   `create_group`, `delete`, `dim`, `exists`, `is_dataset`, `is_group`, 
+#'   `length`, `ls`, `move`, `names`, `pwd`, `read`, `str`, `typeof`, `write`.
 #' }
 #'
 #' \subsection{Navigation (`$cd()`, `$pwd()`)}{
@@ -113,30 +113,30 @@ h5_open <- function (file) {
   env$.wd    <- "/"
   class(env) <- "h5"
   
-  env$read         = function(name = ".", attr = NULL, as = "auto")                  { h5_run(env, h5_read)  }
-  env$write        = function(data, name, attr = NULL, as = "auto", compress = TRUE) { h5_run(env, h5_write) }
-  env$ls           = function(name = ".", recursive = TRUE, full.names = FALSE)      { h5_run(env, h5_ls)    }
-  
-  env$str          = function(name = ".", attrs = TRUE)       { h5_run(env, h5_str)          }
-  env$class        = function(name, attr = NULL)              { h5_run(env, h5_class)        }
-  env$dim          = function(name, attr = NULL)              { h5_run(env, h5_dim)          }
-  env$exists       = function(name, attr = NULL)              { h5_run(env, h5_exists)       }
-  env$typeof       = function(name, attr = NULL)              { h5_run(env, h5_typeof)       }
-  env$delete       = function(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
-  env$is_dataset   = function(name)                           { h5_run(env, h5_is_dataset)   }
-  env$is_group     = function(name)                           { h5_run(env, h5_is_group)     }
-  env$names        = function(name = ".")                     { h5_run(env, h5_names)        }
-  env$attr_names   = function(name = ".")                     { h5_run(env, h5_attr_names)   }
-  env$create_group = function(name)                           { h5_run(env, h5_create_group) }
-  env$move         = function(from, to)                       { h5_run(env, h5_move)         }
+  env$read         = \(name = ".",       attr = NULL, as = "auto")                  { h5_run(env, h5_read)  }
+  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = TRUE) { h5_run(env, h5_write) }
+  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)            { h5_run(env, h5_ls)    }
+  env$attr_names   = \(name = ".")                     { h5_run(env, h5_attr_names)   }
+  env$class        = \(name, attr = NULL)              { h5_run(env, h5_class)        }
+  env$dim          = \(name, attr = NULL)              { h5_run(env, h5_dim)          }
+  env$exists       = \(name, attr = NULL)              { h5_run(env, h5_exists)       }
+  env$is_dataset   = \(name)                           { h5_run(env, h5_is_dataset)   }
+  env$is_group     = \(name)                           { h5_run(env, h5_is_group)     }
+  env$length       = \(name = ".", attr = NULL)        { h5_run(env, h5_length)       }
+  env$names        = \(name = ".")                     { h5_run(env, h5_names)        }
+  env$str          = \(name = ".", attrs = TRUE)       { h5_run(env, h5_str)          }
+  env$typeof       = \(name, attr = NULL)              { h5_run(env, h5_typeof)       }
+  env$create_group = \(name)                           { h5_run(env, h5_create_group) }
+  env$delete       = \(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
+  env$move         = \(from, to)                       { h5_run(env, h5_move)         }
   
   # Navigation methods
-  env$cd = function(group = "/") {
+  env$cd = function (group = "/") {
     check_open(env)
     env$.wd <- normalize_path(env$.wd, group)
     return(invisible(NULL))
   }
-  env$pwd = function() {
+  env$pwd = function () {
     check_open(env)
     return(env$.wd)
   }
