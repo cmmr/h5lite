@@ -60,9 +60,10 @@ available as methods on the `h5` object, without the `h5_` prefix.
 For example, `h5$write(data, "dset")` is equivalent to
 `h5_write(data, file, "dset")`.
 
-The available methods are: `read`, `write`, `class`, `dim`, `exists`,
-`is_dataset`, `is_group`, `ls`, `names`, `str`, `typeof`,
-`create_group`, `attr_names`, `delete`, `move`.
+The available methods are: `attr_names`, `cd`, `class`, `close`,
+`create_group`, `delete`, `dim`, `exists`, `is_dataset`, `is_group`,
+`length`, `ls`, `move`, `names`, `pwd`, `read`, `str`, `typeof`,
+`write`.
 
 ### Navigation (`$cd()`, `$pwd()`)
 
