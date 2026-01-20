@@ -59,7 +59,7 @@ h5_write(5, file, "x")    # Creates a 1D array of length 1
 By default, \code{as = "auto"} will automatically select the most appropriate
 data type for the given object. For numeric types, this will be the smallest
 type that can represent all values in the vector. For character types,
-\code{h5lite} will use a ragged vs rectangular hueristic, favoring small file
+\code{h5lite} will use a ragged vs rectangular heuristic, favoring small file
 size over fast I/O. For R data types not mentioned below, see
 \code{vignette("data-types")} for information on their fixed mappings to HDF5
 data types.

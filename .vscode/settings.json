@@ -1,4 +1,23 @@
 {
   "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
-  "C_Cpp.errorSquiggles": "enabled"
+  "C_Cpp.errorSquiggles": "enabled",
+  "cSpell.words": [
+    "Alkek",
+    "bfloat",
+    "cset",
+    "dataspaces",
+    "dimscale",
+    "errmsg",
+    "ints",
+    "knitr",
+    "Metagenomics",
+    "Microbiome",
+    "nocov",
+    "ORCID",
+    "rmarkdown",
+    "Roxygen",
+    "seealso",
+    "strs",
+    "testthat"
+  ]
 }

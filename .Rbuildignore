@@ -11,3 +11,4 @@
 ^src/.*\.dll$
 ^man/figures/logo_fullsize.png$
 ^\.Rproj\.user$
+^CRAN-SUBMISSION$
