@@ -73,7 +73,7 @@ arrays. To write a true HDF5 scalar, wrap the value in
 By default, `as = "auto"` will automatically select the most appropriate
 data type for the given object. For numeric types, this will be the
 smallest type that can represent all values in the vector. For character
-types, `h5lite` will use a ragged vs rectangular hueristic, favoring
+types, `h5lite` will use a ragged vs rectangular heuristic, favoring
 small file size over fast I/O. For R data types not mentioned below, see
 [`vignette("data-types")`](https://cmmr.github.io/h5lite/articles/data-types.md)
 for information on their fixed mappings to HDF5 data types.
