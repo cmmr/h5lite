@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.0.0.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -149,7 +149,11 @@ which take precedence over the global default (<code>.</code>).</p></li>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Force attached attribute to be read as logical</span></span></span>
 <span class="r-in"><span><span class="co"># Note the "@" prefix to target the attribute</span></span></span>
-<span class="r-in"><span><span class="co"># h5_read(file, "ints", as = c("@ready" = "logical"))</span></span></span>
+<span class="r-in"><span><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">h5_read</span><span class="op">(</span><span class="va">file</span>, <span class="st">"ints"</span>, as <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"@ready"</span> <span class="op">=</span> <span class="st">"logical"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 10 20</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"ready")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

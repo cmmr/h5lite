@@ -130,7 +130,11 @@ class(x_dbl)
 
 # Force attached attribute to be read as logical
 # Note the "@" prefix to target the attribute
-# h5_read(file, "ints", as = c("@ready" = "logical"))
+z <- h5_read(file, "ints", as = c("@ready" = "logical"))
+print(z)
+#> [1] 10 20
+#> attr(,"ready")
+#> [1] TRUE
 
 unlink(file)
 ```
