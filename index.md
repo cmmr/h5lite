@@ -1,7 +1,5 @@
 # h5lite
 
-[![covr](https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov)](https://app.codecov.io/gh/cmmr/h5lite)
-
 **h5lite** is the pain-free way to work with HDF5 files in R.
 
 It is designed for data scientists who want to read/write objects and
