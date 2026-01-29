@@ -2,6 +2,7 @@
 ^h5lite\.Rproj$
 ^LICENSE\.md$
 ^cran-comments\.md$
+^CRAN-SUBMISSION$
 ^rhub_check\.r$
 ^pkgdown$
 ^docs$
@@ -11,4 +12,3 @@
 ^src/.*\.dll$
 ^man/figures/logo_fullsize.png$
 ^\.Rproj\.user$
-^CRAN-SUBMISSION$

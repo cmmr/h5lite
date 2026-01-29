@@ -1,6 +1,10 @@
 # h5lite <img src="man/figures/logo.png" align="right" width="172" height="200" alt="h5lite logo" />
 
+<!-- badges: start -->
+[![cran](https://img.shields.io/cran/v/h5lite?logo=r&label=CRAN)](https://CRAN.R-project.org/package=h5lite)
+[![conda](https://img.shields.io/conda/v/conda-forge/r-h5lite?logo=anaconda&label=conda)](https://anaconda.org/conda-forge/r-h5lite)
 [![covr](https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov)](https://app.codecov.io/gh/cmmr/h5lite)
+<!-- badges: end -->
 
 **h5lite** is the pain-free way to work with HDF5 files in R.
 
