@@ -1,6 +1,6 @@
 Package: h5lite
 Title: Simplified 'HDF5' Interface
-Version: 2.0.0.2
+Version: 2.0.0.3
 Authors@R: c(
     person(
       "Daniel P.", "Smith",
