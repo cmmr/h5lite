@@ -141,9 +141,9 @@ You can enable compression using the `compress` argument:
 * `compress = 9`: Uses zlib level 9 (max compression, slower).
 
 ```{r}
-# Write a large vector with compression
+# Write a large vector with max compression
 x <- rep(rnorm(100), 100)
-h5_write(x, file, "compressed_data", compress = TRUE)
+h5_write(x, file, "compressed_data", compress = 9)
 ```
 
 ## 64-bit Integers
@@ -155,8 +155,9 @@ if (requireNamespace("bit64", quietly = TRUE)) {
   val <- bit64::as.integer64(c("9223372036854775807", "-9223372036854775807"))
   
   h5_write(val, file, "huge_ints")
+  h5_typeof(file, "huge_ints")
   
-  in_val <- h5_read(file, "huge_ints")
+  in_val <- h5_read(file, "huge_ints", as = "bit64")
   print(class(in_val))
 }
 ```

@@ -72,7 +72,7 @@ data_in <- h5_read(file, "genetics/expression")
 print(data_in)
 ```
 
-*Technical Note: In the HDF5 file, the names are stored as separate datasets (e.g., `_rownames`, `_colnames`) and linked to the main dataset using HDF5 Dimension Scale attributes.*
+> **Technical Note:** In the HDF5 file, the names are stored as separate datasets (e.g., `_rownames`, `_colnames`) and linked to the main dataset using HDF5 Dimension Scale attributes.
 
 ## Dimension Ordering (Row-Major vs. Column-Major)
 
@@ -83,7 +83,7 @@ One of the most confusing aspects of HDF5 for R users is dimension ordering.
 
 ### How h5lite handles it
 
-To ensure that a `3x4` matrix in R looks like a `3x4` dataset in HDF5 tools (like `h5dump` or `HDFView`), `h5lite` physically **transposes** the data during read/write operations.
+To ensure that a `3x4` matrix in R looks like a `3x4` dataset in HDF5 tools (like `h5dump` or `HDFView`), `h5lite` **rearranges** the data during read/write operations.
 
 1.  **Writing:** `h5lite` converts R's column-major memory layout to HDF5's row-major layout.
 2.  **Reading:** `h5lite` converts the data back to column-major for R.
@@ -108,8 +108,8 @@ Matrices and arrays benefit significantly from compression. When you enable comp
 sparse_mat <- matrix(0, nrow = 1000, ncol = 1000)
 sparse_mat[1:10, 1:10] <- 1
 
-# Write with compression (zlib level 5)
-h5_write(sparse_mat, file, "compressed/matrix", compress = TRUE)
+# Write with default compression (zlib level 5)
+h5_write(sparse_mat, file, "compressed/matrix")
 
 # Write with high compression (zlib level 9)
 h5_write(sparse_mat, file, "compressed/matrix_max", compress = 9)

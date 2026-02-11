@@ -11,8 +11,6 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-# Get Started with h5lite
-
 The `h5lite` package provides a simplified, user-friendly interface for interacting with HDF5 files in R. While HDF5 is a complex hierarchical data format, `h5lite` is designed to feel familiar to R users by mapping HDF5 concepts directly to R's native data structures.
 
 ## HDF5 for R Users
@@ -25,7 +23,6 @@ If you are new to HDF5, the easiest way to understand it is through R analogues.
 | **Vector / Matrix** | **Dataset**          | A multidimensional array of data (numeric, character, etc.).      |
 | **Data Frame**      | **Compound Dataset** | A table where each column can have a different data type.         |
 | **Attribute**       | **Attribute**        | Metadata attached to a specific object (e.g., units, timestamps). |
-| **Factor**          | **Enum**             | An integer vector with associated string labels.                  |
 
 ## Basic Usage
 

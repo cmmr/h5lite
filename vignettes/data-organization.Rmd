@@ -51,6 +51,7 @@ h5_str(file)
 The most powerful way to organize data in `h5lite` is by mapping R **lists** to HDF5 **groups**.
 
 When you pass a named list to `h5_write()`, `h5lite` recursively writes the list structure to the file.
+
 * **Named Lists** become **Groups**.
 * **Atomic Vectors/Matrices** inside the list become **Datasets**.
 
@@ -84,7 +85,7 @@ You can visualize the organization of your file using `h5_ls()` and `h5_str()`.
 
 ```{r}
 # List all objects recursively
-h5_ls(file, recursive = TRUE)
+h5_ls(file)
 
 # Visualize the tree
 h5_str(file)
