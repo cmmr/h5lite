@@ -59,9 +59,10 @@ The most powerful way to organize data in `h5lite` is by mapping R
 
 When you pass a named list to
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
-`h5lite` recursively writes the list structure to the file. \* **Named
-Lists** become **Groups**. \* **Atomic Vectors/Matrices** inside the
-list become **Datasets**.
+`h5lite` recursively writes the list structure to the file.
+
+- **Named Lists** become **Groups**.
+- **Atomic Vectors/Matrices** inside the list become **Datasets**.
 
 This allows you to organize your entire data structure in R and save it
 to disk in one command.
@@ -98,7 +99,7 @@ You can visualize the organization of your file using
 
 ``` r
 # List all objects recursively
-h5_ls(file, recursive = TRUE)
+h5_ls(file)
 #>  [1] "project_A"                        "project_A/simulation"            
 #>  [3] "project_A/simulation/run_01"      "exp_101"                         
 #>  [5] "exp_101/metadata"                 "exp_101/metadata/id"             

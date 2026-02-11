@@ -143,10 +143,12 @@ survive the round-trip to disk and back.</p>
 <span><span class="co">#&gt;             Gene_1     Gene_2      Gene_3</span></span>
 <span><span class="co">#&gt; Sample_A  2.065025  0.5124269 -0.52201251</span></span>
 <span><span class="co">#&gt; Sample_B -1.630989 -1.8630115 -0.05260191</span></span></code></pre></div>
-<p><em>Technical Note: In the HDF5 file, the names are stored as
-separate datasets (e.g., <code>_rownames</code>, <code>_colnames</code>)
-and linked to the main dataset using HDF5 Dimension Scale
-attributes.</em></p>
+<blockquote>
+<p><strong>Technical Note:</strong> In the HDF5 file, the names are
+stored as separate datasets (e.g., <code>_rownames</code>,
+<code>_colnames</code>) and linked to the main dataset using HDF5
+Dimension Scale attributes.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="dimension-ordering-row-major-vs--column-major">Dimension Ordering (Row-Major vs. Column-Major)<a class="anchor" aria-label="anchor" href="#dimension-ordering-row-major-vs--column-major"></a>
@@ -166,8 +168,8 @@ dimension varies fastest.</li>
 </h3>
 <p>To ensure that a <code>3x4</code> matrix in R looks like a
 <code>3x4</code> dataset in HDF5 tools (like <code>h5dump</code> or
-<code>HDFView</code>), <code>h5lite</code> physically
-<strong>transposes</strong> the data during read/write operations.</p>
+<code>HDFView</code>), <code>h5lite</code> <strong>rearranges</strong>
+the data during read/write operations.</p>
 <ol style="list-style-type: decimal">
 <li>
 <strong>Writing:</strong> <code>h5lite</code> converts R’s
@@ -212,8 +214,8 @@ dataset (breaks it into smaller tiles).</p>
 <span><span class="va">sparse_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, nrow <span class="op">=</span> <span class="fl">1000</span>, ncol <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="va">sparse_mat</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
 <span></span>
-<span><span class="co"># Write with compression (zlib level 5)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sparse_mat</span>, <span class="va">file</span>, <span class="st">"compressed/matrix"</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co"># Write with default compression (zlib level 5)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sparse_mat</span>, <span class="va">file</span>, <span class="st">"compressed/matrix"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write with high compression (zlib level 9)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sparse_mat</span>, <span class="va">file</span>, <span class="st">"compressed/matrix_max"</span>, compress <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span></code></pre></div>

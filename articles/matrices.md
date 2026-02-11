@@ -77,9 +77,9 @@ print(data_in)
 #> Sample_B -1.630989 -1.8630115 -0.05260191
 ```
 
-*Technical Note: In the HDF5 file, the names are stored as separate
-datasets (e.g., `_rownames`, `_colnames`) and linked to the main dataset
-using HDF5 Dimension Scale attributes.*
+> **Technical Note:** In the HDF5 file, the names are stored as separate
+> datasets (e.g., `_rownames`, `_colnames`) and linked to the main
+> dataset using HDF5 Dimension Scale attributes.
 
 ## Dimension Ordering (Row-Major vs. Column-Major)
 
@@ -93,8 +93,8 @@ ordering.
 ### How h5lite handles it
 
 To ensure that a `3x4` matrix in R looks like a `3x4` dataset in HDF5
-tools (like `h5dump` or `HDFView`), `h5lite` physically **transposes**
-the data during read/write operations.
+tools (like `h5dump` or `HDFView`), `h5lite` **rearranges** the data
+during read/write operations.
 
 1.  **Writing:** `h5lite` converts R’s column-major memory layout to
     HDF5’s row-major layout.
@@ -128,8 +128,8 @@ it into smaller tiles).
 sparse_mat <- matrix(0, nrow = 1000, ncol = 1000)
 sparse_mat[1:10, 1:10] <- 1
 
-# Write with compression (zlib level 5)
-h5_write(sparse_mat, file, "compressed/matrix", compress = TRUE)
+# Write with default compression (zlib level 5)
+h5_write(sparse_mat, file, "compressed/matrix")
 
 # Write with high compression (zlib level 9)
 h5_write(sparse_mat, file, "compressed/matrix_max", compress = 9)

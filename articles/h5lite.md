@@ -1,13 +1,11 @@
 # Get Started with h5lite
 
-## Get Started with h5lite
-
 The `h5lite` package provides a simplified, user-friendly interface for
 interacting with HDF5 files in R. While HDF5 is a complex hierarchical
 data format, `h5lite` is designed to feel familiar to R users by mapping
 HDF5 concepts directly to R’s native data structures.
 
-### HDF5 for R Users
+## HDF5 for R Users
 
 If you are new to HDF5, the easiest way to understand it is through R
 analogues. HDF5 files function like a file system within a single file,
@@ -19,9 +17,8 @@ containing “groups” (folders) and “datasets” (files).
 | **Vector / Matrix** | **Dataset**          | A multidimensional array of data (numeric, character, etc.).      |
 | **Data Frame**      | **Compound Dataset** | A table where each column can have a different data type.         |
 | **Attribute**       | **Attribute**        | Metadata attached to a specific object (e.g., units, timestamps). |
-| **Factor**          | **Enum**             | An integer vector with associated string labels.                  |
 
-### Basic Usage
+## Basic Usage
 
 The package uses two primary functions:
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) to
@@ -29,7 +26,7 @@ save data and
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) to
 load it.
 
-#### Writing Numeric Data
+### Writing Numeric Data
 
 You can write standard R arrays and vectors directly to an HDF5 file.
 `h5lite` automatically handles dimensions.
@@ -62,7 +59,7 @@ matrices and vectors, these examples omit them for simplicity. See
 [`vignette('attributes-in-depth')`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
 for details on how dimension names are stored.*
 
-#### Reading Data
+### Reading Data
 
 Data is read back into its native R format.
 
@@ -75,7 +72,7 @@ print(x)
 #> [3,]    3    6    9
 ```
 
-### Data Type Mapping
+## Data Type Mapping
 
 `h5lite` automatically selects the appropriate HDF5 data type based on
 the content of your R objects.
@@ -99,9 +96,9 @@ numeric, logical, and character vectors. See
 [`vignette('data-types')`](https://cmmr.github.io/h5lite/articles/data-types.md)
 for details.
 
-### Complex Data Structures
+## Complex Data Structures
 
-#### Lists as Groups
+### Lists as Groups
 
 R lists are naturally hierarchical, making them perfect for creating
 HDF5 groups.
@@ -115,7 +112,7 @@ my_list <- list(
 h5_write(my_list, file, "experiment") 
 ```
 
-#### Data Frames as Compound Datasets
+### Data Frames as Compound Datasets
 
 Data frames are written as native HDF5 compound datasets, allowing
 efficient storage of tabular data with mixed types.
@@ -132,7 +129,7 @@ For more details on these structures, including how to handle factors
 and nested lists, refer to
 [`vignette('data-frames')`](https://cmmr.github.io/h5lite/articles/data-frames.md).
 
-### Attributes
+## Attributes
 
 Attributes are small pieces of metadata attached to objects. `h5lite`
 writes R attributes (like `units` or `description`) as HDF5 attributes.
@@ -150,7 +147,7 @@ See
 for information on reading specific attributes and how special R
 attributes like `dimnames` are handled.
 
-### File Inspection
+## File Inspection
 
 You can inspect the contents of an HDF5 file without reading the data
 into memory using

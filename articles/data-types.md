@@ -71,13 +71,13 @@ most compact HDF5 type.
   `uint[8|16|32|64]`, `float[16|32|64]`, or `bfloat16`.
 
 ``` r
-# Standard integers -> int32
-h5_write(c(1L, 2L, 3L), file, "integers/clean")
+# Integers between 0 and 255 (uint8)
+h5_write(c(1L, 2L, 3L), file, "integers/small")
 
 # Integers with NA -> float64
 h5_write(c(1L, NA, 3L), file, "integers/with_na")
 
-# Force smaller type (int16)
+# Force larger type (int16)
 h5_write(1:100, file, "integers/short", as = "int16")
 ```
 
@@ -127,6 +127,8 @@ bools <- sample(c(TRUE, FALSE), 1000, replace = TRUE)
 h5_write(bools, file, "logicals/packed")
 ```
 
+## Character Data
+
 HDF5 supports two methods for storing strings. By default
 (`as = "auto"`), `h5lite` chooses the best approach:
 
@@ -147,20 +149,20 @@ Explicitly requested with `as = "utf8"` or `as = "ascii"`.
 h5_write(c("apple", "banana", NA), file, "strings/var_utf8")
 
 # ASCII variable length
-h5_write(c("A", "B", "C", NA), file, "strings/var_ascii", as = "ascii")
+h5_write(c("A", "B", "C"), file, "strings/var_ascii", as = "ascii")
 ```
 
 ### **Fixed-Length:**
 
-Use `as = "ascii[10]"`/`as = "utf8[10]"` (explicit size=10) or
-`as = "ascii[]"`/`as = "utf8[]"` (auto-detect max length).
+Use `as = "ascii[10]"` / `as = "utf8[10]"` (explicit size=10) or
+`as = "ascii[]"` / `as = "utf8[]"` (auto-detect max length).
 
 - Compressible: **YES**
 - Handles `NA`: **NO**
 
 ``` r
 # UTF-8 auto-detected fixed length
-h5_write(c("apple", "banana"), file, "strings/fixed_utf8", as = "utf8[]")
+h5_write(c("apple", "banana"), file, "strings/fixed_utf8")
 
 # ASCII fixed length (1 byte)
 h5_write(c("A", "B", "C"), file, "strings/fixed_ascii", as = "ascii[1]")
@@ -296,11 +298,13 @@ For example, in a 4-byte integer array:
 2.  All the 2nd bytes are grouped together.
 3.  And so on.
 
-**Why this helps:** \* **Integers:** Small integers often have many
-zero-padding bytes. The shuffle filter groups these zeros into long
-runs, which zlib compresses extremely efficiently. This allows `int32`
-data to compress nearly as well as `int8` data if the values are small.
-\* **Doubles:** Floating point numbers often share the same exponent
-bytes if they are in a similar range. The shuffle filter groups these
-identical exponent bytes, creating repetitive patterns that zlib can
-compress.
+**Why this helps:**
+
+- **Integers:** Small integers often have many zero-padding bytes. The
+  shuffle filter groups these zeros into long runs, which zlib
+  compresses extremely efficiently. This allows `int32` data to compress
+  nearly as well as `int8` data if the values are small.
+- **Doubles:** Floating point numbers often share the same exponent
+  bytes if they are in a similar range. The shuffle filter groups these
+  identical exponent bytes, creating repetitive patterns that zlib can
+  compress.

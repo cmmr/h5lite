@@ -214,13 +214,13 @@ fractional values default to <code>float64</code>.</li>
 <code>float[16|32|64]</code>, or <code>bfloat16</code>.</li>
 </ul>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Standard integers -&gt; int32</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">3L</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"integers/clean"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Integers between 0 and 255 (uint8)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">2L</span>, <span class="fl">3L</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"integers/small"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Integers with NA -&gt; float64</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="cn">NA</span>, <span class="fl">3L</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"integers/with_na"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Force smaller type (int16)</span></span>
+<span><span class="co"># Force larger type (int16)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">100</span>, <span class="va">file</span>, <span class="st">"integers/short"</span>, as <span class="op">=</span> <span class="st">"int16"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -285,6 +285,10 @@ package.</p>
 <code class="sourceCode R"><span><span class="va">bools</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">TRUE</span>, <span class="cn">FALSE</span><span class="op">)</span>, <span class="fl">1000</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">bools</span>, <span class="va">file</span>, <span class="st">"logicals/packed"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="character-data">Character Data<a class="anchor" aria-label="anchor" href="#character-data"></a>
+</h2>
 <p>HDF5 supports two methods for storing strings. By default
 (<code>as = "auto"</code>), <code>h5lite</code> chooses the best
 approach:</p>
@@ -313,16 +317,15 @@ without <code>NA</code> to allow for compression.</li>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"apple"</span>, <span class="st">"banana"</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/var_utf8"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># ASCII variable length</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/var_ascii"</span>, as <span class="op">=</span> <span class="st">"ascii"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/var_ascii"</span>, as <span class="op">=</span> <span class="st">"ascii"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="fixed-length">
 <strong>Fixed-Length:</strong><a class="anchor" aria-label="anchor" href="#fixed-length"></a>
 </h3>
-<p>Use <code>as = "ascii[10]"</code>/<code>as = "utf8[10]"</code>
-(explicit size=10) or
-<code>as = "ascii[]"</code>/<code>as = "utf8[]"</code> (auto-detect max
-length).</p>
+<p>Use <code>as = "ascii[10]"</code> / <code>as = "utf8[10]"</code>
+(explicit size=10) or <code>as = "ascii[]"</code> /
+<code>as = "utf8[]"</code> (auto-detect max length).</p>
 <ul>
 <li>Compressible: <strong>YES</strong>
 </li>
@@ -331,7 +334,7 @@ length).</p>
 </ul>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># UTF-8 auto-detected fixed length</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"apple"</span>, <span class="st">"banana"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/fixed_utf8"</span>, as <span class="op">=</span> <span class="st">"utf8[]"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"apple"</span>, <span class="st">"banana"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/fixed_utf8"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># ASCII fixed length (1 byte)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"strings/fixed_ascii"</span>, as <span class="op">=</span> <span class="st">"ascii[1]"</span><span class="op">)</span></span></code></pre></div>
@@ -470,15 +473,20 @@ For example, in a 4-byte integer array:</p>
 <li>All the 2nd bytes are grouped together.</li>
 <li>And so on.</li>
 </ol>
-<p><strong>Why this helps:</strong> * <strong>Integers:</strong> Small
-integers often have many zero-padding bytes. The shuffle filter groups
-these zeros into long runs, which zlib compresses extremely efficiently.
-This allows <code>int32</code> data to compress nearly as well as
-<code>int8</code> data if the values are small. *
-<strong>Doubles:</strong> Floating point numbers often share the same
-exponent bytes if they are in a similar range. The shuffle filter groups
-these identical exponent bytes, creating repetitive patterns that zlib
-can compress.</p>
+<p><strong>Why this helps:</strong></p>
+<ul>
+<li>
+<strong>Integers:</strong> Small integers often have many
+zero-padding bytes. The shuffle filter groups these zeros into long
+runs, which zlib compresses extremely efficiently. This allows
+<code>int32</code> data to compress nearly as well as <code>int8</code>
+data if the values are small.</li>
+<li>
+<strong>Doubles:</strong> Floating point numbers often share the
+same exponent bytes if they are in a similar range. The shuffle filter
+groups these identical exponent bytes, creating repetitive patterns that
+zlib can compress.</li>
+</ul>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

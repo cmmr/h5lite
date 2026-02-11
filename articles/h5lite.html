@@ -74,17 +74,14 @@
 
     
     
-<div class="section level2">
-<h2 id="get-started-with-h5lite">Get Started with h5lite<a class="anchor" aria-label="anchor" href="#get-started-with-h5lite"></a>
-</h2>
 <p>The <code>h5lite</code> package provides a simplified, user-friendly
 interface for interacting with HDF5 files in R. While HDF5 is a complex
 hierarchical data format, <code>h5lite</code> is designed to feel
 familiar to R users by mapping HDF5 concepts directly to R’s native data
 structures.</p>
-<div class="section level3">
-<h3 id="hdf5-for-r-users">HDF5 for R Users<a class="anchor" aria-label="anchor" href="#hdf5-for-r-users"></a>
-</h3>
+<div class="section level2">
+<h2 id="hdf5-for-r-users">HDF5 for R Users<a class="anchor" aria-label="anchor" href="#hdf5-for-r-users"></a>
+</h2>
 <p>If you are new to HDF5, the easiest way to understand it is through R
 analogues. HDF5 files function like a file system within a single file,
 containing “groups” (folders) and “datasets” (files).</p>
@@ -124,22 +121,17 @@ type.</td>
 <td align="left">Metadata attached to a specific object (e.g., units,
 timestamps).</td>
 </tr>
-<tr class="odd">
-<td align="left"><strong>Factor</strong></td>
-<td align="left"><strong>Enum</strong></td>
-<td align="left">An integer vector with associated string labels.</td>
-</tr>
 </tbody>
 </table>
 </div>
-<div class="section level3">
-<h3 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
-</h3>
+<div class="section level2">
+<h2 id="basic-usage">Basic Usage<a class="anchor" aria-label="anchor" href="#basic-usage"></a>
+</h2>
 <p>The package uses two primary functions: <code><a href="../reference/h5_write.html">h5_write()</a></code> to
 save data and <code><a href="../reference/h5_read.html">h5_read()</a></code> to load it.</p>
-<div class="section level4">
-<h4 id="writing-numeric-data">Writing Numeric Data<a class="anchor" aria-label="anchor" href="#writing-numeric-data"></a>
-</h4>
+<div class="section level3">
+<h3 id="writing-numeric-data">Writing Numeric Data<a class="anchor" aria-label="anchor" href="#writing-numeric-data"></a>
+</h3>
 <p>You can write standard R arrays and vectors directly to an HDF5 file.
 <code>h5lite</code> automatically handles dimensions.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -168,9 +160,9 @@ column names for matrices and vectors, these examples omit them for
 simplicity. See <code><a href="../articles/attributes-in-depth.html">vignette('attributes-in-depth')</a></code> for details
 on how dimension names are stored.</em></p>
 </div>
-<div class="section level4">
-<h4 id="reading-data">Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
-</h4>
+<div class="section level3">
+<h3 id="reading-data">Reading Data<a class="anchor" aria-label="anchor" href="#reading-data"></a>
+</h3>
 <p>Data is read back into its native R format.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"examples/matrix"</span><span class="op">)</span></span>
@@ -181,9 +173,9 @@ on how dimension names are stored.</em></p>
 <span><span class="co">#&gt; [3,]    3    6    9</span></span></code></pre></div>
 </div>
 </div>
-<div class="section level3">
-<h3 id="data-type-mapping">Data Type Mapping<a class="anchor" aria-label="anchor" href="#data-type-mapping"></a>
-</h3>
+<div class="section level2">
+<h2 id="data-type-mapping">Data Type Mapping<a class="anchor" aria-label="anchor" href="#data-type-mapping"></a>
+</h2>
 <p><code>h5lite</code> automatically selects the appropriate HDF5 data
 type based on the content of your R objects.</p>
 <table class="table">
@@ -263,12 +255,12 @@ package.</td>
 data type for numeric, logical, and character vectors. See
 <code><a href="../articles/data-types.html">vignette('data-types')</a></code> for details.</p>
 </div>
+<div class="section level2">
+<h2 id="complex-data-structures">Complex Data Structures<a class="anchor" aria-label="anchor" href="#complex-data-structures"></a>
+</h2>
 <div class="section level3">
-<h3 id="complex-data-structures">Complex Data Structures<a class="anchor" aria-label="anchor" href="#complex-data-structures"></a>
+<h3 id="lists-as-groups">Lists as Groups<a class="anchor" aria-label="anchor" href="#lists-as-groups"></a>
 </h3>
-<div class="section level4">
-<h4 id="lists-as-groups">Lists as Groups<a class="anchor" aria-label="anchor" href="#lists-as-groups"></a>
-</h4>
 <p>R lists are naturally hierarchical, making them perfect for creating
 HDF5 groups.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -279,9 +271,9 @@ HDF5 groups.</p>
 <span><span class="co"># Creates a group "/experiment" containing "config" (group) and "data" (dataset)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">my_list</span>, <span class="va">file</span>, <span class="st">"experiment"</span><span class="op">)</span> </span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="data-frames-as-compound-datasets">Data Frames as Compound Datasets<a class="anchor" aria-label="anchor" href="#data-frames-as-compound-datasets"></a>
-</h4>
+<div class="section level3">
+<h3 id="data-frames-as-compound-datasets">Data Frames as Compound Datasets<a class="anchor" aria-label="anchor" href="#data-frames-as-compound-datasets"></a>
+</h3>
 <p>Data frames are written as native HDF5 compound datasets, allowing
 efficient storage of tabular data with mixed types.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -294,9 +286,9 @@ efficient storage of tabular data with mixed types.</p>
 and nested lists, refer to <code><a href="../articles/data-frames.html">vignette('data-frames')</a></code>.</p>
 </div>
 </div>
-<div class="section level3">
-<h3 id="attributes">Attributes<a class="anchor" aria-label="anchor" href="#attributes"></a>
-</h3>
+<div class="section level2">
+<h2 id="attributes">Attributes<a class="anchor" aria-label="anchor" href="#attributes"></a>
+</h2>
 <p>Attributes are small pieces of metadata attached to objects.
 <code>h5lite</code> writes R attributes (like <code>units</code> or
 <code>description</code>) as HDF5 attributes.</p>
@@ -310,9 +302,9 @@ and nested lists, refer to <code><a href="../articles/data-frames.html">vignette
 reading specific attributes and how special R attributes like
 <code>dimnames</code> are handled.</p>
 </div>
-<div class="section level3">
-<h3 id="file-inspection">File Inspection<a class="anchor" aria-label="anchor" href="#file-inspection"></a>
-</h3>
+<div class="section level2">
+<h2 id="file-inspection">File Inspection<a class="anchor" aria-label="anchor" href="#file-inspection"></a>
+</h2>
 <p>You can inspect the contents of an HDF5 file without reading the data
 into memory using <code><a href="../reference/h5_ls.html">h5_ls()</a></code> and <code><a href="../reference/h5_str.html">h5_str()</a></code>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
@@ -346,7 +338,6 @@ into memory using <code><a href="../reference/h5_ls.html">h5_ls()</a></code> and
 <p>For advanced file operations, including moving, deleting, and
 verifying objects, refer to
 <code><a href="../articles/data-organization.html">vignette('data-organization')</a></code>.</p>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

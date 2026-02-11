@@ -260,9 +260,9 @@ argument:</p>
 slower).</li>
 </ul>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Write a large vector with compression</span></span>
+<code class="sourceCode R"><span><span class="co"># Write a large vector with max compression</span></span>
 <span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100</span><span class="op">)</span>, <span class="fl">100</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, <span class="st">"compressed_data"</span>, compress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, <span class="st">"compressed_data"</span>, compress <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="bit-integers">64-bit Integers<a class="anchor" aria-label="anchor" href="#bit-integers"></a>
@@ -276,11 +276,12 @@ HDF5 <code>int64</code>.</p>
 <span>  <span class="va">val</span> <span class="op">&lt;-</span> <span class="fu">bit64</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bit64/man/as.integer64.character.html" class="external-link">as.integer64</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"9223372036854775807"</span>, <span class="st">"-9223372036854775807"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  </span>
 <span>  <span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">val</span>, <span class="va">file</span>, <span class="st">"huge_ints"</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="../reference/h5_typeof.html">h5_typeof</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"huge_ints"</span><span class="op">)</span></span>
 <span>  </span>
-<span>  <span class="va">in_val</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"huge_ints"</span><span class="op">)</span></span>
+<span>  <span class="va">in_val</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"huge_ints"</span>, as <span class="op">=</span> <span class="st">"bit64"</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">in_val</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [1] "numeric"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "integer64"</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
