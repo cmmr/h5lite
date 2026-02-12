@@ -45,7 +45,7 @@ file <- tempfile(fileext = ".h5")
 
 # 1. Write simple objects
 h5_write(1:10, file, "my_vector")
-h5_write(42, file, "my_vector", attr = "my_id")
+h5_write(I(42), file, "my_vector", attr = "my_id")
 h5_write(matrix(rnorm(9), 3, 3), file, "my_matrix")
 
 # 2. Write a list (creates a group hierarchy)
