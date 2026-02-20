@@ -1,4 +1,4 @@
-# h5lite <img src="man/figures/logo.png" align="right" width="172" height="200" alt="h5lite logo" />
+# h5lite <img src="man/figures/logo.png" align="right" width="184" height="200" alt="h5lite logo" />
 
 <!-- badges: start -->
 [![cran](https://img.shields.io/cran/v/h5lite?logo=r&label=CRAN)](https://CRAN.R-project.org/package=h5lite)
