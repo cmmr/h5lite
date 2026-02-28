@@ -199,3 +199,5 @@ How does `h5lite` compare to the other major R HDF5 packages?
 - **[Parallel
   Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**:
   Guide for multi-threaded and multi-process access.
+
+![](https://cmmr-repos.goatcounter.com/count?p=/h5lite)
