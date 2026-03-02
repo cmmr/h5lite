@@ -108,11 +108,29 @@ test_that("Compression", {
   file_uncompressed <- tempfile(fileext = ".h5")
   on.exit(unlink(c(file_compressed, file_uncompressed)))
   
+  
+  vec <- 1:13
+  
+  h5_write(vec, file_compressed, "vec", compress = "none")
+  expect_equal(h5_read(file_compressed, "vec"), vec)
+  
+  h5_write(vec, file_compressed, "vec", compress = "gzip-5")
+  expect_equal(h5_read(file_compressed, "vec"), vec)
+  
+  h5_write(vec, file_compressed, "vec", compress = "szip-nn")
+  expect_equal(h5_read(file_compressed, "vec"), vec)
+  
+  h5_write(vec, file_compressed, "vec", compress = "szip-ec")
+  expect_equal(h5_read(file_compressed, "vec"), vec)
+  
+  
   vec <- rep(1L, 10000000)
   h5_write(vec, file_compressed,   "vec", compress = "gzip-5")
   h5_write(vec, file_uncompressed, "vec", compress = "none")
   expect_lt(file.size(file_compressed), file.size(file_uncompressed))
   
+  
+  testthat::skip_on_cran()
   
   mtx <- matrix(vec, nrow = 100)
   h5_write(mtx, file_compressed, "mtx", compress = "gzip-5")
@@ -124,6 +142,16 @@ test_that("Compression", {
   h5_write(mtx, file_compressed, "mtx", compress = "szip-ec")
   expect_equal(h5_read(file_compressed, "mtx"), mtx)
   
+  
+  for (i in c(1, 2, 3, 7, 11, 19, 61, 1000)) {
+    vec <- 1:i
+    
+    h5_write(vec, file_compressed, "vec", compress = "szip-nn")
+    expect_equal(h5_read(file_compressed, "vec"), vec)
+    
+    h5_write(vec, file_compressed, "vec", compress = "szip-ec")
+    expect_equal(h5_read(file_compressed, "vec"), vec)
+  }
 })
 
 

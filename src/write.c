@@ -289,31 +289,46 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       /* Only apply chunking/compression if requested and applicable */
       if (compress > 0 && rank > 0 && XLENGTH(data) > 0) {
         
-        /* Get element size (e.g., 4 bytes for int, 8 for double) */
         size_t type_size = H5Tget_size(file_type_id);
-        
-        /* Heuristic for choosing a chunk size (~1 MB) */
         hsize_t *chunk_dims = (hsize_t *) R_alloc(rank, sizeof(hsize_t));
-        calculate_chunk_dims(rank, h5_dims, type_size, compress, chunk_dims);
+        calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
+        
+        unsigned int pixels_per_block = 32;
+        
+        /* --- Handle SZIP Chunk Alignment & Fallbacks --- */
+        if ((compress == 10 || compress == 11) && H5Tget_class(file_type_id) != H5T_STRING) {
+          hsize_t fastest_dim = chunk_dims[rank - 1];
+          
+          if (fastest_dim >= 32) {
+            /* Round down to the nearest multiple of 32 */
+            chunk_dims[rank - 1] = (fastest_dim / 32) * 32;
+          } else if (fastest_dim >= 2) {
+            /* For small dimensions, round down to nearest even number */
+            chunk_dims[rank - 1] = (fastest_dim / 2) * 2;
+            pixels_per_block = (unsigned int)chunk_dims[rank - 1];
+          } else {
+            /* Fastest dim is 1. Szip requires an even block size >= 2. 
+             Gracefully fall back to gzip level 5. */
+            compress = 5; 
+          }
+        }
+        
+        /* Apply the final valid chunk dimensions */
         H5Pset_chunk(dcpl_id, rank, chunk_dims);
         
-        /* Handle GZIP (1-9) */
-        if (compress <= 9) {
-          /* Apply shuffle filter on multibyte data types to improve gzip ratio */
+        /* --- Apply Compression Filters --- */
+        if (compress >= 1 && compress <= 9) {
+          /* GZIP (1-9) */
           if (type_size > 1) H5Pset_shuffle(dcpl_id);
           H5Pset_deflate(dcpl_id, (unsigned int)compress);
-        }
-        /* Handle SZIP (10 = NN, 11 = EC) */
+        } 
         else if (compress == 10 || compress == 11) {
-          
-          /* Szip does not support string datasets. Fallback to gzip-5. */
+          /* SZIP (10 = NN, 11 = EC) */
           if (H5Tget_class(file_type_id) == H5T_STRING) {
             if (type_size > 1) H5Pset_shuffle(dcpl_id);
-            H5Pset_deflate(dcpl_id, 5);
+            H5Pset_deflate(dcpl_id, 5); /* Fallback for strings */
           } else {
             unsigned int options_mask = (compress == 10) ? H5_SZIP_NN_OPTION_MASK : H5_SZIP_EC_OPTION_MASK;
-            unsigned int pixels_per_block = 32; /* Hardcoded optimal block size */
-          
             H5Pset_szip(dcpl_id, options_mask, pixels_per_block);
           }
         }

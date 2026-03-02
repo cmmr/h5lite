@@ -264,10 +264,11 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress = "none
 
   if (is.null(attr)) {
     
+    stopifnot(length(compress) == 1)
     if (identical(compress, TRUE))  compress <- "gzip-5"
     if (identical(compress, FALSE)) compress <- "none"
     if (is.numeric(compress))       compress <- paste0("gzip-", compress)
-    compress <- head(trimws(tolower(as.character(compress))), 1)
+    compress <- trimws(tolower(as.character(compress)))
     
     opts <- c(
       "none"    = 0L, "szip-nn" = 10L, "szip-ec" = 11L,

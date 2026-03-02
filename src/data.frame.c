@@ -447,7 +447,7 @@ SEXP write_dataframe(
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     if (compress > 0 && n_rows > 0) {
       hsize_t chunk_dims = 0;
-      calculate_chunk_dims(1, &h5_dims, total_mem_size, compress, &chunk_dims);
+      calculate_chunk_dims(1, &h5_dims, total_mem_size, &chunk_dims);
       H5Pset_chunk(dcpl_id, 1, &chunk_dims);
       H5Pset_shuffle(dcpl_id);
       H5Pset_deflate(dcpl_id, (unsigned int) compress);

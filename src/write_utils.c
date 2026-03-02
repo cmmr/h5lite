@@ -142,55 +142,32 @@ herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer) {
   return status;
 }
 
+
 /*
  * Implements a heuristic to determine chunk dimensions for a dataset.
  * The goal is to create chunks that are roughly 1MB in size by iteratively
  * halving the largest dimension until the target size is met.
- * Ensures szip compatibility by aligning the fastest dimension.
  */
-void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, int compress, hsize_t *out_chunk_dims) {
+void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
   const hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
   hsize_t current_bytes = type_size;
 
-  /* 1. Start with the full dimensions */
   for (int i = 0; i < rank; i++) {
     out_chunk_dims[i] = dims[i];
     current_bytes *= dims[i];
   }
 
-  /* 2. Iteratively reduce dimensions until we fit in the target size */
   if (current_bytes > TARGET_SIZE) {
     while (current_bytes > TARGET_SIZE) {
-      /* Find the largest dimension */
       int max_idx = 0;
       for (int i = 1; i < rank; i++) {
-        if (out_chunk_dims[i] > out_chunk_dims[max_idx]) {
-          max_idx = i;
-        }
+        if (out_chunk_dims[i] > out_chunk_dims[max_idx]) max_idx = i;
       }
-      
-      /* Safety check: if largest dim is 1, we can't shrink anymore. */
       if (out_chunk_dims[max_idx] <= 1) break;
-      
-      /* Halve the largest dimension (ceiling division) */
       out_chunk_dims[max_idx] = (out_chunk_dims[max_idx] + 1) / 2;
       
-      /* Recalculate total bytes */
       current_bytes = type_size;
-      for (int i = 0; i < rank; i++) {
-        current_bytes *= out_chunk_dims[i];
-      }
-    }
-  }
-  
-  /* 3. SZIP Compatibility */
-  /* If szip is requested (10 or 11), the fastest-changing dimension 
-     must be a multiple of pixels_per_block (which we hardcode to 32). */
-  if (compress >= 10 && rank > 0) {
-    hsize_t fastest_dim = out_chunk_dims[rank - 1];
-    if (fastest_dim % 32 != 0) {
-      /* Round up to the nearest multiple of 32 */
-      out_chunk_dims[rank - 1] = ((fastest_dim / 32) + 1) * 32;
+      for (int i = 0; i < rank; i++) current_bytes *= out_chunk_dims[i];
     }
   }
 }
