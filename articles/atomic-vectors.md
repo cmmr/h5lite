@@ -164,15 +164,26 @@ h5_write(c("short", "longer", "longest"), file, "strings/auto_fixed", as = "asci
 Compression in HDF5 requires the dataset to be “chunked”. `h5lite`
 handles chunking parameters automatically when you enable compression.
 
-You can enable compression using the `compress` argument:
+You can configure compression using the `compress` argument:
 
-- `compress = TRUE` (default): Uses zlib (deflate) level 5.
-- `compress = 9`: Uses zlib level 9 (max compression, slower).
+- `"gzip-5"` (default): Standard zlib compression at level 5. Levels
+  `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally
+  compatible.
+- `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous,
+  correlated, or floating-point data (e.g., time series or smooth
+  gradients).
+- `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated,
+  discrete, or categorical integer data.
+- `"none"`: Disables compression entirely.
 
 ``` r
-# Write a large vector with max compression
+# Write a large vector with max zlib compression
 x <- rep(rnorm(100), 100)
-h5_write(x, file, "compressed_data", compress = 9)
+h5_write(x, file, "compressed_data", compress = "gzip-9")
+
+# Write a smooth, correlated dataset using szip Nearest Neighbor
+smooth_data <- sin(seq(0, 10, length.out = 1000))
+h5_write(smooth_data, file, "szip_data", compress = "szip-nn")
 ```
 
 ## 64-bit Integers

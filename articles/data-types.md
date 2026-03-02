@@ -270,26 +270,34 @@ h5_write(NULL, file, "placeholders/empty_slot")
 
 ## Compression
 
-HDF5 supports transparent data compression using the zlib (deflate)
-algorithm. You can control the compression intensity using the
+HDF5 supports transparent data compression using the zlib (gzip) and
+szip algorithms. You can control the compression behavior using the
 `compress` argument.
 
-- **`TRUE`**: Enables standard compression (Level 5).
-- **`FALSE` / `0`**: Disables compression.
-- **`1` - `9`**: Specific compression level (1 = fastest, 9 = most
-  compressed).
+- **`"gzip-5"`** (default): Standard zlib compression at level 5. Levels
+  `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally
+  compatible.
+- **`"szip-nn"`**: Szip with Nearest Neighbor coding. Best for
+  continuous, correlated, or floating-point data (e.g., time series or
+  smooth gradients).
+- **`"szip-ec"`**: Szip with Entropy Coding. Best for uncorrelated,
+  discrete, or categorical integer data.
+- **`"none"`**: Disables compression entirely.
 
 ``` r
-# Maximum compression
-h5_write(rnorm(1000), file, "data/max", compress = 9)
+# Maximum zlib compression
+h5_write(rnorm(1000), file, "data/max", compress = "gzip-9")
+
+# Szip Entropy Coding for discrete integer data
+h5_write(sample(1:5, 1000, replace = TRUE), file, "data/szip", compress = "szip-ec")
 ```
 
 ### The Shuffle Filter
 
-When compression is enabled (level \> 0), `h5lite` automatically applies
-the HDF5 **Byte Shuffle Filter** before the data is compressed. The
-Shuffle Filter does not compress data itself; rather, it rearranges the
-byte stream to make it more compressible by zlib.
+When `gzip` compression is enabled, `h5lite` automatically applies the
+HDF5 **Byte Shuffle Filter** before the data is compressed. The Shuffle
+Filter does not compress data itself; rather, it rearranges the byte
+stream to make it more compressible by zlib.
 
 It works by separating the bytes of each value by their significance.
 For example, in a 4-byte integer array:

@@ -7,7 +7,7 @@ exist. This function acts as a unified writer for datasets, groups
 ## Usage
 
 ``` r
-h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
+h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip-5")
 ```
 
 ## Arguments
@@ -47,11 +47,18 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
 
   Compression configuration.
 
-  - `TRUE` (default): Enables compression (zlib level 5).
+  - `"gzip-5"` (default): Standard zlib compression at level 5. Levels
+    `"gzip-1"` through `"gzip-9"` are also supported. Safe and
+    universally compatible.
 
-  - `FALSE` or `0`: Disables compression.
+  - `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous,
+    correlated, or floating-point data (e.g., time series or smooth
+    gradients).
 
-  - Integer `1-9`: Specifies the zlib compression level.
+  - `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated,
+    discrete, or categorical integer data.
+
+  - `"none"`: Disables compression entirely.
 
 ## Value
 

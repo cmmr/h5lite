@@ -132,7 +132,7 @@ sparse_mat[1:10, 1:10] <- 1
 h5_write(sparse_mat, file, "compressed/matrix")
 
 # Write with high compression (zlib level 9)
-h5_write(sparse_mat, file, "compressed/matrix_max", compress = 9)
+h5_write(sparse_mat, file, "compressed/matrix_max", compress = "gzip-9")
 ```
 
 ## Partial I/O
