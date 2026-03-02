@@ -113,9 +113,9 @@ h5_open <- function (file) {
   env$.wd    <- "/"
   class(env) <- "h5"
   
-  env$read         = \(name = ".",       attr = NULL, as = "auto")                  { h5_run(env, h5_read)  }
-  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = TRUE) { h5_run(env, h5_write) }
-  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)            { h5_run(env, h5_ls)    }
+  env$read         = \(name = ".",       attr = NULL, as = "auto")                      { h5_run(env, h5_read)  }
+  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = "gzip-5") { h5_run(env, h5_write) }
+  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)                { h5_run(env, h5_ls)    }
   env$attr_names   = \(name = ".")                     { h5_run(env, h5_attr_names)   }
   env$class        = \(name, attr = NULL)              { h5_run(env, h5_class)        }
   env$dim          = \(name, attr = NULL)              { h5_run(env, h5_dim)          }

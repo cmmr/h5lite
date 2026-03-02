@@ -235,10 +235,10 @@ static SEXP write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_n
 
 
 /* --- WRITER: DATASET --- */
-SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level) {
+SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP sexp_compress) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
-  int compress = asInteger(compress_level);
+  int compress = asInteger(sexp_compress);
   
   hid_t file_id = open_or_create_file(fname);
 
@@ -294,13 +294,29 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
         
         /* Heuristic for choosing a chunk size (~1 MB) */
         hsize_t *chunk_dims = (hsize_t *) R_alloc(rank, sizeof(hsize_t));
-        calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
+        calculate_chunk_dims(rank, h5_dims, type_size, compress, chunk_dims);
         H5Pset_chunk(dcpl_id, rank, chunk_dims);
         
-        /* Apply shuffle filter on multibyte data types */
-        if (type_size > 1) H5Pset_shuffle(dcpl_id);
-        
-        H5Pset_deflate(dcpl_id, (unsigned int)compress);
+        /* Handle GZIP (1-9) */
+        if (compress <= 9) {
+          /* Apply shuffle filter on multibyte data types to improve gzip ratio */
+          if (type_size > 1) H5Pset_shuffle(dcpl_id);
+          H5Pset_deflate(dcpl_id, (unsigned int)compress);
+        }
+        /* Handle SZIP (10 = NN, 11 = EC) */
+        else if (compress == 10 || compress == 11) {
+          
+          /* Szip does not support string datasets. Fallback to gzip-5. */
+          if (H5Tget_class(file_type_id) == H5T_STRING) {
+            if (type_size > 1) H5Pset_shuffle(dcpl_id);
+            H5Pset_deflate(dcpl_id, 5);
+          } else {
+            unsigned int options_mask = (compress == 10) ? H5_SZIP_NN_OPTION_MASK : H5_SZIP_EC_OPTION_MASK;
+            unsigned int pixels_per_block = 32; /* Hardcoded optimal block size */
+          
+            H5Pset_szip(dcpl_id, options_mask, pixels_per_block);
+          }
+        }
       }
       
       /* Create the dataset passing both LCPL (name encoding) and DCPL (compression) */

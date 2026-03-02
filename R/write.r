@@ -16,9 +16,13 @@
 #'   (including `"int64"`, `"bfloat16"`, `"utf8[n]"`, etc.) and how to map 
 #'   sub-components of `data`.
 #' @param compress Compression configuration.
-#'   * `TRUE` (default): Enables compression (zlib level 5).
-#'   * `FALSE` or `0`: Disables compression.
-#'   * Integer `1-9`: Specifies the zlib compression level.
+#'   * `"gzip-5"` (default): Standard zlib compression at level 5. Levels `"gzip-1"` 
+#'     through `"gzip-9"` are also supported. Safe and universally compatible.
+#'   * `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous, 
+#'     correlated, or floating-point data (e.g., time series or smooth gradients).
+#'   * `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated, discrete, 
+#'     or categorical integer data.
+#'   * `"none"`: Disables compression entirely.
 #' 
 #' @section Writing Scalars:
 #' 
@@ -158,7 +162,7 @@
 #' 
 #' # 8. Clean up
 #' unlink(file)
-h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE) {
+h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzip-5") {
   
   file <- validate_strings(file, name, attr)
   
@@ -196,7 +200,7 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = TRUE
 #' Recursively write a list as a group
 #' @noRd
 #' @keywords internal
-write_group <- function(data, file, name, obj_as, attr_as, compress = TRUE, dry = FALSE) {
+write_group <- function(data, file, name, obj_as, attr_as, compress = "gzip-5", dry = FALSE) {
 
   if (!dry) h5_delete(file, name, warn = FALSE)
   if (!dry) h5_create_group(file, name)
@@ -218,7 +222,7 @@ write_group <- function(data, file, name, obj_as, attr_as, compress = TRUE, dry 
 #' Write a single dataset or attribute
 #' @noRd
 #' @keywords internal
-write_data <- function(data, file, name, attr, obj_as, attr_as, compress = FALSE, dry = FALSE) {
+write_data <- function(data, file, name, attr, obj_as, attr_as, compress = "none", dry = FALSE) {
   
   # Convert POSIXt vectors/columns to ISO 8601 character strings.
   if (inherits(data, "POSIXt")) {
@@ -259,10 +263,23 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress = FALSE
   dims <- validate_dims(data)
 
   if (is.null(attr)) {
-    level <- if (isTRUE(compress)) 5L else as.integer(compress)
+    
+    if (identical(compress, TRUE))  compress <- "gzip-5"
+    if (identical(compress, FALSE)) compress <- "none"
+    if (is.numeric(compress))       compress <- paste0("gzip-", compress)
+    compress <- head(trimws(tolower(as.character(compress))), 1)
+    
+    opts <- c(
+      "none"    = 0L, "szip-nn" = 10L, "szip-ec" = 11L,
+      "gzip-1"  = 1L, "gzip-2"  = 2L,  "gzip-3"  = 3L, 
+      "gzip-4"  = 4L, "gzip-5"  = 5L,  "gzip-6"  = 6L, 
+      "gzip-7"  = 7L, "gzip-8"  = 8L,  "gzip-9"  = 9L )
+      
+    compress <- opts[[match.arg(compress, names(opts))]]
+      
     
     if (!dry)
-      .Call("C_h5_write_dataset", file, name, data, h5_type, dims, level, PACKAGE = "h5lite")
+      .Call("C_h5_write_dataset", file, name, data, h5_type, dims, compress, PACKAGE = "h5lite")
     
     write_attributes(data, file, name, attr_as, dry = dry)
   }

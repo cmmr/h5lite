@@ -40,9 +40,8 @@ typedef struct {
 
 /* --- data.frame.c --- */
 SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t space_id, SEXP rmap);
-SEXP write_dataframe(
-hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, 
-SEXP dtypes, int compress_level, int is_attribute);
+SEXP write_dataframe(hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, SEXP dtypes, 
+                     int compress, int is_attribute);
 
 /* --- dimscales.c --- */
 herr_t visitor_find_scale(hid_t dset, unsigned dim, hid_t scale, void *visitor_data);
@@ -90,7 +89,7 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name);
 SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id);
 
 /* --- write.c --- */
-SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress_level);
+SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP sexp_compress);
 SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP data, SEXP dtype, SEXP dims);
 SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int rank, hsize_t *h5_dims);
 
@@ -100,7 +99,7 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
 herr_t handle_overwrite(hid_t file_id, const char *name);
 herr_t handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_name);
 herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer);
-void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims);
+void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, int compress, hsize_t *out_chunk_dims);
 hid_t create_r_memory_type(SEXP data, const char *dtype);
 hid_t create_h5_file_type(SEXP data, const char *dtype);
 hid_t create_string_type(const char *dtype);

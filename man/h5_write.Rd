@@ -4,7 +4,7 @@
 \alias{h5_write}
 \title{Write an R Object to HDF5}
 \usage{
-h5_write(data, file, name, attr = NULL, as = "auto", compress = TRUE)
+h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip-5")
 }
 \arguments{
 \item{data}{The R object to write. Supported: \code{numeric}, \code{complex},
@@ -28,9 +28,13 @@ sub-components of \code{data}.}
 
 \item{compress}{Compression configuration.
 \itemize{
-\item \code{TRUE} (default): Enables compression (zlib level 5).
-\item \code{FALSE} or \code{0}: Disables compression.
-\item Integer \code{1-9}: Specifies the zlib compression level.
+\item \code{"gzip-5"} (default): Standard zlib compression at level 5. Levels \code{"gzip-1"}
+through \code{"gzip-9"} are also supported. Safe and universally compatible.
+\item \code{"szip-nn"}: Szip with Nearest Neighbor coding. Best for continuous,
+correlated, or floating-point data (e.g., time series or smooth gradients).
+\item \code{"szip-ec"}: Szip with Entropy Coding. Best for uncorrelated, discrete,
+or categorical integer data.
+\item \code{"none"}: Disables compression entirely.
 }}
 }
 \value{

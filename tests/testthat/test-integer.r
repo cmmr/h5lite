@@ -109,13 +109,19 @@ test_that("Compression", {
   on.exit(unlink(c(file_compressed, file_uncompressed)))
   
   vec <- rep(1L, 10000000)
-  h5_write(vec, file_compressed,   "vec", compress = TRUE)
-  h5_write(vec, file_uncompressed, "vec", compress = FALSE)
+  h5_write(vec, file_compressed,   "vec", compress = "gzip-5")
+  h5_write(vec, file_uncompressed, "vec", compress = "none")
   expect_lt(file.size(file_compressed), file.size(file_uncompressed))
   
   
   mtx <- matrix(vec, nrow = 100)
-  h5_write(mtx, file_compressed, "mtx", compress = TRUE)
+  h5_write(mtx, file_compressed, "mtx", compress = "gzip-5")
+  expect_equal(h5_read(file_compressed, "mtx"), mtx)
+  
+  h5_write(mtx, file_compressed, "mtx", compress = "szip-nn")
+  expect_equal(h5_read(file_compressed, "mtx"), mtx)
+  
+  h5_write(mtx, file_compressed, "mtx", compress = "szip-ec")
   expect_equal(h5_read(file_compressed, "mtx"), mtx)
   
 })
