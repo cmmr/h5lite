@@ -27,7 +27,7 @@ h5_dim(file, name, attr = NULL)
 
 ## Value
 
-An integer vector of dimensions, or `integer(0)` for scalars.
+An numeric vector of dimensions, or `numeric(0)` for scalars.
 
 ## Examples
 
@@ -43,8 +43,8 @@ h5_dim(file, "mtcars") # 32 11
 #> [1] 32 11
 
 h5_write(I(TRUE), file, "my_bool")
-h5_dim(file, "my_bool") # integer(0)
-#> integer(0)
+h5_dim(file, "my_bool") # numeric(0)
+#> numeric(0)
 
 h5_write(1:10, file, "my_ints")
 h5_dim(file, "my_ints") # 10

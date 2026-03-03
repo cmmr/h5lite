@@ -6,6 +6,8 @@
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
 - [Attributes
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
+- [Data
+  Compression](https://cmmr.github.io/h5lite/articles/data-compression.md):
 - [Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.md):
 - [Data
   Organization](https://cmmr.github.io/h5lite/articles/data-organization.md):
@@ -19,3 +21,5 @@
   Interface](https://cmmr.github.io/h5lite/articles/oo-interface.md):
 - [Parallel
   Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):
+- [Partial
+  Reading](https://cmmr.github.io/h5lite/articles/partial-reading.md):

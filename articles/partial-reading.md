@@ -1,0 +1,240 @@
+# Partial Reading
+
+When working with large datasets, loading an entire HDF5 object into R’s
+memory isn’t always feasible—or necessary. `h5lite` provides a highly
+efficient “partial reading” feature using the `start` and `count`
+parameters in
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md).
+
+This vignette explains why partial reading is vastly more efficient than
+R’s standard indexing for large data, and how to use the “smart” `start`
+parameter across different data structures.
+
+## Why Partial Reading Matters
+
+If you are working with small datasets, partial reading isn’t strictly
+necessary. By default, `h5lite` chunks data in 1 MB blocks. For objects
+smaller than this, reading the whole dataset into memory and subsetting
+it in R is perfectly fine.
+
+However, when dealing with datasets that span gigabytes and exceed your
+system’s RAM, partial reading becomes essential.
+
+### The HDF5 Storage Model: Chunking and Compression
+
+To understand why `start` and `count` are designed the way they are, it
+helps to understand how HDF5 stores data.
+
+Unlike a standard CSV, HDF5 datasets are divided into “chunks” which are
+compressed individually. When you want to read a specific piece of data,
+the HDF5 library must locate the chunk containing that data, decompress
+the *entire* chunk into memory, and then extract your requested values.
+
+If you request a contiguous block of data, HDF5 only needs to decompress
+a handful of chunks. This is incredibly fast.
+
+However, if you try to use typical random-access indexing—for example,
+trying to extract a single column from a massive, row-oriented HDF5
+matrix—the library has to decompress almost every single chunk in the
+dataset just to piece together that one column. To fetch a single
+column, it is often faster to read the entire dataset into R first and
+then subset it.
+
+### Designing for Partial Reading
+
+If you are the one designing and writing the HDF5 file, you should
+actively consider optimizing your data storage for partial reading.
+Well-designed HDF5 files lay out large datasets in such a way that users
+can extract useful subsets while only decompressing a minimal number of
+internal chunks. For instance, if you anticipate that users will
+primarily extract data row-by-row, your data should be oriented so that
+rows are kept contiguous.
+
+The “smart” `start` parameter is purposefully designed to work
+seamlessly with datasets that are arranged optimally in this way,
+ensuring that the most efficient access patterns are also the easiest to
+type.
+
+### Memory Efficiency of `start` and `count`
+
+Another massive benefit of partial reading is the memory footprint of
+the request itself.
+
+In standard R, if you want to extract the first ten million elements of
+a vector, you might write `vec[1:10000000]`. Behind the scenes, R
+expands `1:10000000` into an actual vector of ten million 32-bit
+integers. That index vector alone consumes nearly 40 MB of RAM just to
+be passed as an argument!
+
+In `h5lite`, fetching those same ten million elements looks like this:
+`h5_read(file, "vec", start = 1, count = 10000000)`. Those two arguments
+are passed as simple numeric values, consuming just 16 bytes.
+
+------------------------------------------------------------------------
+
+## The “Smart” `start` Parameter
+
+The `start` parameter is designed to relieve you from doing complex
+index math. Assuming your HDF5 file is well-designed and stores data in
+the most logical way it will be retrieved, **90% of the time you only
+need to provide a single integer to `start`**.
+
+When you provide a single integer, `start` automatically applies itself
+to the most meaningful dimension of the dataset:
+
+- **1D Vector:** `start` specifies the **element**.
+- **2D Matrix:** `start` specifies the **row**.
+- **2D Data Frame:** `start` specifies the **row**.
+- **3D Array:** `start` specifies the **2D matrix**.
+
+The `count` parameter is an optional single integer that simply says,
+“Starting from `start`, how many of these structural units do you want
+to read?”
+
+### Single-Value Examples
+
+Here is how this intuitive behavior looks in practice across different
+shapes of data when fetching a block of units:
+
+``` r
+library(h5lite)
+file <- tempfile(fileext = ".h5")
+
+# --- 1. Vectors (Element-level targeting) ---
+h5_write(seq(10, 100, by = 10), file, "my_vector")
+
+# Start at the 4th element, read 3 elements
+h5_read(file, "my_vector", start = 4, count = 3)
+#> [1] 40 50 60
+
+# --- 2. Matrices (Row-level targeting) ---
+mat <- matrix(1:50, nrow = 10, ncol = 5)
+h5_write(mat, file, "my_matrix")
+
+# Start at row 5, read 3 complete rows (automatically spans all columns)
+h5_read(file, "my_matrix", start = 5, count = 3)
+#>      [,1] [,2] [,3] [,4] [,5]
+#> [1,]    5   15   25   35   45
+#> [2,]    6   16   26   36   46
+#> [3,]    7   17   27   37   47
+
+# --- 3. Data Frames (Row-level targeting) ---
+h5_write(mtcars, file, "my_mtcars")
+
+# Start at row 10, read 5 complete rows
+h5_read(file, "my_mtcars", start = 10, count = 5)
+#>              mpg cyl  disp  hp drat   wt qsec vs am gear carb
+#> Merc 280    19.2   6 167.6 123 3.92 3.44 18.3  1  0    4    4
+#> Merc 280C   17.8   6 167.6 123 3.92 3.44 18.9  1  0    4    4
+#> Merc 450SE  16.4   8 275.8 180 3.07 4.07 17.4  0  0    3    3
+#> Merc 450SL  17.3   8 275.8 180 3.07 3.73 17.6  0  0    3    3
+#> Merc 450SLC 15.2   8 275.8 180 3.07 3.78 18.0  0  0    3    3
+
+# --- 4. 3D Arrays (Matrix-level targeting) ---
+arr <- array(1:24, dim = c(2, 3, 4)) 
+h5_write(arr, file, "my_array")
+
+# Start at the 2nd matrix, read 2 complete matrices
+h5_read(file, "my_array", start = 2, count = 2)
+#> , , 1
+#> 
+#>      [,1] [,2] [,3]
+#> [1,]    7    9   11
+#> [2,]    8   10   12
+#> 
+#> , , 2
+#> 
+#>      [,1] [,2] [,3]
+#> [1,]   13   15   17
+#> [2,]   14   16   18
+```
+
+### Dimension Simplification (Exact vs. Range Indexing)
+
+`h5lite` mimics R’s native subsetting behavior when it comes to
+preserving or dropping dimensions. This behavior is controlled entirely
+by whether you include the `count` argument.
+
+**Exact Indexing (Omitting `count`)** If you provide `start` but omit
+`count`, `h5lite` assumes you are requesting an exact point index. It
+will read 1 unit and **drop** the targeted dimension to simplify the
+resulting data structure.
+
+``` r
+# Read exactly row 5 of the matrix. 
+# The row dimension is dropped, returning a 1D vector.
+row_vec <- h5_read(file, "my_matrix", start = 5)
+row_vec
+#> [1]  5 15 25 35 45
+
+class(row_vec)
+#> [1] "integer"
+```
+
+**Range Indexing (Providing `count`)** If you explicitly provide `count`
+(even if `count = 1`), `h5lite` assumes you are reading a range. The
+dataset’s original dimensions are **preserved**. This is incredibly
+useful when programming dynamically and you need to guarantee that your
+matrix remains a matrix, even if your batch loop happens to fetch only a
+single row.
+
+``` r
+# Read row 5, but signal a range request by setting count = 1.
+# The original geometry is preserved, returning a 1x5 matrix.
+row_mat <- h5_read(file, "my_matrix", start = 5, count = 1)
+row_mat
+#>      [,1] [,2] [,3] [,4] [,5]
+#> [1,]    5   15   25   35   45
+
+class(row_mat)
+#> [1] "matrix" "array"
+```
+
+### Drilling Down: Multi-Value `start` and N-Dimensional Arrays
+
+While the single-value form covers most use cases, `start` is flexible
+enough to target lower-rank dimensions for unusual or highly specific
+extractions.
+
+If you need to extract a specific contiguous block *inside* a matrix or
+array, you can pass a vector of integers to `start`. When you do this,
+the `count` dropping rules apply to the **last** dimension you specify,
+while all preceding dimensions are treated as exact point indices and
+dropped unconditionally.
+
+To make this intuitive, `start` maps its values to the dataset’s
+dimensions in a specific priority order, targeting the “outermost”
+structural blocks first, and the specific rows/columns last. For any
+N-dimensional array, the mapping order is:
+
+- **Priority Order:**
+  `Dimension N, Dimension N-1, ..., Dimension 3, Dimension 1 (Rows), Dimension 2 (Cols)`
+
+For a 3D array, this means the first value targets the matrix, the
+second targets the row, and the third targets the column.
+
+``` r
+# Matrix: Start at row 5, column 2, and read 3 elements along that row.
+# The row is an exact point index (dropped). The columns are a range (preserved).
+# Returns a 1D vector of length 3.
+h5_read(file, "my_matrix", start = c(5, 2), count = 3)
+#> [1] 15 25 35
+
+# Matrix: Extract exactly row 5, column 2. 
+# Because count is omitted, the final dimension is also dropped.
+# Returns an unnamed scalar value.
+h5_read(file, "my_matrix", start = c(5, 2))
+#> [1] 15
+
+# 3D Array: Target matrix 2, row 1.
+# The matrix and row are exact point indices (dropped). 
+# Returns a 1D vector containing the columns of that specific row.
+h5_read(file, "my_array", start = c(2, 1))
+#> [1]  7  9 11
+```
+
+*(Note: Data frames are a special case. Because HDF5 stores data frames
+as 1-dimensional lists of compound records, they do not have columns in
+the same structural way a matrix does. Therefore, `start` for a data
+frame must always be a single integer targeting the row. To get specific
+columns, read the rows you need first, then subset the columns in R).*

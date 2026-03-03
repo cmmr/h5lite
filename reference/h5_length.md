@@ -37,7 +37,7 @@ h5_length(file, name, attr = NULL)
 
 ## Value
 
-An integer representing the total length (number of elements).
+An numeric scalar representing the total length (number of elements).
 
 ## Examples
 
