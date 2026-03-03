@@ -1,6 +1,7 @@
 #' Read an HDF5 Object or Attribute
 #'
 #' Reads a dataset, a group, or a specific attribute from an HDF5 file into an R object.
+#' Supports partial reading (hyperslabs) to load specific subsets of data.
 #'
 #' @param file The path to the HDF5 file.
 #' @param name The full path of the dataset or group to read (e.g., `"/data/matrix"`).
@@ -10,6 +11,26 @@
 #' @param as The target R data type.
 #'   * **Global:** `"auto"` (default), `"integer"`, `"double"`, `"logical"`, `"bit64"`, `"null"`.
 #'   * **Specific:** A named vector mapping names or type classes to R types (see Section "Type Conversion").
+#' @param start An integer vector specifying the 1-based starting coordinates for a partial read.
+#'   For example, `start = c(5, 2)` begins reading at the 5th row and 2nd column.
+#'   Must be provided alongside `count`. If `NULL` (default), the entire dataset is read.
+#' @param count A single integer specifying the number of elements to read.
+#'   Must be provided alongside `start`. If `NULL` (default), the entire dataset is read.
+#'
+#' @section Partial Reading (Hyperslabs):
+#' You can read specific subsets of an n-dimensional dataset without loading the entire object 
+#' into memory by utilizing the `start` and `count` arguments.
+#' 
+#' Both `start` and `count` must be provided together. Coordinates are 1-based and follow 
+#' standard R array indexing. 
+#' 
+#' The `count` parameter is always a **single integer** and is applied to the *last* dimension 
+#' specified in your `start` vector. 
+#' 
+#' * **Example 1:** If you are reading from a 20x5 matrix, calling `start = 5` and `count = 3` 
+#'   will start at row 5 and extract 3 complete rows (automatically spanning all 5 columns).
+#' * **Example 2:** Calling `start = c(5, 2)` and `count = 3` on the same matrix would start 
+#'   at row 5, column 2, and read 3 columns along that specific row.
 #'
 #' @section Type Conversion (`as`):
 #' You can control how HDF5 data is converted to R types using the `as` argument.
@@ -41,6 +62,8 @@
 #' The `@` prefix is **only** used to configure attached attributes when reading a dataset (`attr = NULL`).
 #' If you are reading a specific attribute directly (e.g., `h5_read(..., attr = "id")`), do **not** use
 #' the `@` prefix in the `as` argument.
+#' 
+#' Partial reading (`start`/`count`) is only supported for datasets, not attributes.
 #'
 #' @return An R object corresponding to the HDF5 object or attribute.
 #'   Returns `NULL` if the object is skipped via `as = "null"`.
@@ -49,42 +72,48 @@
 #' @examples
 #' file <- tempfile(fileext = ".h5")
 #' 
-#' # --- Write Data ---
-#' h5_write(c(10L, 20L), file, "ints")
-#' h5_write(I(TRUE),     file, "ints", attr = "ready")
-#' h5_write(c(10.5, 18), file, "floats")
-#' h5_write(I("meters"), file, "floats", attr = "unit")
+#' # --- Setup: Write Test Data ---
+#' h5_write(c(10L, 20L, 30L, 40L, 50L), file, "ints")
 #' 
-#' # --- Read Data ---
-#' # Read dataset
+#' m <- matrix(1:100, nrow = 20, ncol = 5)
+#' h5_write(m, file, "matrix_data")
+#' 
+#' # --- Standard Reading ---
+#' # Read the entire dataset
 #' x <- h5_read(file, "ints")
 #' print(x)
 #' 
-#' # Read dataset with attributes
-#' y <- h5_read(file, "floats")
-#' print(attr(y, "unit"))
+#' # --- Partial Reading (Hyperslabs) ---
 #' 
-#' # Read a specific attribute directly
-#' unit <- h5_read(file, "floats", attr = "unit")
-#' print(unit)
+#' # 1. Read a subset of a 1D vector
+#' # Starts at the 2nd element and reads 3 elements total (returns 20, 30, 40)
+#' sub_vec <- h5_read(file, "ints", start = 2, count = 3)
+#' print(sub_vec)
 #' 
-#' # --- Type Conversion Examples ---
+#' # 2. Read complete rows from a Matrix
+#' # Starts at row 5 and reads 3 rows (spanning all columns automatically)
+#' sub_rows <- h5_read(file, "matrix_data", start = 5, count = 3)
+#' print(sub_rows)
 #' 
+#' # 3. Read a subset within a specific row
+#' # Starts at row 5, column 2, and reads 3 elements along that row
+#' sub_block <- h5_read(file, "matrix_data", start = c(5, 2), count = 3)
+#' print(sub_block)
+#' 
+#' # --- Type Conversion Example ---
 #' # Force integer dataset to be read as numeric (double)
 #' x_dbl <- h5_read(file, "ints", as = "double")
 #' class(x_dbl)
 #' 
-#' # Force attached attribute to be read as logical
-#' # Note the "@" prefix to target the attribute
-#' z <- h5_read(file, "ints", as = c("@ready" = "logical"))
-#' print(z)
-#' 
 #' unlink(file)
-h5_read <- function(file, name = "/", attr = NULL, as = "auto") {
+h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, count = NULL) {
   
   file   <- validate_strings(file, name, attr, must_exist = TRUE)
   obj_as <- validate_as(as)
-
+  
+  validate_start_count(file, name, attr, start, count)
+  
+  
   # Validate choices
   choices <- c("auto", "integer", "double", "logical", "bit64", "null")
   if (!missing(choices))
@@ -112,11 +141,11 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto") {
   }
 
   # --- Perform Read Operation ---
-  read_data(file, name, attr, obj_as, attr_as)
+  read_data(file, name, attr, obj_as, attr_as, start, count)
 }
 
 
-read_data <- function (file, name, attr = NULL, obj_as, attr_as) {
+read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = start, count = count) {
   
   # Case 1: Read Specific Attribute directly
   if (!is.null(attr))
@@ -125,13 +154,13 @@ read_data <- function (file, name, attr = NULL, obj_as, attr_as) {
   # Case 2: Read Group (Recursive)
   if (h5_is_group(file, name)) {
     children <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
-    res      <- lapply(children, read_data, file = file, obj_as = obj_as, attr_as = attr_as)
+    res      <- lapply(children, read_data, file = file, obj_as = obj_as, attr_as = attr_as, start = start, count = count)
     names(res) <- if (length(res) == 0) NULL else basename(children)
   }
   
   # Case 3: Read Dataset
   else {
-    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), PACKAGE = "h5lite")
+    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, count, PACKAGE = "h5lite")
   }
 
   # --- Attach Attributes ---

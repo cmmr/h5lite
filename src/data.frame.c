@@ -3,10 +3,21 @@
 
 /* --- COMPOUND (DATA FRAME) READER --- */
 
-SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t space_id, SEXP rmap) {
+SEXP read_data_frame(
+    hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t space_id, SEXP rmap, 
+    hid_t mem_space_id, hid_t file_space_id, hsize_t *offset, hsize_t *mem_dims) {
   
   int ndims = H5Sget_simple_extent_ndims(space_id);
-  hsize_t n_rows = (ndims > 0) ? H5Sget_simple_extent_npoints(space_id) : 1;
+  hsize_t n_rows;
+  
+  /* Calculate rows (total elements) based on the memory space if hyperslabbed */
+  if (mem_space_id != H5S_ALL) {
+      n_rows = H5Sget_simple_extent_npoints(mem_space_id);
+  } else if (ndims > 0) {
+      n_rows = H5Sget_simple_extent_npoints(space_id);
+  } else {
+      n_rows = 1; // # nocov
+  }
   
   int n_cols = H5Tget_nmembers(file_type_id);
   if (n_cols < 0) return mkChar("Failed to get number of compound members");
@@ -22,7 +33,6 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   setAttrib(result, R_NamesSymbol, col_names_sexp);
   
   /* 1. Setup Types */
-  /* Iterate through each member (column) of the compound type */
   for (int c = 0; c < n_cols; c++) {
     char *member_name = H5Tget_member_name(file_type_id, c);
     if (member_name) { SET_STRING_ELT(col_names_sexp, c, mkCharCE(member_name, CE_UTF8)); }
@@ -32,7 +42,6 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     H5T_class_t file_class = H5Tget_class(file_member_type);
     member_classes[c] = file_class;
     
-    /* Determine the target R type based on user 'as' map */
     member_rtypes[c] = rtype_from_map(file_member_type, rmap, member_name);
     
     if (file_class == H5T_INTEGER || file_class == H5T_FLOAT) {
@@ -41,21 +50,19 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
       else       { mem_member_types[c] = H5Tcopy(H5T_NATIVE_DOUBLE); }
     }
     else if (file_class == H5T_ENUM) {
-      /* Custom memory Enum that maps file labels to 1-based R integers. */
       mem_member_types[c] = H5Tcreate(H5T_ENUM, sizeof(int));
       int n_members = H5Tget_nmembers(file_member_type);
       for (int i = 0; i < n_members; i++) {
         char *mname = H5Tget_member_name(file_member_type, i);
         int val = i + 1; /* Force 1-based index */
-      H5Tenum_insert(mem_member_types[c], mname, &val);
-      H5free_memory(mname);
+        H5Tenum_insert(mem_member_types[c], mname, &val);
+        H5free_memory(mname);
       }
     }
     else if (file_class == H5T_STRING) {
       H5T_cset_t cset = H5Tget_cset(file_member_type);
       mem_member_types[c] = H5Tcopy(H5T_C_S1);
       
-      /* Check if the file has Variable or Fixed length strings. */
       if (H5Tis_variable_str(file_member_type)) {
         H5Tset_size(mem_member_types[c], H5T_VARIABLE);
       } else {
@@ -63,7 +70,6 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
         H5Tset_size(mem_member_types[c], fixed_width);
         if (max_fixed_width < fixed_width) max_fixed_width = fixed_width;
       }
-      
       H5Tset_cset(mem_member_types[c], cset);
     }
     else if (file_class == H5T_OPAQUE) {
@@ -82,9 +88,7 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     H5Tclose(file_member_type);
   }
   
-  /* Temporary buffer for copying and null-terminating fixed length strings */
   char *fixed_width_buffer = (char *) R_alloc(max_fixed_width + 1, sizeof(char));
-  
   
   /* 2. Create Compound Memory Type */
   hid_t mem_type_id = H5Tcreate(H5T_COMPOUND, total_mem_size);
@@ -99,19 +103,19 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   /* 3. Read Data */
   char *buffer = (char *)malloc(n_rows * total_mem_size);
   if (!buffer) { // # nocov start
-    H5Tclose(mem_type_id); UNPROTECT(1); /* result */
-  for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
-  return mkChar("Memory allocation failed"); 
+    H5Tclose(mem_type_id); UNPROTECT(1);
+    for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
+    return mkChar("Memory allocation failed"); 
   } // # nocov end
   
   herr_t status;
-  if (is_dataset) { status = H5Dread(obj_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, buffer); }
+  if (is_dataset) { status = H5Dread(obj_id, mem_type_id, mem_space_id, file_space_id, H5P_DEFAULT, buffer); }
   else            { status = H5Aread(obj_id, mem_type_id, buffer); }
   
   if (status < 0) {  // # nocov start
-    free(buffer); H5Tclose(mem_type_id); UNPROTECT(1); /* result */
-  for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
-  return mkChar("Failed to read compound data"); 
+    free(buffer); H5Tclose(mem_type_id); UNPROTECT(1);
+    for (int c = 0; c < n_cols; c++) H5Tclose(mem_member_types[c]);
+    return mkChar("Failed to read compound data"); 
   } // # nocov end
   
   /* 4. Unpack Buffer */
@@ -169,7 +173,6 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
     else if (mclass == H5T_STRING) {
       r_column = PROTECT(allocVector(STRSXP, n_rows));
       
-      /* VARIABLE LENGTH: The buffer contains 'char*' pointers */
       if (H5Tis_variable_str(mem_member_types[c])) {
         for (hsize_t r = 0; r < n_rows; r++) {
           char *src = buffer + (r * total_mem_size) + member_offset;
@@ -178,8 +181,6 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
           else         { SET_STRING_ELT(r_column, r, NA_STRING); }
         }
       }
-      
-      /* FIXED LENGTH: The buffer contains raw bytes (inline) */
       else {
         size_t str_size = H5Tget_size(mem_member_types[c]);
         for (hsize_t r = 0; r < n_rows; r++) {
@@ -211,12 +212,10 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   
   /* --- ROW NAMES HANDLING --- */
   
-  /* Default: Integer sequence c(NA, -n_rows) */
   SEXP row_names_attr = PROTECT(allocVector(INTSXP, 2));
   INTEGER(row_names_attr)[0] = NA_INTEGER;
   INTEGER(row_names_attr)[1] = -n_rows; 
   
-  /* NEW: Check for Dimension Scales on Dim 0 to set explicit row.names */
   if (is_dataset) {
     if (H5DSget_num_scales(obj_id, 0) > 0) {
       scale_visitor_t vis_data = { -1, 0 };
@@ -228,24 +227,36 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
         
         if (H5Tget_class(s_type) == H5T_STRING) {
           hid_t s_space = H5Dget_space(scale_id);
-          hsize_t s_npoints = H5Sget_simple_extent_npoints(s_space);
+          int s_ndims = H5Sget_simple_extent_ndims(s_space);
           
-          if (s_npoints == (hsize_t)n_rows) {
-            /* Prepare args for read_character */
-            int s_ndims = H5Sget_simple_extent_ndims(s_space);
+          hid_t scale_mem_space = H5S_ALL;
+          hsize_t total = H5Sget_simple_extent_npoints(s_space);
+          
+          /* Extract the specific scale subset mapping to our row offset/count */
+          if (offset != NULL && mem_dims != NULL && s_ndims == 1) {
+            hsize_t s_offset[1] = { offset[0] };
+            hsize_t s_count[1]  = { mem_dims[0] };
+            H5Sselect_hyperslab(s_space, H5S_SELECT_SET, s_offset, NULL, s_count, NULL);
+            scale_mem_space = H5Screate_simple(1, s_count, NULL);
+            total = s_count[0];
+          }
+          
+          /* Safely verify the scale matches our exact row extraction count */
+          if (total == (hsize_t)n_rows) {
             hsize_t *s_dims = (hsize_t*)R_alloc(s_ndims > 0 ? s_ndims : 1, sizeof(hsize_t));
             if (s_ndims > 0) H5Sget_simple_extent_dims(s_space, s_dims, NULL);
+            if (scale_mem_space != H5S_ALL && s_ndims == 1) s_dims[0] = mem_dims[0];
             
-            SEXP scale_vals = PROTECT(read_character(scale_id, 1, s_type, s_space, s_ndims, s_dims, s_npoints));
+            SEXP scale_vals = PROTECT(read_character(scale_id, 1, s_type, s_space, s_ndims, s_dims, total, scale_mem_space, s_space));
             
             if (TYPEOF(scale_vals) == STRSXP) {
-              /* Success! Replace the integer default with these strings */
-              UNPROTECT(1); /* Unprotect the old row_names_attr */
-              row_names_attr = scale_vals; /* Now protected by the PROTECT above */
+              UNPROTECT(1); 
+              row_names_attr = scale_vals; 
             } else {
-              UNPROTECT(1); /* Failed read, discard */ // # nocov
+              UNPROTECT(1);  // # nocov
             }
           }
+          if (scale_mem_space != H5S_ALL) H5Sclose(scale_mem_space);
           H5Sclose(s_space);
         }
         H5Tclose(s_type);
@@ -257,8 +268,10 @@ SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t spa
   setAttrib(result, R_RowNamesSymbol, row_names_attr);
   UNPROTECT(1); /* row_names_attr */
   
-  if (is_dataset) { H5Dvlen_reclaim(mem_type_id, space_id, H5P_DEFAULT, buffer); }
-  else            { H5Treclaim(mem_type_id, space_id, H5P_DEFAULT, buffer);      }
+  /* --- CLEANUP (Hyperslab-safe) --- */
+  hid_t reclaim_space = (mem_space_id != H5S_ALL) ? mem_space_id : space_id;
+  if (is_dataset) { H5Dvlen_reclaim(mem_type_id, reclaim_space, H5P_DEFAULT, buffer); }
+  else            { H5Treclaim(mem_type_id, reclaim_space, H5P_DEFAULT, buffer);      }
   free(buffer);
   
   for (int i = 0; i < n_cols; i++) H5Tclose(mem_member_types[i]);

@@ -1,8 +1,8 @@
 #include "h5lite.h"
 
 /* Internal helper to dispatch H5Dread or H5Aread based on the object type. */
-static herr_t h5_read_impl(hid_t loc_id, hid_t mem_type_id, void *buf, int is_dataset) {
-  if (is_dataset) { return H5Dread(loc_id, mem_type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT, buf); }
+static herr_t h5_read_impl(hid_t loc_id, hid_t mem_type_id, void *buf, int is_dataset, hid_t mem_space_id, hid_t file_space_id) {
+  if (is_dataset) { return H5Dread(loc_id, mem_type_id, mem_space_id, file_space_id, H5P_DEFAULT, buf); }
   else            { return H5Aread(loc_id, mem_type_id, buf); }
 }
 
@@ -10,14 +10,15 @@ static herr_t h5_read_impl(hid_t loc_id, hid_t mem_type_id, void *buf, int is_da
 /* --- READERS FOR ATOMIC TYPES --- */
 
 static SEXP read_numeric(hid_t loc_id, int is_dataset, hid_t file_type_id, H5T_class_t class_id, 
-                         int ndims, hsize_t *dims, hsize_t total_elements, R_TYPE rtype) {
+                         int ndims, hsize_t *dims, hsize_t total_elements, R_TYPE rtype, 
+                         hid_t mem_space_id, hid_t file_space_id) {
   
   SEXP result = PROTECT(allocVector(REALSXP, (R_xlen_t)total_elements));
   
   herr_t status;
   char   as_bit64 = (rtype == R_TYPE_BIT64);
-  if (as_bit64) { status = h5_read_impl(loc_id, H5T_NATIVE_INT64,  REAL(result), is_dataset); }
-  else          { status = h5_read_impl(loc_id, H5T_NATIVE_DOUBLE, REAL(result), is_dataset); }
+  if (as_bit64) { status = h5_read_impl(loc_id, H5T_NATIVE_INT64,  REAL(result), is_dataset, mem_space_id, file_space_id); }
+  else          { status = h5_read_impl(loc_id, H5T_NATIVE_DOUBLE, REAL(result), is_dataset, mem_space_id, file_space_id); }
   if (status < 0) { UNPROTECT(1); return mkChar("Failed to read numeric data"); }
   
   UNPROTECT(1);
@@ -35,10 +36,13 @@ static SEXP read_numeric(hid_t loc_id, int is_dataset, hid_t file_type_id, H5T_c
   return result; 
 }
 
-static SEXP read_complex(hid_t loc_id, int is_dataset, int ndims, hsize_t *dims, hsize_t total_elements) {
+static SEXP read_complex(
+    hid_t loc_id, int is_dataset, int ndims, hsize_t *dims, hsize_t total_elements, 
+    hid_t mem_space_id, hid_t file_space_id) {
+  
   SEXP result = PROTECT(allocVector(CPLXSXP, (R_xlen_t)total_elements));
   hid_t mem_type_id = H5Tcomplex_create(H5T_NATIVE_DOUBLE);
-  herr_t status     = h5_read_impl(loc_id, mem_type_id, COMPLEX(result), is_dataset);
+  herr_t status     = h5_read_impl(loc_id, mem_type_id, COMPLEX(result), is_dataset, mem_space_id, file_space_id);
   H5Tclose(mem_type_id);
   
   if (status < 0) { UNPROTECT(1); return mkChar("Failed to read complex data"); }
@@ -54,8 +58,10 @@ static SEXP read_complex(hid_t loc_id, int is_dataset, int ndims, hsize_t *dims,
   return result;
 }
 
-SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, 
-                           int ndims, hsize_t *dims, hsize_t total_elements) {
+SEXP read_character(
+    hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, int ndims, 
+    hsize_t *dims, hsize_t total_elements, hid_t mem_space_id, hid_t file_space_id) {
+  
   SEXP result = R_NilValue;
   
   /* 1. Detect the character set of the file dataset */
@@ -73,7 +79,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
     H5Tset_size(mem_type, H5T_VARIABLE); 
     H5Tset_cset(mem_type, file_cset);
     
-    if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset) < 0) {
+    if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset, mem_space_id, file_space_id) < 0) {
       result = PROTECT(mkChar("Failed to read variable-length strings")); // # nocov
     } else {
       result = PROTECT(allocVector(STRSXP, (R_xlen_t)total_elements));
@@ -83,7 +89,10 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
         else             { SET_STRING_ELT(result, i, NA_STRING); } // # nocov
       }
     }
-    H5Dvlen_reclaim(mem_type, space_id, H5P_DEFAULT, c_buffer);
+    /* --- CLEANUP (Hyperslab-safe) --- */
+    hid_t reclaim_space = (mem_space_id != H5S_ALL) ? mem_space_id : space_id;
+    if (is_dataset) { H5Dvlen_reclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer); }
+    else            { H5Treclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer);      }
     free(c_buffer); free(f_buffer); H5Tclose(mem_type);
   }
   else {
@@ -99,7 +108,7 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
     H5Tset_size(mem_type, type_size);
     H5Tset_cset(mem_type, file_cset);
     
-    if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset) < 0) {
+    if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset, mem_space_id, file_space_id) < 0) {
       result = PROTECT(mkChar("Failed to read fixed-length strings")); // # nocov
     }else {
       result = PROTECT(allocVector(STRSXP, (R_xlen_t)total_elements));
@@ -121,14 +130,16 @@ SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t spac
   return result;
 }
 
-static SEXP read_raw(hid_t loc_id, int is_dataset, hid_t file_type_id, 
-                     int ndims, hsize_t *dims, hsize_t total_elements) {
+static SEXP read_raw(
+    hid_t loc_id, int is_dataset, hid_t file_type_id, int ndims, 
+    hsize_t *dims, hsize_t total_elements, hid_t mem_space_id, hid_t file_space_id) {
+  
   size_t type_size = H5Tget_size(file_type_id);
   if (type_size != 1) return mkChar("h5lite only supports reading 1-byte opaque types as raw vectors");
   
   hid_t  mem_type = H5Tcreate(H5T_OPAQUE, type_size);
   SEXP   result   = PROTECT(allocVector(RAWSXP, (R_xlen_t)total_elements));
-  herr_t status   = h5_read_impl(loc_id, mem_type, RAW(result), is_dataset);
+  herr_t status   = h5_read_impl(loc_id, mem_type, RAW(result), is_dataset, mem_space_id, file_space_id);
   
   if (status < 0) {
     result = PROTECT(mkChar("Failed to read raw data")); // # nocov
@@ -146,8 +157,9 @@ static SEXP read_raw(hid_t loc_id, int is_dataset, hid_t file_type_id,
 }
 
 
-static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id, 
-                        int ndims, hsize_t *dims, hsize_t total_elements) {
+static SEXP read_factor(
+    hid_t loc_id, int is_dataset, hid_t file_type_id, int ndims, 
+    hsize_t *dims, hsize_t total_elements, hid_t mem_space_id, hid_t file_space_id) {
   
   int n_members = H5Tget_nmembers(file_type_id);
   if (n_members <= 0) return mkChar("enum type has no members");
@@ -177,7 +189,7 @@ static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id,
   /* 3. Read the data using the custom memory Enum type */
   /* HDF5 will automatically match names from the file to our 1-based integers */
   SEXP result = PROTECT(allocVector(INTSXP, (R_xlen_t)total_elements));
-  herr_t status = h5_read_impl(loc_id, mem_type_id, INTEGER(result), is_dataset);
+  herr_t status = h5_read_impl(loc_id, mem_type_id, INTEGER(result), is_dataset, mem_space_id, file_space_id);
   
   H5Tclose(mem_type_id);
 
@@ -209,7 +221,8 @@ static SEXP read_factor(hid_t loc_id, int is_dataset, hid_t file_type_id,
 
 /* --- DATASET READ ENTRY POINT --- */
 
-SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name) {
+SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name, SEXP start, SEXP count) {
+  
   const char *fname   = Rf_translateCharUTF8(STRING_ELT(filename,     0));
   const char *dname   = Rf_translateCharUTF8(STRING_ELT(dataset_name, 0));
   const char *el_name = Rf_translateCharUTF8(STRING_ELT(element_name, 0));
@@ -232,34 +245,76 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element
   
   int ndims = H5Sget_simple_extent_ndims(space_id);
   hsize_t total_elements = 1;
-  hsize_t *dims = NULL;
+  hsize_t *dims      = NULL;
+  hsize_t *mem_dims  = NULL;
+  hsize_t *offset    = NULL;
+  hid_t mem_space_id = H5S_ALL;
+  int has_hyperslab = 0;
   
   if (ndims > 0) {
-    dims = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
+    dims     = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
+    mem_dims = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
+    offset   = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
     H5Sget_simple_extent_dims(space_id, dims, NULL);
-    for (int i = 0; i < ndims; i++) total_elements *= dims[i];
+    
+    for (int i = 0; i < ndims; i++) {
+      offset[i] = 0;
+      mem_dims[i] = dims[i];
+    }
+    
+    /* 1. Parse Hyperslab Constraints (Guaranteed by R to both be NULL, or both be valid) */
+    if (start != R_NilValue && count != R_NilValue) {
+        has_hyperslab = 1;
+        int start_len = Rf_length(start);
+        int *start_ptr = INTEGER(start);
+        int count_val = INTEGER(count)[0];
+        
+        for(int i = 0; i < start_len && i < ndims; i++) {
+            offset[i] = start_ptr[i] - 1; /* Adjust to 0-based index */
+            mem_dims[i] = 1;              /* Default to 1 element along specified dimensions */
+        }
+        
+        /* Apply the single count value to the LAST dimension specified by start */
+        if (start_len > 0 && start_len <= ndims) {
+            mem_dims[start_len - 1] = count_val;
+        }
+    }
+    
+    /* 2. Apply Selection */
+    if (has_hyperslab) {
+        H5Sselect_hyperslab(space_id, H5S_SELECT_SET, offset, NULL, mem_dims, NULL);
+        mem_space_id = H5Screate_simple(ndims, mem_dims, NULL);
+        
+        /* Recalculate total elements based on the newly selected hyperslab block */
+        total_elements = 1;
+        for (int i = 0; i < ndims; i++) total_elements *= mem_dims[i];
+    } else {
+        for (int i = 0; i < ndims; i++) total_elements *= dims[i];
+    }
   }
   
   SEXP result;
+  hsize_t *final_dims = has_hyperslab ? mem_dims : dims;
   
+  /* Dispatch to specific readers, passing the memory and file dataspace IDs */
   if (class_id == H5T_INTEGER || class_id == H5T_FLOAT) {
-    result = read_numeric(dset_id, 1, file_type_id, class_id, ndims, dims, total_elements, rtype);
+    result = read_numeric(dset_id, 1, file_type_id, class_id, ndims, final_dims, total_elements, rtype, mem_space_id, space_id);
   }
   else if (class_id == H5T_COMPLEX) {
-    result = read_complex(dset_id, 1, ndims, dims, total_elements);
+    result = read_complex(dset_id, 1, ndims, final_dims, total_elements, mem_space_id, space_id);
   }
   else if (class_id == H5T_STRING) {
-    result = read_character(dset_id, 1, file_type_id, space_id, ndims, dims, total_elements);
+    result = read_character(dset_id, 1, file_type_id, space_id, ndims, final_dims, total_elements, mem_space_id, space_id);
   }
   else if (class_id == H5T_OPAQUE) {
-    result = read_raw(dset_id, 1, file_type_id, ndims, dims, total_elements);
+    result = read_raw(dset_id, 1, file_type_id, ndims, final_dims, total_elements, mem_space_id, space_id);
   }
   else if (class_id == H5T_ENUM) {
-    result = read_factor(dset_id, 1, file_type_id, ndims, dims, total_elements);
+    result = read_factor(dset_id, 1, file_type_id, ndims, final_dims, total_elements, mem_space_id, space_id);
   }
   else if (class_id == H5T_COMPOUND) {
-    /* Compound logic includes its own Dimension Scale check for row.names */
-    result = read_data_frame(dset_id, 1, file_type_id, space_id, rmap);
+    result = read_data_frame(dset_id, 1, file_type_id, space_id, rmap, mem_space_id, space_id, 
+                             has_hyperslab ? offset : NULL, has_hyperslab ? mem_dims : NULL);
   }
   else {
     result = mkChar("Unsupported HDF5 type"); // # nocov
@@ -267,9 +322,11 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element
   
   /* For Atomic types, check for attached Dimension Scales and restore names/dimnames */
   if (class_id != H5T_COMPOUND && TYPEOF(result) != CHARSXP) {
-    read_r_dimscales(dset_id, ndims, result);
+    read_r_dimscales(dset_id, ndims, result, has_hyperslab ? offset : NULL, has_hyperslab ? mem_dims : NULL);
   }
   
+  /* Clean up */
+  if (mem_space_id != H5S_ALL) H5Sclose(mem_space_id);
   H5Tclose(file_type_id); H5Sclose(space_id); H5Dclose(dset_id); H5Fclose(file_id);
   
   if (TYPEOF(result) == CHARSXP)
@@ -315,22 +372,22 @@ SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP rmap
   SEXP result;
   
   if (class_id == H5T_INTEGER || class_id == H5T_FLOAT) {
-    result = read_numeric(attr_id, 0, file_type_id, class_id, ndims, dims, total_elements, rtype);
+    result = read_numeric(attr_id, 0, file_type_id, class_id, ndims, dims, total_elements, rtype, H5S_ALL, H5S_ALL);
   }
   else if (class_id == H5T_COMPLEX) {
-    result = read_complex(attr_id, 0, ndims, dims, total_elements);
+    result = read_complex(attr_id, 0, ndims, dims, total_elements, H5S_ALL, H5S_ALL);
   }
   else if (class_id == H5T_STRING) {
-    result = read_character(attr_id, 0, file_type_id, space_id, ndims, dims, total_elements);
+    result = read_character(attr_id, 0, file_type_id, space_id, ndims, dims, total_elements, H5S_ALL, H5S_ALL);
   }
   else if (class_id == H5T_OPAQUE) {
-    result = read_raw(attr_id, 0, file_type_id, ndims, dims, total_elements);
+    result = read_raw(attr_id, 0, file_type_id, ndims, dims, total_elements, H5S_ALL, H5S_ALL);
   }
   else if (class_id == H5T_ENUM) {
-    result = read_factor(attr_id, 0, file_type_id, ndims, dims, total_elements);
+    result = read_factor(attr_id, 0, file_type_id, ndims, dims, total_elements, H5S_ALL, H5S_ALL);
   }
   else if (class_id == H5T_COMPOUND) {
-    result = read_data_frame(attr_id, 0, file_type_id, space_id, rmap);
+    result = read_data_frame(attr_id, 0, file_type_id, space_id, rmap, H5S_ALL, H5S_ALL, NULL, NULL);
   }
   else {
     result = mkChar("Unsupported HDF5 type"); // # nocov

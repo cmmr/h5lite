@@ -4,7 +4,7 @@
 \alias{h5_read}
 \title{Read an HDF5 Object or Attribute}
 \usage{
-h5_read(file, name = "/", attr = NULL, as = "auto")
+h5_read(file, name = "/", attr = NULL, as = "auto", start = NULL, count = NULL)
 }
 \arguments{
 \item{file}{The path to the HDF5 file.}
@@ -22,6 +22,13 @@ h5_read(file, name = "/", attr = NULL, as = "auto")
 \item \strong{Global:} \code{"auto"} (default), \code{"integer"}, \code{"double"}, \code{"logical"}, \code{"bit64"}, \code{"null"}.
 \item \strong{Specific:} A named vector mapping names or type classes to R types (see Section "Type Conversion").
 }}
+
+\item{start}{An integer vector specifying the 1-based starting coordinates for a partial read.
+For example, \code{start = c(5, 2)} begins reading at the 5th row and 2nd column.
+Must be provided alongside \code{count}. If \code{NULL} (default), the entire dataset is read.}
+
+\item{count}{A single integer specifying the number of elements to read.
+Must be provided alongside \code{start}. If \code{NULL} (default), the entire dataset is read.}
 }
 \value{
 An R object corresponding to the HDF5 object or attribute.
@@ -29,12 +36,33 @@ Returns \code{NULL} if the object is skipped via \code{as = "null"}.
 }
 \description{
 Reads a dataset, a group, or a specific attribute from an HDF5 file into an R object.
+Supports partial reading (hyperslabs) to load specific subsets of data.
 }
 \note{
 The \code{@} prefix is \strong{only} used to configure attached attributes when reading a dataset (\code{attr = NULL}).
 If you are reading a specific attribute directly (e.g., \code{h5_read(..., attr = "id")}), do \strong{not} use
 the \code{@} prefix in the \code{as} argument.
+
+Partial reading (\code{start}/\code{count}) is only supported for datasets, not attributes.
 }
+\section{Partial Reading (Hyperslabs)}{
+
+You can read specific subsets of an n-dimensional dataset without loading the entire object
+into memory by utilizing the \code{start} and \code{count} arguments.
+
+Both \code{start} and \code{count} must be provided together. Coordinates are 1-based and follow
+standard R array indexing.
+
+The \code{count} parameter is always a \strong{single integer} and is applied to the \emph{last} dimension
+specified in your \code{start} vector.
+\itemize{
+\item \strong{Example 1:} If you are reading from a 20x5 matrix, calling \code{start = 5} and \code{count = 3}
+will start at row 5 and extract 3 complete rows (automatically spanning all 5 columns).
+\item \strong{Example 2:} Calling \code{start = c(5, 2)} and \code{count = 3} on the same matrix would start
+at row 5, column 2, and read 3 columns along that specific row.
+}
+}
+
 \section{Type Conversion (\code{as})}{
 
 You can control how HDF5 data is converted to R types using the \code{as} argument.
@@ -68,35 +96,38 @@ which take precedence over the global default (\code{.}).
 \examples{
 file <- tempfile(fileext = ".h5")
 
-# --- Write Data ---
-h5_write(c(10L, 20L), file, "ints")
-h5_write(I(TRUE),     file, "ints", attr = "ready")
-h5_write(c(10.5, 18), file, "floats")
-h5_write(I("meters"), file, "floats", attr = "unit")
+# --- Setup: Write Test Data ---
+h5_write(c(10L, 20L, 30L, 40L, 50L), file, "ints")
 
-# --- Read Data ---
-# Read dataset
+m <- matrix(1:100, nrow = 20, ncol = 5)
+h5_write(m, file, "matrix_data")
+
+# --- Standard Reading ---
+# Read the entire dataset
 x <- h5_read(file, "ints")
 print(x)
 
-# Read dataset with attributes
-y <- h5_read(file, "floats")
-print(attr(y, "unit"))
+# --- Partial Reading (Hyperslabs) ---
 
-# Read a specific attribute directly
-unit <- h5_read(file, "floats", attr = "unit")
-print(unit)
+# 1. Read a subset of a 1D vector
+# Starts at the 2nd element and reads 3 elements total (returns 20, 30, 40)
+sub_vec <- h5_read(file, "ints", start = 2, count = 3)
+print(sub_vec)
 
-# --- Type Conversion Examples ---
+# 2. Read complete rows from a Matrix
+# Starts at row 5 and reads 3 rows (spanning all columns automatically)
+sub_rows <- h5_read(file, "matrix_data", start = 5, count = 3)
+print(sub_rows)
 
+# 3. Read a subset within a specific row
+# Starts at row 5, column 2, and reads 3 elements along that row
+sub_block <- h5_read(file, "matrix_data", start = c(5, 2), count = 3)
+print(sub_block)
+
+# --- Type Conversion Example ---
 # Force integer dataset to be read as numeric (double)
 x_dbl <- h5_read(file, "ints", as = "double")
 class(x_dbl)
-
-# Force attached attribute to be read as logical
-# Note the "@" prefix to target the attribute
-z <- h5_read(file, "ints", as = c("@ready" = "logical"))
-print(z)
 
 unlink(file)
 }

@@ -33,19 +33,16 @@ return 1; /* Stop iteration after finding the first scale */
  * Reads Dimension Scales attached to a dataset and converts them into R 
  * dimnames (list of character vectors).
  */
-void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
+void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsize_t *mem_dims) {
   if (rank == 0) return; 
   
   SEXP dimnames_list = R_NilValue;
   int has_any_scale = 0;
   
-  /* Allocate list of length 'rank' (e.g., 2 for a matrix) */
   if (rank == 1) { dimnames_list = PROTECT(allocVector(VECSXP, 1)); } 
   else           { dimnames_list = PROTECT(allocVector(VECSXP, rank)); }
   
-  /* Iterate through each dimension (0 to rank-1) */
   for (int i = 0; i < rank; i++) {
-    /* Check if this dimension has any scales attached */
     if (H5DSget_num_scales(dset_id, (unsigned)i) > 0) {
       
       scale_visitor_t vis_data = { -1, 0 };
@@ -60,28 +57,38 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result) {
         hsize_t *s_dims = (hsize_t*)R_alloc(s_ndims > 0 ? s_ndims : 1, sizeof(hsize_t));
         if(s_ndims > 0) H5Sget_simple_extent_dims(space, s_dims, NULL);
         
+        hid_t scale_mem_space = H5S_ALL;
         hsize_t total = 1;
-        for(int k=0; k<s_ndims; k++) total *= s_dims[k];
+        
+        /* Apply hyperslab to the 1D scale matching dimension i */
+        if (offset != NULL && mem_dims != NULL && s_ndims == 1) {
+          hsize_t s_offset[1] = { offset[i] };
+          hsize_t s_count[1]  = { mem_dims[i] };
+          H5Sselect_hyperslab(space, H5S_SELECT_SET, s_offset, NULL, s_count, NULL);
+          scale_mem_space = H5Screate_simple(1, s_count, NULL);
+          total     = s_count[0];
+          s_dims[0] = s_count[0];
+        } else {
+          for(int k=0; k<s_ndims; k++) total *= s_dims[k];
+        }
         
         /* Only use string scales as R dimnames */
         if (H5Tget_class(ftype) == H5T_STRING) {
-          SEXP names_vec = PROTECT(read_character(scale_id, 1, ftype, space, s_ndims, s_dims, total));
+          SEXP names_vec = PROTECT(read_character(scale_id, 1, ftype, space, s_ndims, s_dims, total, scale_mem_space, space));
           
-          /* Validate length matches expected dimension length */
           if (TYPEOF(names_vec) == STRSXP && (hsize_t)XLENGTH(names_vec) == total) {
             SET_VECTOR_ELT(dimnames_list, i, names_vec);
             has_any_scale = 1;
           }
           UNPROTECT(1);
         }
+        if (scale_mem_space != H5S_ALL) H5Sclose(scale_mem_space);
         H5Tclose(ftype); H5Sclose(space); H5Dclose(scale_id); 
       }
     }
   }
   
-  /* Attach to R object */
   if (has_any_scale) {
-    /* Special case: 1D vector uses "names" attribute, not "dimnames" list */
     if (rank == 1 && getAttrib(result, R_DimSymbol) == R_NilValue) {
       SEXP names = VECTOR_ELT(dimnames_list, 0);
       if (names != R_NilValue) { setAttrib(result, R_NamesSymbol, names); }

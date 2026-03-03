@@ -18,6 +18,7 @@ test_that("h5 wrapper object works", {
   expect_equal(as.character(h5), file)
   expect_equal(h5$class("dset"), "numeric")
   expect_equal(h5$dim("dset"), 10)
+  expect_equal(h5$length("dset"), 10)
   expect_equal(h5$typeof("dset"), "uint8")
   expect_true(h5$is_dataset("dset"))
   expect_false(h5$is_group("dset"))

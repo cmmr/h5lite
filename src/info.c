@@ -416,7 +416,7 @@ SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
             hsize_t total = 1;
             for(int k=0; k<s_rank; k++) total *= s_dims[k];
             
-            result = read_character(scale_id, 1, s_type, s_space, s_rank, s_dims, total);
+            result = read_character(scale_id, 1, s_type, s_space, s_rank, s_dims, total, H5S_ALL, H5S_ALL);
             
             /* read_character returns an unprotected SEXP, so protect it */
             if (result != R_NilValue) PROTECT(result);

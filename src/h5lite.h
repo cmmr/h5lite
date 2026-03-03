@@ -39,14 +39,17 @@ typedef struct {
 
 
 /* --- data.frame.c --- */
-SEXP read_data_frame(hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t space_id, SEXP rmap);
-SEXP write_dataframe(hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, SEXP dtypes, 
-                     int compress, int is_attribute);
+SEXP read_data_frame(
+    hid_t obj_id, int is_dataset, hid_t file_type_id, hid_t space_id, SEXP rmap, 
+    hid_t mem_space_id, hid_t file_space_id, hsize_t *offset, hsize_t *mem_dims);
+SEXP write_dataframe(
+    hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, 
+    SEXP dtypes, int compress, int is_attribute);
 
 /* --- dimscales.c --- */
 herr_t visitor_find_scale(hid_t dset, unsigned dim, hid_t scale, void *visitor_data);
 void set_r_dimensions(SEXP result, int ndims, hsize_t *dims);
-void read_r_dimscales(hid_t dset_id, int rank, SEXP result);
+void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsize_t *mem_dims);
 void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data);
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx);
 
@@ -73,10 +76,12 @@ SEXP C_h5_delete(SEXP filename, SEXP name);
 SEXP C_h5_delete_attr(SEXP filename, SEXP obj_name, SEXP attr_name);
 
 /* --- read.c --- */
-SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name);
+SEXP C_h5_read_dataset(
+    SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name, SEXP start, SEXP count);
 SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP rmap);
-SEXP read_character(hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, 
-                    int ndims, hsize_t *dims, hsize_t total_elements);
+SEXP read_character(
+    hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, int ndims, hsize_t *dims, 
+    hsize_t total_elements, hid_t mem_space_id, hid_t file_space_id);
 
 /* --- util.c --- */
 SEXP errmsg_1(const char *fmt, const char *str1);

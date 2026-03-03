@@ -130,6 +130,10 @@ test_that("Compression", {
   expect_lt(file.size(file_compressed), file.size(file_uncompressed))
   
   
+  # fallback to gzip for strings
+  h5_write(letters, file_uncompressed, "letters", compress = "szip-nn")
+  
+  
   testthat::skip_on_cran()
   
   mtx <- matrix(vec, nrow = 100)
@@ -152,6 +156,15 @@ test_that("Compression", {
     h5_write(vec, file_compressed, "vec", compress = "szip-ec")
     expect_equal(h5_read(file_compressed, "vec"), vec)
   }
+  
+  
+  # deprecated `compress` args
+  vec <- 1:100
+  h5_write(vec, file_compressed, "vec", compress = TRUE)
+  h5_write(vec, file_compressed, "vec", compress = FALSE)
+  h5_write(vec, file_compressed, "vec", compress = 5)
+  
+  
 })
 
 

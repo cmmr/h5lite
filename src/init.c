@@ -30,7 +30,7 @@ static const R_CallMethodDef CallEntries[] = {
   {"C_h5_delete_attr",  (DL_FUNC) &C_h5_delete_attr, 3},
   
   /* read.c */
-  {"C_h5_read_dataset",   (DL_FUNC) &C_h5_read_dataset, 4},
+  {"C_h5_read_dataset",   (DL_FUNC) &C_h5_read_dataset, 6},
   {"C_h5_read_attribute", (DL_FUNC) &C_h5_read_attribute, 4},
   
   /* write.c */

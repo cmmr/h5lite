@@ -51,6 +51,46 @@ validate_strings <- function (file, name = "/", attr = NULL, must_exist = FALSE)
 }
 
 
+#' Sanity check integer arguments for start and count
+#' @noRd
+#' @keywords internal
+validate_start_count <- function (file, name, attr, start, count) {
+  
+  if (is.null(start) && is.null(count))
+    return (invisible())
+  
+  if (xor(is.null(start), is.null(count)))
+    stop('`start` and `count` must be used together or not at all.', call. = FALSE)
+  
+  if (!is.null(attr))
+    stop('`start` and `count` cannot be used on attributes.', call. = FALSE)
+  
+  if (!is.numeric(start)) stop ('`start` must be numeric', call. = FALSE)
+  if (!is.numeric(count)) stop ('`count` must be numeric', call. = FALSE)
+  start <- as.integer(start)
+  count <- as.integer(count)
+  
+  if (length(start) <  1) stop ('`start` cannot be an empty vector', call. = FALSE)
+  if (length(count) != 1) stop ('`count` must be a single integer', call. = FALSE)
+  
+  if (!isTRUE(all(start > 0))) stop ('`start` must be positive', call. = FALSE)
+  if (!isTRUE(all(count > 0))) stop ('`count` must be positive', call. = FALSE)
+  
+  shape <- h5_dim(file, name, attr)
+  if (length(shape) == 0) shape <- 1L # scalar
+  
+  n     <- length(start)
+  shape <- shape[seq_len(n)]
+  if (!isTRUE(all(shape >= start)))        stop('`start` is out of bounds', call. = FALSE)
+  if (start[[n]] + count - 1 > shape[[n]]) stop('`count` is out of bounds', call. = FALSE)
+  
+  assign('start', start, pos = parent.frame())
+  assign('count', count, pos = parent.frame())
+  
+  return (invisible())
+}
+
+
 #' Sanity check the 'as' argument
 #' Ensures a character vector and that multiple values are named.
 #' @noRd
