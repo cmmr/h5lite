@@ -15,7 +15,7 @@ h5_dim(file, name, attr = NULL)
 returns the dimensions of the object itself.}
 }
 \value{
-An integer vector of dimensions, or \code{integer(0)} for scalars.
+An numeric vector of dimensions, or \code{numeric(0)} for scalars.
 }
 \description{
 Returns the dimensions of a dataset or an attribute as an integer vector.
@@ -31,7 +31,7 @@ h5_write(mtcars, file, "mtcars")
 h5_dim(file, "mtcars") # 32 11
 
 h5_write(I(TRUE), file, "my_bool")
-h5_dim(file, "my_bool") # integer(0)
+h5_dim(file, "my_bool") # numeric(0)
 
 h5_write(1:10, file, "my_ints")
 h5_dim(file, "my_ints") # 10

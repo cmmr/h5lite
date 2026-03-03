@@ -2,6 +2,7 @@
 
 * Added support for SZIP compression.
 * Added support for partial reading.
+* `h5_length()` and `h5_dim()` now return numeric values instead of integer.
 
 
 

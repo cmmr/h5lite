@@ -82,6 +82,7 @@ SEXP h5_type_to_rstr(hid_t type_id) {
 
 /* --- TYPEOF DATASET --- */
 SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
@@ -115,6 +116,7 @@ SEXP C_h5_typeof(SEXP filename, SEXP dset_name) {
 
 /* --- TYPEOF ATTRIBUTE --- */
 SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
@@ -146,6 +148,7 @@ SEXP C_h5_typeof_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
 
 /* --- DIM DATASET --- */
 SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
@@ -174,15 +177,15 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
    * We return c(rows, cols).
    */
   if (H5Tget_class(type_id) == H5T_COMPOUND && ndims == 1) {
-    result = PROTECT(allocVector(INTSXP, 2));
+    result = PROTECT(allocVector(REALSXP, 2));
     hsize_t dims[1];
     H5Sget_simple_extent_dims(space_id, dims, NULL);
-    INTEGER(result)[0] = (int)dims[0];
-    INTEGER(result)[1] = H5Tget_nmembers(type_id);
+    REAL(result)[0] = (double)dims[0];
+    REAL(result)[1] = H5Tget_nmembers(type_id);
   } 
   /* Standard Case: Atomic Dataset */
   else {
-    result = PROTECT(allocVector(INTSXP, ndims));
+    result = PROTECT(allocVector(REALSXP, ndims));
     if (ndims > 0) {
       hsize_t *dims = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
       H5Sget_simple_extent_dims(space_id, dims, NULL);
@@ -190,7 +193,7 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
         /* Return dims exactly as HDF5 reports them (C-order).
          * Note: R usually expects transposed dims, but h5ls() typically reports strict HDF5 dims.
          */
-        INTEGER(result)[i] = (int)dims[i];
+        REAL(result)[i] = (double)dims[i];
       }
     }
   }
@@ -202,6 +205,7 @@ SEXP C_h5_dim(SEXP filename, SEXP dset_name) {
 
 /* --- DIM ATTRIBUTE --- */
 SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   const char *aname = Rf_translateCharUTF8(STRING_ELT(attr_name, 0));
@@ -225,18 +229,18 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
   
   /* Special Case: 1D Compound Attribute (treated as data.frame) */
   if (H5Tget_class(type_id) == H5T_COMPOUND && ndims == 1) {
-    result = PROTECT(allocVector(INTSXP, 2));
+    result = PROTECT(allocVector(REALSXP, 2));
     hsize_t dims[1];
     H5Sget_simple_extent_dims(space_id, dims, NULL);
-    INTEGER(result)[0] = (int)dims[0];
-    INTEGER(result)[1] = H5Tget_nmembers(type_id);
+    REAL(result)[0] = (double)dims[0];
+    REAL(result)[1] = H5Tget_nmembers(type_id);
   } else {
-    result = PROTECT(allocVector(INTSXP, ndims));
+    result = PROTECT(allocVector(REALSXP, ndims));
     if (ndims > 0) {
       hsize_t *dims = (hsize_t *)R_alloc(ndims, sizeof(hsize_t));
       H5Sget_simple_extent_dims(space_id, dims, NULL);
       for (int i = 0; i < ndims; i++) {
-        INTEGER(result)[i] = (int)dims[i];
+        REAL(result)[i] = (double)dims[i];
       }
     }
   }
@@ -252,6 +256,7 @@ SEXP C_h5_dim_attr(SEXP filename, SEXP obj_name, SEXP attr_name) {
  * Returns TRUE/FALSE (Logical) instead of throwing errors.
  */
 SEXP C_h5_exists(SEXP filename, SEXP obj_name, SEXP attr_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   
@@ -287,6 +292,7 @@ SEXP C_h5_exists(SEXP filename, SEXP obj_name, SEXP attr_name) {
 
 /* --- HELPER: Check object type --- */
 static int check_obj_type(const char *fname, const char *oname, H5O_type_t check_type) {
+  
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) return 0;
   
@@ -338,6 +344,7 @@ SEXP C_h5_is_dataset(SEXP filename, SEXP name) {
  * 2. For Atomic Datasets, looks for Dimension Scales (e.g., "rownames") to behave like `names()`.
  */
 SEXP C_h5_names(SEXP filename, SEXP dset_name, SEXP attr_name ) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
   
@@ -463,6 +470,7 @@ static herr_t op_attr_cb(hid_t location_id, const char *attr_name, const H5A_inf
  * Lists the names of all attributes on a given object.
  */
 SEXP C_h5_attr_names(SEXP filename, SEXP obj_name) {
+  
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *oname = Rf_translateCharUTF8(STRING_ELT(obj_name, 0));
   

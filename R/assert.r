@@ -65,24 +65,40 @@ validate_start_count <- function (file, name, attr, start, count) {
   if (!is.null(attr))
     stop('`start` and `count` cannot be used on attributes.', call. = FALSE)
   
-  if (!is.numeric(start)) stop ('`start` must be numeric', call. = FALSE)
-  if (!is.numeric(count)) stop ('`count` must be numeric', call. = FALSE)
-  start <- as.integer(start)
-  count <- as.integer(count)
-  
-  if (length(start) <  1) stop ('`start` cannot be an empty vector', call. = FALSE)
-  if (length(count) != 1) stop ('`count` must be a single integer', call. = FALSE)
-  
-  if (!isTRUE(all(start > 0))) stop ('`start` must be positive', call. = FALSE)
-  if (!isTRUE(all(count > 0))) stop ('`count` must be positive', call. = FALSE)
+  if (!is.numeric(start))            stop ('`start` must be numeric',  call. = FALSE)
+  if (!is.numeric(count))            stop ('`count` must be numeric',  call. = FALSE)
+  if (!isTRUE(all(start %% 1 == 0))) stop ('`start` cannot be fractional', call. = FALSE)
+  if (!isTRUE(all(count %% 1 == 0))) stop ('`count` cannot be fractional', call. = FALSE)
+  if (!isTRUE(all(start > 0)))       stop ('`start` must be positive', call. = FALSE)
+  if (!isTRUE(all(count > 0)))       stop ('`count` must be positive', call. = FALSE)
+  if (length(start) <  1)            stop ('`start` cannot be an empty vector', call. = FALSE)
+  if (length(count) != 1)            stop ('`count` must be a single integer', call. = FALSE)
   
   shape <- h5_dim(file, name, attr)
   if (length(shape) == 0) shape <- 1L # scalar
   
-  n     <- length(start)
-  shape <- shape[seq_len(n)]
-  if (!isTRUE(all(shape >= start)))        stop('`start` is out of bounds', call. = FALSE)
-  if (start[[n]] + count - 1 > shape[[n]]) stop('`count` is out of bounds', call. = FALSE)
+  N <- length(shape)
+  n <- length(start)
+  
+  if (n > N) stop('`start` has more dimensions than the dataset', call. = FALSE)
+  
+  # Determine alignment: which dimensions in `shape` does `start` apply to?
+  if (N >= 3) {
+    # Generalized pattern: N, N-1, ..., 3, 1, 2
+    full_map <- c(seq(N, 3L, by = -1L), 1L, 2L)
+  } else {
+    # 1D and 2D fallback: 1, 2
+    full_map <- seq_len(N)
+  }
+  
+  # Slice the map to match the number of values provided in `start`
+  dim_map <- full_map[seq_len(n)]
+  
+  # Extract the specific dimension sizes that 'start' is targeting
+  target_shape <- shape[dim_map]
+  
+  if (!isTRUE(all(target_shape >= start)))        stop('`start` is out of bounds', call. = FALSE)
+  if (start[[n]] + count - 1 > target_shape[[n]]) stop('`count` is out of bounds', call. = FALSE)
   
   assign('start', start, pos = parent.frame())
   assign('count', count, pos = parent.frame())

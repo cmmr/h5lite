@@ -18,6 +18,8 @@ test_that("validate_start_count catches invalid inputs and scalars", {
   # 3. Numeric checks
   expect_error(h5_read(file, "v", start = "a", count = 1), "must be numeric")
   expect_error(h5_read(file, "v", start = 1, count = "a"), "must be numeric")
+  expect_error(h5_read(file, "v", start = 1.1, count = 1), "cannot be fractional")
+  expect_error(h5_read(file, "v", start = 1, count = 1.1), "cannot be fractional")
   
   # 4. Length checks
   expect_error(h5_read(file, "v", start = numeric(0), count = 1), "empty vector")
@@ -30,7 +32,7 @@ test_that("validate_start_count catches invalid inputs and scalars", {
   
   # 6. Bounds checks
   expect_error(h5_read(file, "v", start = 11, count = 1), "out of bounds")
-  expect_error(h5_read(file, "v", start = c(2, 2), count = 1), "out of bounds") # 1D object
+  expect_error(h5_read(file, "v", start = c(2, 2), count = 1), "more dimensions than the dataset")
   expect_error(h5_read(file, "v", start = 8, count = 4), "out of bounds") # 8+4-1 = 11 > 10
   
   unlink(file)
@@ -142,6 +144,69 @@ test_that("partial reading works for data.frames (with row.names)", {
   expect_equal(res$active, c(0, 1, 0))
   expect_equal(as.character(res$cat), c("B", "A", "C"))
   expect_equal(levels(res$cat), levels(df$cat)) # Enums should retain all global levels
+  
+  unlink(file)
+})
+
+test_that("partial reading works for 4D arrays", {
+  file <- tempfile(fileext = ".h5")
+  
+  # Create a 2x3x4x5 array (Rows=2, Cols=3, 3rd=4, 4th=5)
+  arr4 <- array(1:120, dim = c(2, 3, 4, 5))
+  h5_write(arr4, file, "arr4")
+  
+  # 1. Target 4th dimension (single start value)
+  # Start at the 2nd block of the 4th dim, read 3 blocks.
+  # Untargeted dimensions (rows, cols, 3rd) remain fully intact.
+  res1 <- h5_read(file, "arr4", start = 2, count = 3)
+  expect_equal(dim(res1), c(2, 3, 4, 3))
+  expect_equal(as.numeric(res1), as.numeric(arr4[,,, 2:4]))
+  
+  # 2. Target 4th and 3rd dimensions
+  # Start at 4th dim = 2, 3rd dim = 3. Read 2 blocks along the 3rd dim.
+  res2 <- h5_read(file, "arr4", start = c(2, 3), count = 2)
+  expect_equal(dim(res2), c(2, 3, 2, 1))
+  expect_equal(as.numeric(res2), as.numeric(arr4[,, 3:4, 2]))
+  
+  # 3. Target 4th, 3rd, and 1st (Rows) dimensions
+  # Start at 4th dim = 2, 3rd dim = 3, row = 1. Read 2 rows.
+  res3 <- h5_read(file, "arr4", start = c(2, 3, 1), count = 2)
+  expect_equal(dim(res3), c(2, 3, 1, 1))
+  expect_equal(as.numeric(res3), as.numeric(arr4[1:2,, 3, 2]))
+  
+  # 4. Target 4th, 3rd, 1st (Rows), and 2nd (Cols) dimensions
+  # Start at 4th dim = 2, 3rd dim = 3, row = 2, col = 1. Read 2 columns.
+  res4 <- h5_read(file, "arr4", start = c(2, 3, 2, 1), count = 2)
+  expect_equal(dim(res4), c(1, 2, 1, 1)) 
+  expect_equal(as.numeric(res4), as.numeric(arr4[2, 1:2, 3, 2]))
+  
+  unlink(file)
+})
+
+test_that("partial reading works for 5D arrays", {
+  file <- tempfile(fileext = ".h5")
+  
+  # Create a 2x3x4x2x3 array (Rows=2, Cols=3, 3rd=4, 4th=2, 5th=3)
+  arr5 <- array(1:144, dim = c(2, 3, 4, 2, 3))
+  h5_write(arr5, file, "arr5")
+  
+  # 1. Target 5th dimension
+  # Start at the 2nd block of the 5th dim, read 2 blocks.
+  res1 <- h5_read(file, "arr5", start = 2, count = 2)
+  expect_equal(dim(res1), c(2, 3, 4, 2, 2))
+  expect_equal(as.numeric(res1), as.numeric(arr5[,,,, 2:3, drop=FALSE]))
+  
+  # 2. Target 5th and 4th dimensions
+  # Start at 5th dim = 2, 4th dim = 1. Read 2 blocks along the 4th dim.
+  res2 <- h5_read(file, "arr5", start = c(2, 1), count = 2)
+  expect_equal(dim(res2), c(2, 3, 4, 2, 1))
+  expect_equal(as.numeric(res2), as.numeric(arr5[,,, 1:2, 2, drop=FALSE]))
+  
+  # 3. Target 5th, 4th, and 3rd dimensions
+  # Start at 5th dim = 3, 4th dim = 2, 3rd dim = 2. Read 3 blocks along 3rd dim.
+  res3 <- h5_read(file, "arr5", start = c(3, 2, 2), count = 3)
+  expect_equal(dim(res3), c(2, 3, 3, 1, 1))
+  expect_equal(as.numeric(res3), as.numeric(arr5[,, 2:4, 2, 3, drop=FALSE]))
   
   unlink(file)
 })

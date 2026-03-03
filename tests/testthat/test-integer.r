@@ -15,7 +15,7 @@ test_that("Integer scalars and vectors work", {
   
   # 3. Explicit Scalar (I(x))
   h5_write(I(42L), file, "scalar_I")
-  expect_equal(h5_dim(file, "scalar_I"), integer(0)) # Rank 0
+  expect_equal(h5_dim(file, "scalar_I"), numeric(0)) # Rank 0
   expect_equal(h5_read(file, "scalar_I"), 42L)
 
   # 4. Integers with NA (Auto-promoted to float to store NA)

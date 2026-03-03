@@ -23,11 +23,12 @@ h5_read(file, name = "/", attr = NULL, as = "auto", start = NULL, count = NULL)
 \item \strong{Specific:} A named vector mapping names or type classes to R types (see Section "Type Conversion").
 }}
 
-\item{start}{An integer vector specifying the 1-based starting coordinates for a partial read.
-For example, \code{start = c(5, 2)} begins reading at the 5th row and 2nd column.
+\item{start}{A numeric/integer vector specifying the 1-based starting coordinate(s) for a partial read.
+Most often, this is a \strong{single value} targeting the most logical structural unit
+(e.g., the row of a matrix, or the 2D matrix of a 3D array).
 Must be provided alongside \code{count}. If \code{NULL} (default), the entire dataset is read.}
 
-\item{count}{A single integer specifying the number of elements to read.
+\item{count}{A single numeric/integer value specifying the number of elements or units to read.
 Must be provided alongside \code{start}. If \code{NULL} (default), the entire dataset is read.}
 }
 \value{
@@ -43,24 +44,40 @@ The \code{@} prefix is \strong{only} used to configure attached attributes when 
 If you are reading a specific attribute directly (e.g., \code{h5_read(..., attr = "id")}), do \strong{not} use
 the \code{@} prefix in the \code{as} argument.
 
-Partial reading (\code{start}/\code{count}) is only supported for datasets, not attributes.
+Partial reading (\code{start}/\code{count}) is currently only supported for datasets, not attributes.
 }
 \section{Partial Reading (Hyperslabs)}{
 
 You can read specific subsets of an n-dimensional dataset without loading the entire object
-into memory by utilizing the \code{start} and \code{count} arguments.
+into memory by utilizing the \code{start} and \code{count} arguments. Both must be provided together.
 
-Both \code{start} and \code{count} must be provided together. Coordinates are 1-based and follow
-standard R array indexing.
+\strong{The "Smart" \code{start} Parameter}
 
-The \code{count} parameter is always a \strong{single integer} and is applied to the \emph{last} dimension
-specified in your \code{start} vector.
+\code{start} is designed to be intuitive. Most of the time, you only need to provide a single value.
+This single value automatically targets the most meaningful dimension of the dataset:
 \itemize{
-\item \strong{Example 1:} If you are reading from a 20x5 matrix, calling \code{start = 5} and \code{count = 3}
-will start at row 5 and extract 3 complete rows (automatically spanning all 5 columns).
-\item \strong{Example 2:} Calling \code{start = c(5, 2)} and \code{count = 3} on the same matrix would start
-at row 5, column 2, and read 3 columns along that specific row.
+\item \strong{1D Vector:} \code{start} specifies the \strong{element}.
+\item \strong{2D Matrix / Data Frame:} \code{start} specifies the \strong{row}.
+\item \strong{3D Array:} \code{start} specifies the \strong{2D matrix}.
 }
+
+The \code{count} parameter is always a \strong{single value} that determines how many of those units
+to read sequentially. For example, \code{start = 5} and \code{count = 3} on a matrix will read 3 complete
+rows starting at row 5 (automatically spanning all columns).
+
+\strong{Multi-Value \code{start} and N-Dimensional Arrays}
+
+If you need to extract a specific block \emph{inside} a structural unit, you can provide a vector of
+values to \code{start}. To make indexing intuitive across higher-order arrays, \code{start} maps
+its values to dimensions in the following priority order, targeting the outermost blocks first
+and specific rows/columns last:
+\itemize{
+\item \verb{N, N-1, ..., 3, 1 (Rows), 2 (Cols)}
+}
+
+For example, on a 3D array, \code{start = c(2, 5)} targets the 2nd matrix, and the 5th row.
+\code{start = c(2, 5, 3)} targets the 2nd matrix, 5th row, and 3rd column.
+The \code{count} argument always applies to the \strong{last} dimension specified in \code{start}.
 }
 
 \section{Type Conversion (\code{as})}{

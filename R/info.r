@@ -114,7 +114,7 @@ h5_typeof <- function (file, name, attr = NULL) {
 #' @param name Name of the dataset or object.
 #' @param attr The name of an attribute to check. If `NULL` (default), the function
 #'   returns the dimensions of the object itself.
-#' @return An integer vector of dimensions, or `integer(0)` for scalars.
+#' @return An numeric vector of dimensions, or `numeric(0)` for scalars.
 #'
 #' @export
 #' @examples
@@ -127,7 +127,7 @@ h5_typeof <- function (file, name, attr = NULL) {
 #' h5_dim(file, "mtcars") # 32 11
 #' 
 #' h5_write(I(TRUE), file, "my_bool")
-#' h5_dim(file, "my_bool") # integer(0)
+#' h5_dim(file, "my_bool") # numeric(0)
 #' 
 #' h5_write(1:10, file, "my_ints")
 #' h5_dim(file, "my_ints") # 10
@@ -357,7 +357,7 @@ h5_attr_names <- function (file, name = "/") {
 #' @param file The path to the HDF5 file.
 #' @param name The full path of the object (group or dataset).
 #' @param attr The name of an attribute to check. If provided, the length of the attribute is returned.
-#' @return An integer representing the total length (number of elements).
+#' @return An numeric scalar representing the total length (number of elements).
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -378,10 +378,10 @@ h5_length <- function (file, name, attr = NULL) {
 
   if (h5_is_dataset(file, name, attr)) {
     dims <- h5_dim(file, name, attr)
-    res <- if (identical(dims, integer(0)))                     { 1L         }
+    res <- if (identical(dims, numeric(0)))                     { 1          }
            else if (h5_class(file, name, attr) == "data.frame") { dims[2]    }
            else                                                 { prod(dims) }
-    return(as.integer(res))
+    return(as.double(res))
   }
   else if (h5_is_group(file, name, attr)) {
     return(length(h5_ls(file, name, recursive = FALSE)))

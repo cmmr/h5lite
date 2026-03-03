@@ -11,26 +11,41 @@
 #' @param as The target R data type.
 #'   * **Global:** `"auto"` (default), `"integer"`, `"double"`, `"logical"`, `"bit64"`, `"null"`.
 #'   * **Specific:** A named vector mapping names or type classes to R types (see Section "Type Conversion").
-#' @param start An integer vector specifying the 1-based starting coordinates for a partial read.
-#'   For example, `start = c(5, 2)` begins reading at the 5th row and 2nd column.
+#' @param start A numeric/integer vector specifying the 1-based starting coordinate(s) for a partial read.
+#'   Most often, this is a **single value** targeting the most logical structural unit 
+#'   (e.g., the row of a matrix, or the 2D matrix of a 3D array). 
 #'   Must be provided alongside `count`. If `NULL` (default), the entire dataset is read.
-#' @param count A single integer specifying the number of elements to read.
+#' @param count A single numeric/integer value specifying the number of elements or units to read.
 #'   Must be provided alongside `start`. If `NULL` (default), the entire dataset is read.
 #'
 #' @section Partial Reading (Hyperslabs):
 #' You can read specific subsets of an n-dimensional dataset without loading the entire object 
-#' into memory by utilizing the `start` and `count` arguments.
+#' into memory by utilizing the `start` and `count` arguments. Both must be provided together.
 #' 
-#' Both `start` and `count` must be provided together. Coordinates are 1-based and follow 
-#' standard R array indexing. 
+#' **The "Smart" `start` Parameter**
 #' 
-#' The `count` parameter is always a **single integer** and is applied to the *last* dimension 
-#' specified in your `start` vector. 
+#' `start` is designed to be intuitive. Most of the time, you only need to provide a single value. 
+#' This single value automatically targets the most meaningful dimension of the dataset:
+#' * **1D Vector:** `start` specifies the **element**.
+#' * **2D Matrix / Data Frame:** `start` specifies the **row**.
+#' * **3D Array:** `start` specifies the **2D matrix**.
 #' 
-#' * **Example 1:** If you are reading from a 20x5 matrix, calling `start = 5` and `count = 3` 
-#'   will start at row 5 and extract 3 complete rows (automatically spanning all 5 columns).
-#' * **Example 2:** Calling `start = c(5, 2)` and `count = 3` on the same matrix would start 
-#'   at row 5, column 2, and read 3 columns along that specific row.
+#' The `count` parameter is always a **single value** that determines how many of those units 
+#' to read sequentially. For example, `start = 5` and `count = 3` on a matrix will read 3 complete 
+#' rows starting at row 5 (automatically spanning all columns).
+#' 
+#' **Multi-Value `start` and N-Dimensional Arrays**
+#' 
+#' If you need to extract a specific block *inside* a structural unit, you can provide a vector of 
+#' values to `start`. To make indexing intuitive across higher-order arrays, `start` maps 
+#' its values to dimensions in the following priority order, targeting the outermost blocks first 
+#' and specific rows/columns last:
+#' 
+#' * `N, N-1, ..., 3, 1 (Rows), 2 (Cols)`
+#' 
+#' For example, on a 3D array, `start = c(2, 5)` targets the 2nd matrix, and the 5th row. 
+#' `start = c(2, 5, 3)` targets the 2nd matrix, 5th row, and 3rd column. 
+#' The `count` argument always applies to the **last** dimension specified in `start`.
 #'
 #' @section Type Conversion (`as`):
 #' You can control how HDF5 data is converted to R types using the `as` argument.
@@ -63,7 +78,7 @@
 #' If you are reading a specific attribute directly (e.g., `h5_read(..., attr = "id")`), do **not** use
 #' the `@` prefix in the `as` argument.
 #' 
-#' Partial reading (`start`/`count`) is only supported for datasets, not attributes.
+#' Partial reading (`start`/`count`) is currently only supported for datasets, not attributes.
 #'
 #' @return An R object corresponding to the HDF5 object or attribute.
 #'   Returns `NULL` if the object is skipped via `as = "null"`.

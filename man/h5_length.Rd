@@ -14,7 +14,7 @@ h5_length(file, name, attr = NULL)
 \item{attr}{The name of an attribute to check. If provided, the length of the attribute is returned.}
 }
 \value{
-An integer representing the total length (number of elements).
+An numeric scalar representing the total length (number of elements).
 }
 \description{
 Behaves like \code{length()} for R objects.

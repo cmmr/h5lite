@@ -262,34 +262,56 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element
       mem_dims[i] = dims[i];
     }
     
-    /* 1. Parse Hyperslab Constraints (Guaranteed by R to both be NULL, or both be valid) */
+    /* 1. Parse Hyperslab Constraints (Guaranteed by R to both be NULL, or both be valid REALSXP) */
     if (start != R_NilValue && count != R_NilValue) {
-        has_hyperslab = 1;
-        int start_len = Rf_length(start);
-        int *start_ptr = INTEGER(start);
-        int count_val = INTEGER(count)[0];
-        
-        for(int i = 0; i < start_len && i < ndims; i++) {
-            offset[i] = start_ptr[i] - 1; /* Adjust to 0-based index */
-            mem_dims[i] = 1;              /* Default to 1 element along specified dimensions */
+      has_hyperslab = 1;
+      int start_len = Rf_length(start);
+      
+      hsize_t count_val = (hsize_t) REAL(count)[0];
+      
+      /* Generate Generalized Mapping (C is 0-indexed) */
+      /* Pattern for ndims >= 3: (ndims-1), (ndims-2), ..., 2, 0, 1 */
+      int *dim_map = (int *)R_alloc(ndims, sizeof(int));
+      
+      if (ndims >= 3) {
+        for (int i = 0; i < ndims - 2; i++) {
+          dim_map[i] = ndims - 1 - i;
         }
-        
-        /* Apply the single count value to the LAST dimension specified by start */
-        if (start_len > 0 && start_len <= ndims) {
-            mem_dims[start_len - 1] = count_val;
+        dim_map[ndims - 2] = 0; /* Rows */
+      dim_map[ndims - 1] = 1; /* Cols */
+      } else {
+        /* Fallback for 1D and 2D: 0, 1 */
+        for (int i = 0; i < ndims; i++) {
+          dim_map[i] = i;
         }
+      }
+      
+      for(int i = 0; i < start_len && i < ndims; i++) {
+        int target_dim = dim_map[i]; /* Look up the targeted HDF5 dimension */
+        
+        hsize_t start_val = (hsize_t) REAL(start)[i];
+        
+        offset[target_dim] = start_val - 1; /* Adjust 1-based R index to 0-based HDF5 index */
+        mem_dims[target_dim] = 1;           /* Default to 1 element */
+      }
+      
+      /* Apply the single count value to the LAST dimension targeted by start */
+      if (start_len > 0 && start_len <= ndims) {
+        int target_dim = dim_map[start_len - 1];
+        mem_dims[target_dim] = count_val;
+      }
     }
     
     /* 2. Apply Selection */
     if (has_hyperslab) {
-        H5Sselect_hyperslab(space_id, H5S_SELECT_SET, offset, NULL, mem_dims, NULL);
-        mem_space_id = H5Screate_simple(ndims, mem_dims, NULL);
-        
-        /* Recalculate total elements based on the newly selected hyperslab block */
-        total_elements = 1;
-        for (int i = 0; i < ndims; i++) total_elements *= mem_dims[i];
+      H5Sselect_hyperslab(space_id, H5S_SELECT_SET, offset, NULL, mem_dims, NULL);
+      mem_space_id = H5Screate_simple(ndims, mem_dims, NULL);
+      
+      /* Recalculate total elements based on the newly selected hyperslab block */
+      total_elements = 1;
+      for (int i = 0; i < ndims; i++) total_elements *= mem_dims[i];
     } else {
-        for (int i = 0; i < ndims; i++) total_elements *= dims[i];
+      for (int i = 0; i < ndims; i++) total_elements *= dims[i];
     }
   }
   
