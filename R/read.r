@@ -1,7 +1,8 @@
 #' Read an HDF5 Object or Attribute
 #'
 #' Reads a dataset, a group, or a specific attribute from an HDF5 file into an R object.
-#' Supports partial reading (hyperslabs) to load specific subsets of data.
+#' Supports partial reading (hyperslabs) to load specific subsets of data without 
+#' loading the entire object into memory.
 #'
 #' @param file The path to the HDF5 file.
 #' @param name The full path of the dataset or group to read (e.g., `"/data/matrix"`).
@@ -11,26 +12,28 @@
 #' @param as The target R data type.
 #'   * **Global:** `"auto"` (default), `"integer"`, `"double"`, `"logical"`, `"bit64"`, `"null"`.
 #'   * **Specific:** A named vector mapping names or type classes to R types (see Section "Type Conversion").
-#' @param start A numeric/integer vector specifying the 1-based starting coordinate(s) for a partial read.
+#' @param start A numeric vector specifying the 1-based coordinate(s) for a partial read.
 #'   Most often, this is a **single value** targeting the most logical structural unit 
 #'   (e.g., the row of a matrix, or the 2D matrix of a 3D array). 
-#'   Must be provided alongside `count`. If `NULL` (default), the entire dataset is read.
-#' @param count A single numeric/integer value specifying the number of elements or units to read.
-#'   Must be provided alongside `start`. If `NULL` (default), the entire dataset is read.
+#'   If `NULL` (default), the entire dataset is read.
+#' @param count A single numeric value specifying the number of elements or units to read.
+#'   If `NULL` (default) and `start` is provided, `h5lite` reads exactly 1 unit and 
+#'   simplifies the resulting dimensions (see Section "Dimension Simplification").
 #'
 #' @section Partial Reading (Hyperslabs):
-#' You can read specific subsets of an n-dimensional dataset without loading the entire object 
-#' into memory by utilizing the `start` and `count` arguments. Both must be provided together.
+#' You can read specific subsets of an n-dimensional dataset by utilizing the `start` 
+#' and `count` arguments.
 #' 
 #' **The "Smart" `start` Parameter**
 #' 
 #' `start` is designed to be intuitive. Most of the time, you only need to provide a single value. 
 #' This single value automatically targets the most meaningful dimension of the dataset:
+#' 
 #' * **1D Vector:** `start` specifies the **element**.
 #' * **2D Matrix / Data Frame:** `start` specifies the **row**.
 #' * **3D Array:** `start` specifies the **2D matrix**.
 #' 
-#' The `count` parameter is always a **single value** that determines how many of those units 
+#' The `count` parameter is a **single value** that determines how many of those units 
 #' to read sequentially. For example, `start = 5` and `count = 3` on a matrix will read 3 complete 
 #' rows starting at row 5 (automatically spanning all columns).
 #' 
@@ -44,8 +47,18 @@
 #' * `N, N-1, ..., 3, 1 (Rows), 2 (Cols)`
 #' 
 #' For example, on a 3D array, `start = c(2, 5)` targets the 2nd matrix, and the 5th row. 
-#' `start = c(2, 5, 3)` targets the 2nd matrix, 5th row, and 3rd column. 
 #' The `count` argument always applies to the **last** dimension specified in `start`.
+#' 
+#' **Dimension Simplification (Dropping)**
+#' 
+#' `h5lite` mimics R's native subsetting behavior regarding dimension preservation:
+#' 
+#' * **Exact Indexing (`count = NULL`):** If you provide `start` but omit `count`, `h5lite` 
+#'   assumes you are targeting an exact point index. It will read 1 unit and **drop** the 
+#'   targeted dimension. (e.g., reading a specific row of a matrix will return a 1D vector).
+#' * **Range Indexing (`count` provided):** If you explicitly provide `count` (even `count = 1`), 
+#'   `h5lite` assumes you are reading a range. The dataset's original structural geometry is 
+#'   **preserved**. (e.g., reading `start = 5, count = 1` on a matrix will return a 1xN matrix).
 #'
 #' @section Type Conversion (`as`):
 #' You can control how HDF5 data is converted to R types using the `as` argument.
@@ -67,6 +80,7 @@
 #' Example: `as = c(.uint8 = "logical", .int = "bit64")`
 #'
 #' **3. Precedence & Attribute Config:**
+#' 
 #' * **Attributes vs Datasets:** Attribute type mappings take precedence over dataset mappings.
 #'   If you specify `as = c(.uint = "logical", "@.uint" = "integer")`, unsigned integer datasets
 #'   will be read as `logical`, but unsigned integer *attributes* will be read as `integer`.
@@ -82,6 +96,7 @@
 #'
 #' @return An R object corresponding to the HDF5 object or attribute.
 #'   Returns `NULL` if the object is skipped via `as = "null"`.
+#' 
 #' @seealso [h5_write()]
 #' @export
 #' @examples
@@ -90,35 +105,46 @@
 #' # --- Setup: Write Test Data ---
 #' h5_write(c(10L, 20L, 30L, 40L, 50L), file, "ints")
 #' 
-#' m <- matrix(1:100, nrow = 20, ncol = 5)
+#' m <- matrix(1:50, nrow = 10, ncol = 5, dimnames = list(paste0("r", 1:10), paste0("c", 1:5)))
 #' h5_write(m, file, "matrix_data")
+#' 
+#' arr <- array(1:24, dim = c(2, 3, 4))
+#' h5_write(arr, file, "array_data")
 #' 
 #' # --- Standard Reading ---
 #' # Read the entire dataset
 #' x <- h5_read(file, "ints")
-#' print(x)
 #' 
-#' # --- Partial Reading (Hyperslabs) ---
-#' 
-#' # 1. Read a subset of a 1D vector
-#' # Starts at the 2nd element and reads 3 elements total (returns 20, 30, 40)
-#' sub_vec <- h5_read(file, "ints", start = 2, count = 3)
-#' print(sub_vec)
-#' 
-#' # 2. Read complete rows from a Matrix
-#' # Starts at row 5 and reads 3 rows (spanning all columns automatically)
-#' sub_rows <- h5_read(file, "matrix_data", start = 5, count = 3)
-#' print(sub_rows)
-#' 
-#' # 3. Read a subset within a specific row
-#' # Starts at row 5, column 2, and reads 3 elements along that row
-#' sub_block <- h5_read(file, "matrix_data", start = c(5, 2), count = 3)
-#' print(sub_block)
-#' 
-#' # --- Type Conversion Example ---
+#' # --- Type Conversion ---
 #' # Force integer dataset to be read as numeric (double)
 #' x_dbl <- h5_read(file, "ints", as = "double")
 #' class(x_dbl)
+#' 
+#' # --- Partial Reading: Single-Value 'start' ---
+#' # Vector: Start at 2nd element, read 3 elements
+#' h5_read(file, "ints", start = 2, count = 3)
+#' 
+#' # Matrix: Start at row 5, read 3 complete rows (returns 3x5 matrix)
+#' h5_read(file, "matrix_data", start = 5, count = 3)
+#' 
+#' # 3D Array: Start at 2nd matrix, read 2 complete matrices (returns 2x3x2 array)
+#' h5_read(file, "array_data", start = 2, count = 2)
+#' 
+#' # --- Partial Reading: Dimension Simplification ---
+#' # Omit 'count' to extract an exact point index and drop the targeted dimension
+#' 
+#' # Matrix: Extract exactly row 5 (drops row dimension, returns a 1D vector)
+#' h5_read(file, "matrix_data", start = 5)
+#' 
+#' # Matrix: Extract row 5, but preserve matrix structure (returns 1x5 matrix)
+#' h5_read(file, "matrix_data", start = 5, count = 1)
+#' 
+#' # --- Partial Reading: Multi-Value 'start' ---
+#' # Matrix: Extract exactly row 5, column 2 (drops both dims, returns a scalar)
+#' h5_read(file, "matrix_data", start = c(5, 2))
+#' 
+#' # 3D Array: Target matrix 2, row 1. (drops matrix and row dims, returns 1D vector of cols)
+#' h5_read(file, "array_data", start = c(2, 1))
 #' 
 #' unlink(file)
 h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, count = NULL) {
@@ -127,7 +153,6 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
   obj_as <- validate_as(as)
   
   validate_start_count(file, name, attr, start, count)
-  
   
   # Validate choices
   choices <- c("auto", "integer", "double", "logical", "bit64", "null")
@@ -140,7 +165,7 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
             call. = FALSE,
             "Invalid `as` argument: '", obj_as[[i]], "'\n", 
             "Valid options are: '", paste(collapse = "', '", choices), "'.") })
-
+  
   # Prepare the 'as' map for attributes
   # Example: obj_as  = c("@ready" = "logical", ".uint" = "integer", "@." = "null")
   #          attr_as = c("ready" = "logical",  ".uint" = "integer", "."  = "null")
@@ -154,17 +179,21 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
     }
     if (is.null(attr_as) || length(attr_as) == 0) attr_as <- "auto"
   }
-
+  
   # --- Perform Read Operation ---
   read_data(file, name, attr, obj_as, attr_as, start, count)
 }
 
 
-read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = start, count = count) {
+read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = NULL, count = NULL) {
+  
+  is_auto_count <- !is.null(start) && is.null(count)
+  c_count       <- if (is_auto_count) 1 else count
   
   # Case 1: Read Specific Attribute directly
-  if (!is.null(attr))
+  if (!is.null(attr)) {
     return(.Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite"))
+  }
   
   # Case 2: Read Group (Recursive)
   if (h5_is_group(file, name)) {
@@ -175,9 +204,68 @@ read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = start, 
   
   # Case 3: Read Dataset
   else {
-    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, count, PACKAGE = "h5lite")
+    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, c_count, PACKAGE = "h5lite")
+    
+    # Surgically drop fully specified dimensions
+    if (!is.null(start) && !inherits(res, "data.frame")) {
+      dims <- dim(res)
+      
+      if (!is.null(dims)) {
+        N <- length(dims)
+        n_start <- length(start)
+        
+        if (N >= 3) {
+          full_map <- c(seq(N, 3L, by = -1L), 1L, 2L)
+        } else {
+          full_map <- seq_len(N)
+        }
+        dim_map <- full_map[seq_len(n_start)]
+        
+        dims_to_drop <- integer(0)
+        
+        # 1. Any targeted dimension BEFORE the last one is a point index and must be dropped
+        if (n_start > 1) {
+          dims_to_drop <- dim_map[1:(n_start - 1)]
+        }
+        # 2. The final targeted dimension is also a point index if count was automatically inferred
+        if (is_auto_count) {
+          dims_to_drop <- c(dims_to_drop, dim_map[n_start])
+        }
+        
+        if (length(dims_to_drop) > 0) {
+          new_dims <- dims[-dims_to_drop]
+          dnames <- dimnames(res)
+          
+          if (!is.null(dnames)) {
+            new_dnames <- dnames[-dims_to_drop]
+            if (all(sapply(new_dnames, is.null))) new_dnames <- NULL
+          } else {
+            new_dnames <- NULL
+          }
+          
+          # Apply the new shape
+          if (length(new_dims) <= 1) {
+            dim(res) <- NULL # Simplify to vector or scalar
+            
+            if (length(new_dims) == 1) {
+              # Retain names for 1D vectors, pulling from the surviving dimnames
+              if (!is.null(new_dnames)) names(res) <- new_dnames[[1]]
+            } else if (length(new_dims) == 0) {
+              # Explicitly unnamed for fully simplified scalar (count = NULL)
+              names(res) <- NULL
+            }
+          } else {
+            dim(res) <- new_dims
+            if (!is.null(new_dnames)) dimnames(res) <- new_dnames
+          }
+        }
+      } else if (is_auto_count && length(res) == 1) {
+        # Catch 1D vectors that were natively read as a point index (count = NULL)
+        names(res) <- NULL
+      }
+    }
   }
-
+  
   # --- Attach Attributes ---
   obj_attr_names <- h5_attr_names(file, name)
   obj_attr_names <- setdiff(obj_attr_names, c("DIMENSION_LIST", "REFERENCE_LIST"))
