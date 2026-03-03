@@ -156,12 +156,12 @@
 <span><span class="co">#&gt; └── smart_ints &lt;uint8 x 100&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="power-user-features-the-as-argument">Power User Features: The <code>as</code> Argument<a class="anchor" aria-label="anchor" href="#power-user-features-the-as-argument"></a>
+<h2 id="power-user-features">Power User Features<a class="anchor" aria-label="anchor" href="#power-user-features"></a>
 </h2>
-<p>Need to conform to a specific file specification? The <code>as</code> argument allows you to override automatic behavior and explicitly define on-disk types.</p>
 <div class="section level3">
-<h3 id="precise-type-control">Precise Type Control<a class="anchor" aria-label="anchor" href="#precise-type-control"></a>
+<h3 id="the-as-argument-precise-control">The <code>as</code> Argument: Precise Control<a class="anchor" aria-label="anchor" href="#the-as-argument-precise-control"></a>
 </h3>
+<p>Need to conform to a specific file specification? The <code>as</code> argument allows you to override automatic behavior and explicitly define on-disk types.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Force specific numeric types</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"dataset_a"</span>, as <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span>
@@ -175,10 +175,6 @@
 <span><span class="co">#&gt; ├── dataset_a &lt;int32 × 10&gt;</span></span>
 <span><span class="co">#&gt; ├── dataset_b &lt;float32 × 10&gt;</span></span>
 <span><span class="co">#&gt; └── fixed_strs &lt;ascii[10] × 2&gt;</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="complex-dataset-mapping">Complex Dataset Mapping<a class="anchor" aria-label="anchor" href="#complex-dataset-mapping"></a>
-</h3>
 <p>When writing Data Frames, you can map types for specific columns using a named vector.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -198,11 +194,29 @@
 <span><span class="co">#&gt;     ├── $score &lt;float32&gt;</span></span>
 <span><span class="co">#&gt;     └── $note &lt;ascii&gt;</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="data-compression-szip--gzip">Data Compression (Szip &amp; Gzip)<a class="anchor" aria-label="anchor" href="#data-compression-szip--gzip"></a>
+</h3>
+<p><code>h5lite</code> supports transparent data compression using the <code>compress</code> argument. While <code>gzip</code> is the universal standard, <code>szip</code> is available for high-performance scientific data.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Standard Gzip (levels 1-9)</span></span>
+<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data_gz"</span>, compress <span class="op">=</span> <span class="st">"gzip-5"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Szip (Nearest Neighbor for smooth signals or Entropy Coding for discrete data)</span></span>
+<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data_sz"</span>, compress <span class="op">=</span> <span class="st">"szip-nn"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="efficient-partial-reading">Efficient Partial Reading<a class="anchor" aria-label="anchor" href="#efficient-partial-reading"></a>
+</h3>
+<p>For large datasets that exceed system RAM, <code>h5lite</code> provides partial reading via <code>start</code> and <code>count</code> parameters. It automatically targets the most logical dimension (e.g., rows in a matrix or elements in a vector).</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Read a 100-row slice starting from row 500</span></span>
+<span><span class="va">subset</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"large_matrix"</span>, start <span class="op">=</span> <span class="fl">500</span>, count <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="comparison">Comparison<a class="anchor" aria-label="anchor" href="#comparison"></a>
 </h2>
-<p>How does <code>h5lite</code> compare to the other major R HDF5 packages?</p>
 <table class="table">
 <colgroup>
 <col width="21%">
@@ -238,6 +252,12 @@
 <td align="left">Manual (user specified)</td>
 </tr>
 <tr class="odd">
+<td align="left"><strong>Partial I/O</strong></td>
+<td align="left">
+<strong>Supported</strong> (Simplified)</td>
+<td align="left">Supported (Manual hyperslabs)</td>
+</tr>
+<tr class="even">
 <td align="left"><strong>Learning Curve</strong></td>
 <td align="left">Low (Minutes)</td>
 <td align="left">High (Days)</td>
@@ -247,12 +267,12 @@
 <p><strong>Use <code>rhdf5</code> or <code>hdf5r</code> if you need to:</strong></p>
 <ul>
 <li>Work with complex or custom HDF5 data types not supported by <code>h5lite</code> (e.g., bitfields, references).</li>
-<li>Have fine-grained control over file properties, chunking, or compression filters.</li>
-<li>Perform partial I/O (i.e., read or write a small slice of a very large on-disk dataset).</li>
+<li>Have fine-grained control over file properties, chunking shapes, or custom compression filters.</li>
 </ul>
 <p><strong>Use <code>h5lite</code> if you want to:</strong></p>
 <ul>
 <li>Quickly and safely get data into or out of a file.</li>
+<li>Perform efficient partial reads without the complexity of low-level hyperslab math.</li>
 <li>Avoid thinking about low-level details.</li>
 </ul>
 </div>
@@ -265,7 +285,11 @@
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/atomic-vectors.html">Atomic Vectors</a></strong>: Details on vectors and scalars.</li>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/data-types.html">Data Types &amp; Compression</a></strong>: Controlling storage types and compression.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-types.html">Data Types</a></strong>: Controlling storage types.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-compression.html">Data Compression</a></strong>: Szip/Gzip compression details.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/partial-reading.html">Partial Reading</a></strong>: Efficiently reading data subsets with <code>start</code> and <code>count</code>.</li>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/matrices.html">Matrices and Arrays</a></strong>: Handling multi-dimensional data.</li>
 <li>

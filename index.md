@@ -96,13 +96,13 @@ h5_str(file)
 #> └── smart_ints <uint8 x 100>
 ```
 
-## Power User Features: The `as` Argument
+## Power User Features
+
+### The `as` Argument: Precise Control
 
 Need to conform to a specific file specification? The `as` argument
 allows you to override automatic behavior and explicitly define on-disk
 types.
-
-### Precise Type Control
 
 ``` r
 # Force specific numeric types
@@ -118,8 +118,6 @@ h5_str(file)
 #> ├── dataset_b <float32 × 10>
 #> └── fixed_strs <ascii[10] × 2>
 ```
-
-### Complex Dataset Mapping
 
 When writing Data Frames, you can map types for specific columns using a
 named vector.
@@ -143,30 +141,54 @@ h5_str(file)
 #>     └── $note <ascii>
 ```
 
+### Data Compression (Szip & Gzip)
+
+`h5lite` supports transparent data compression using the `compress`
+argument. While `gzip` is the universal standard, `szip` is available
+for high-performance scientific data.
+
+``` r
+# Standard Gzip (levels 1-9)
+h5_write(rnorm(1000), file, "data_gz", compress = "gzip-5")
+
+# Szip (Nearest Neighbor for smooth signals or Entropy Coding for discrete data)
+h5_write(rnorm(1000), file, "data_sz", compress = "szip-nn")
+```
+
+### Efficient Partial Reading
+
+For large datasets that exceed system RAM, `h5lite` provides partial
+reading via `start` and `count` parameters. It automatically targets the
+most logical dimension (e.g., rows in a matrix or elements in a vector).
+
+``` r
+# Read a 100-row slice starting from row 500
+subset <- h5_read(file, "large_matrix", start = 500, count = 100)
+```
+
 ## Comparison
 
-How does `h5lite` compare to the other major R HDF5 packages?
-
-| Feature               | h5lite                    | rhdf5 / hdf5r                                          |
-|:----------------------|:--------------------------|:-------------------------------------------------------|
-| **Philosophy**        | “Opinionated” & Simple    | Comprehensive Wrapper                                  |
-| **API Style**         | Native R (`read`/`write`) | Low-level (Files, Dataspaces, Memspaces)               |
-| **HDF5 Installation** | **Bundled** (Zero-config) | **System Requirement** (Manual install often required) |
-| **Data Typing**       | Automatic (safe defaults) | Manual (user specified)                                |
-| **Learning Curve**    | Low (Minutes)             | High (Days)                                            |
+| Feature               | h5lite                     | rhdf5 / hdf5r                                          |
+|:----------------------|:---------------------------|:-------------------------------------------------------|
+| **Philosophy**        | “Opinionated” & Simple     | Comprehensive Wrapper                                  |
+| **API Style**         | Native R (`read`/`write`)  | Low-level (Files, Dataspaces, Memspaces)               |
+| **HDF5 Installation** | **Bundled** (Zero-config)  | **System Requirement** (Manual install often required) |
+| **Data Typing**       | Automatic (safe defaults)  | Manual (user specified)                                |
+| **Partial I/O**       | **Supported** (Simplified) | Supported (Manual hyperslabs)                          |
+| **Learning Curve**    | Low (Minutes)              | High (Days)                                            |
 
 **Use `rhdf5` or `hdf5r` if you need to:**
 
 - Work with complex or custom HDF5 data types not supported by `h5lite`
   (e.g., bitfields, references).
-- Have fine-grained control over file properties, chunking, or
-  compression filters.
-- Perform partial I/O (i.e., read or write a small slice of a very large
-  on-disk dataset).
+- Have fine-grained control over file properties, chunking shapes, or
+  custom compression filters.
 
 **Use `h5lite` if you want to:**
 
 - Quickly and safely get data into or out of a file.
+- Perform efficient partial reads without the complexity of low-level
+  hyperslab math.
 - Avoid thinking about low-level details.
 
 ## Documentation
@@ -176,9 +198,15 @@ How does `h5lite` compare to the other major R HDF5 packages?
 - **[Atomic
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**:
   Details on vectors and scalars.
-- **[Data Types &
-  Compression](https://cmmr.github.io/h5lite/articles/data-types.html)**:
-  Controlling storage types and compression.
+- **[Data
+  Types](https://cmmr.github.io/h5lite/articles/data-types.html)**:
+  Controlling storage types.
+- **[Data
+  Compression](https://cmmr.github.io/h5lite/articles/data-compression.html)**:
+  Szip/Gzip compression details.
+- **[Partial
+  Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**:
+  Efficiently reading data subsets with `start` and `count`.
 - **[Matrices and
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**:
   Handling multi-dimensional data.
