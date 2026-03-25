@@ -15,9 +15,11 @@ offers a fresh approach:
     hyperslabs, or property lists. `h5lite` maps R objects (numeric,
     character, factor, data.frame, and more) directly to their HDF5
     equivalents.
+
 2.  **Zero System Dependencies:** `h5lite` bundles the HDF5 library (via
     `hdf5lib`). Users do **not** need to install HDF5 system libraries
     manually.
+
 3.  **Smart Defaults, Full Control:** It automatically selects the most
     efficient data types (e.g., saving space by storing small integers
     as `int8`), but gives you granular control when you need to conform

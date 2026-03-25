@@ -56,3 +56,10 @@ Functions for creating and deleting groups, datasets, and attributes.
   : Delete an HDF5 Object or Attribute
 - [`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md) :
   Move or Rename an HDF5 Object
+
+## Compression & Configuration
+
+Functions for configuring HDF5 filter pipelines and compression.
+
+- [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+  : Define HDF5 Compression and Filter Settings

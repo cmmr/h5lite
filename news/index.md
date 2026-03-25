@@ -1,6 +1,6 @@
 # Changelog
 
-## h5lite 2.0.0.4
+## h5lite 2.1.0.0
 
 - Added support for SZIP compression - see
   [`vignette('data-compression')`](https://cmmr.github.io/h5lite/articles/data-compression.md).

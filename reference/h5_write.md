@@ -7,7 +7,7 @@ exist. This function acts as a unified writer for datasets, groups
 ## Usage
 
 ``` r
-h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip-5")
+h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip")
 ```
 
 ## Arguments
@@ -45,20 +45,14 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip-5")
 
 - compress:
 
-  Compression configuration.
-
-  - `"gzip-5"` (default): Standard zlib compression at level 5. Levels
-    `"gzip-1"` through `"gzip-9"` are also supported. Safe and
-    universally compatible.
-
-  - `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous,
-    correlated, or floating-point data (e.g., time series or smooth
-    gradients).
-
-  - `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated,
-    discrete, or categorical integer data.
-
-  - `"none"`: Disables compression entirely.
+  Compression configuration. Default is `"gzip"`. Pass a basic string to
+  specify the algorithm and level (e.g., `"zstd-7"`), or pass a
+  `compress` object created by
+  [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+  for advanced pipeline control (including scale-offset algorithms,
+  Fletcher32 checksums, or Blosc2 pre-filters). See
+  [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+  for full details.
 
 ## Value
 
@@ -169,7 +163,8 @@ without breaking the link.
 
 ## See also
 
-[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
 
 ## Examples
 
