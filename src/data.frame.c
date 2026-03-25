@@ -292,7 +292,7 @@ SEXP read_data_frame(
  */
 SEXP write_dataframe(
   hid_t file_id, hid_t loc_id, const char *obj_name, SEXP data, 
-  SEXP dtypes, int compress, int is_attribute) {
+  SEXP dtypes, SEXP compress, int is_attribute) {
 
   /* --- 1. Get data.frame properties --- */
   R_xlen_t n_cols = XLENGTH(data);
@@ -458,12 +458,10 @@ SEXP write_dataframe(
     H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
     
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    if (compress > 0 && n_rows > 0) {
+    if (n_rows > 0) {
       hsize_t chunk_dims = 0;
-      calculate_chunk_dims(1, &h5_dims, total_mem_size, &chunk_dims);
-      H5Pset_chunk(dcpl_id, 1, &chunk_dims);
-      H5Pset_shuffle(dcpl_id);
-      H5Pset_deflate(dcpl_id, (unsigned int) compress);
+      calculate_chunk_dims(1, &h5_dims, total_mem_size, compress, &chunk_dims);
+      apply_compression(dcpl_id, file_type_id, 1, &chunk_dims, compress);
     }
     obj_id = H5Dcreate2(loc_id, obj_name, file_type_id, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
     H5Pclose(lcpl_id); H5Pclose(dcpl_id);

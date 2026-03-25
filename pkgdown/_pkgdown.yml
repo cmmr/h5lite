@@ -44,3 +44,8 @@ reference:
       - h5_create_group
       - h5_delete
       - h5_move
+
+  - title: "Compression & Configuration"
+    desc: "Functions for configuring HDF5 filter pipelines and compression."
+    contents:
+      - h5_compression

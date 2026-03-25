@@ -15,14 +15,11 @@
 #'   See the **Data Type Selection** section for a full list of valid options 
 #'   (including `"int64"`, `"bfloat16"`, `"utf8[n]"`, etc.) and how to map 
 #'   sub-components of `data`.
-#' @param compress Compression configuration.
-#'   * `"gzip-5"` (default): Standard zlib compression at level 5. Levels `"gzip-1"` 
-#'     through `"gzip-9"` are also supported. Safe and universally compatible.
-#'   * `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous, 
-#'     correlated, or floating-point data (e.g., time series or smooth gradients).
-#'   * `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated, discrete, 
-#'     or categorical integer data.
-#'   * `"none"`: Disables compression entirely.
+#' @param compress Compression configuration. Default is `"gzip"`. 
+#'   Pass a basic string to specify the algorithm and level (e.g., `"zstd-7"`), 
+#'   or pass a `compress` object created by [h5_compression()] for advanced 
+#'   pipeline control (including scale-offset algorithms, Fletcher32 checksums, 
+#'   or Blosc2 pre-filters). See [h5_compression()] for full details.
 #' 
 #' @section Writing Scalars:
 #' 
@@ -115,9 +112,8 @@
 #' The dimension scales can be relocated with `h5_move()` without breaking the 
 #' link.
 #' 
-#' 
 #' @return Invisibly returns `file`. This function is called for its side effects.
-#' @seealso [h5_read()]
+#' @seealso [h5_read()], [h5_compression()]
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -162,7 +158,7 @@
 #' 
 #' # 8. Clean up
 #' unlink(file)
-h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzip-5") {
+h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzip") {
   
   file <- validate_strings(file, name, attr)
   
@@ -184,6 +180,8 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzi
     if (is.null(attr_as) || length(attr_as) == 0) attr_as <- "auto"
   }
 
+  compress <- h5_compression(compress)
+
   # Write the data
   h5_create_group(file, name = "/")
   if (is_list_group(data)) {
@@ -197,10 +195,218 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzi
   invisible(file)
 }
 
+
+
+#' Define HDF5 Compression and Filter Settings
+#' 
+#' Constructs a comprehensive filter pipeline configuration (`compress`) to be passed 
+#' as the `compress` argument to [h5_write()]. This function allows fine-grained 
+#' control over chunking, pre-filters, compression algorithms, and data scaling.
+#'
+#' @param compress A string specifying the compression algorithm and optional level 
+#'   (e.g., `"gzip-5"`, `"zstd-7"`, `"blosc2-lz4-9"`). See the **Valid Compression Strings** 
+#'   section below for an exhaustive list of supported formats. Default is `"gzip"`.
+#' @param chunk_size An integer specifying the target chunk size in bytes. 
+#'   Default is `1048576` (1 MB).
+#' @param checksum A logical value indicating whether to apply the Fletcher32 
+#'   checksum filter at the end of the pipeline to detect data corruption. Default is `FALSE`.
+#' @param int_packing Control the HDF5 Scale-Offset filter for integer datasets.
+#'   * `FALSE` (Default): Disabled.
+#'   * `TRUE`: Automatically calculates and applies the mathematically optimal minimum 
+#'     bit-width for each individual chunk.
+#'   * Integer (e.g., `8`): Forces packing into exactly that many bits.
+#'   *(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
+#' @param float_rounding Control the HDF5 Scale-Offset filter for floating-point datasets.
+#'   * `NULL` (Default): Disabled.
+#'   * Integer (e.g., `3`): The number of base-10 decimal places of detail to preserve 
+#'     before truncating and packing the values (e.g., `3.141`). Negative numbers 
+#'     round to powers of 10.
+#'   *(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
+#' @param blosc2_delta A logical value. If `TRUE` and a `blosc2` compressor is selected, 
+#'   applies the Blosc2 Delta pre-filter before compression. Default is `FALSE`.
+#' @param blosc2_truncate An integer. If provided and a `blosc2` compressor is selected, 
+#'   applies the Blosc2 Truncate Precision pre-filter to floating-point data, preserving 
+#'   exactly the specified number of uncompressed bits. Default is `NULL`.
+#' 
+#' @section Valid Compression Strings:
+#' The `compress` argument accepts a highly specific string syntax to define both 
+#' the codec and its operational level.
+#' 
+#' ### Native / Core Codecs
+#' 
+#' * `"none"`: No compression.
+#' * `"gzip-[level]"`: Levels `1` to `9`. Default is `5`. (e.g., `"gzip"` or `"gzip-9"`).
+#' * `"zstd-[level]"`: Levels `1` to `22`. Default is `3`. (e.g., `"zstd"` or `"zstd-7"`).
+#' * `"lz4-[level]"`: Levels `0` to `12`. Default is `0`. Level `0` is standard LZ4. Levels `1+` trigger LZ4-HC.
+#' 
+#' ### Bitshuffle Pre-filter
+#' Forces the native Bitshuffle pre-filter before compression.
+#' 
+#' * `"bshuf-lz4"`: Bitshuffle + LZ4.
+#' * `"bshuf-zstd-[level]"`: Bitshuffle + Zstd (Levels `1` to `22`).
+#' 
+#' ### Blosc Meta-compressors
+#' Blosc applies its own highly optimized bitshuffling and multi-threading.
+#' 
+#' * **Blosc2 (Recommended):** `"blosc2"` (blosclz), `"blosc2-lz4-[level]"`, `"blosc2-zstd-[level]"`, `"blosc2-gzip-[level]"`, `"blosc2-ndlz"`
+#' * **Blosc1 (Legacy):**  `"blosc1"` (blosclz), `"blosc1-lz4-[level]"`, `"blosc1-zstd-[level]"`, `"blosc1-gzip-[level]"`, `"blosc1-snappy"`
+#' 
+#' ### ZFP (Lossy Floating-Point Compression)
+#' ZFP can be run standalone (for integers and floats) or inside Blosc2 (floats only). Unlike `[level]`, `[tolerance]` and `[bits]` are required.
+#' 
+#' * **Accuracy Mode** (Absolute error tolerance): `"zfp-acc-[tolerance]"` or `"blosc2-zfp-acc-[tolerance]"` (e.g., `"zfp-acc-0.001"`).
+#' * **Precision Mode** (Bits of precision): `"zfp-prec-[bits]"` or `"blosc2-zfp-prec-[bits]"` (e.g., `"zfp-prec-16"`).
+#' * **Rate Mode** (Bits of storage per value): `"zfp-rate-[bits]"` or `"blosc2-zfp-rate-[bits]"` (e.g., `"zfp-rate-8"`).
+#' * **Reversible Mode** (Standalone Lossless): `"zfp-rev"`.
+#' 
+#' ### Legacy Codecs
+#' 
+#' * `"szip-nn"`, `"szip-ec"`: SZIP Nearest Neighbor or Entropy Coding.
+#' * `"bzip2-[level]"`: Levels `1` to `9`. Default is `9`. (e.g., `"bzip2-4"`).
+#' * `"lzf"`, `"snappy"`: Fast, unconfigurable legacy compressors.
+#' 
+#' @section Automatic Shuffling:
+#' 
+#' To maximize compression ratios without requiring users to manually manage 
+#' complex pipeline interactions, `h5_compression` automatically configures the 
+#' optimal shuffling pre-filter based on the following strict hierarchy:
+#' 
+#' **1. Blosc's Internal Bitshuffle (Preferred)**
+#' If a Blosc meta-compressor is selected (e.g., `"blosc2-zstd"`), the pipeline 
+#' automatically enables Blosc's highly optimized, internal bitshuffle routine. 
+#' This achieves peak compression performance without requiring the standalone 
+#' Bitshuffle plugin to be installed.
+#' 
+#' **2. Explicit Bitshuffle Plugin**
+#' If a standard codec is explicitly prefixed with `bshuf-` (e.g., `"bshuf-lz4"`), 
+#' the pipeline delegates to the standalone Bitshuffle plugin.
+#' 
+#' **3. Native HDF5 Byte Shuffle (Fallback)**
+#' If a standard compressor is selected (e.g., `"zstd-5"` or `"gzip"`), 
+#' the pipeline safely falls back to the core HDF5 library's native byte shuffle 
+#' filter. This guarantees improved compression while maintaining universal 
+#' compatibility.
+#' 
+#' **4. Strict Mutual Exclusions (When Shuffling is Disabled)**
+#' To prevent data corruption or wasted CPU cycles, all shuffling is 
+#' **forcefully disabled** in the following scenarios:
+#' 
+#' * **Scale-Offset Active:** If `int_packing` or `float_rounding` is applied, 
+#'   shuffling is disabled because scale-offset destroys the byte-alignment 
+#'   that shuffling relies on.
+#' * **ZFP & SZIP:** These algorithms perform mathematical compression directly 
+#'   on numerical values and will corrupt if the bitstream is rearranged beforehand.
+#' * **1-Byte Data:** Characters, booleans, and 8-bit integers cannot be meaningfully 
+#'   shuffled, so the step is skipped.
+#' 
+#' @return An S3 object of class `compress` containing the parsed pipeline parameters.
+#' @seealso [h5_write()]
+#' @export
+#' @examples
+#' # 1. Simple fast compression (Zstd level 7)
+#' fs <- h5_compression("zstd-7")
+#' 
+#' # 2. Optimal integer packing (Scale-Offset)
+#' fs <- h5_compression("gzip-9", int_packing = TRUE)
+#' 
+#' # 3. Complex Blosc2 Pipeline (Delta + Zstd)
+#' fs <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+#' 
+#' # 4. Lossy ZFP compression (Tolerance of 0.05)
+#' fs <- h5_compression("zfp-acc-0.05")
+#' 
+#' \dontrun{
+#' # Pass the compress directly to h5_write
+#' h5_write(my_data, "data.h5", "dataset", compress = fs)
+#' }
+h5_compression <- function(
+    compress = "gzip", chunk_size = 1024 * 1024, checksum = FALSE, 
+    int_packing = FALSE, float_rounding = NULL,
+    blosc2_delta = FALSE, blosc2_truncate = NULL ) {
+  
+  if (inherits(compress, 'compress'))           return(compress)
+  if (is.numeric(compress) && compress %in% 1:9) compress <- paste0("gzip-", compress)
+  if (!is.character(compress))                   compress <- "none"
+  compress <- tolower(trimws(compress))
+  
+  # 1. Handle polymorphic int_packing
+  if      (identical(int_packing, FALSE)) { int_packing <- NA_integer_ }
+  else if (identical(int_packing, TRUE))  { int_packing <- 0L          }
+  else if (!(is.numeric(int_packing) && isTRUE(int_packing %% 1 == 0)))
+    stop("`int_packing` must be TRUE/FALSE or an integer.", call. = FALSE)
+
+  assert_scalar_character(compress)
+  assert_scalar_logical(checksum, blosc2_delta)
+  assert_scalar_integer(chunk_size)
+  assert_scalar_integer(float_rounding, blosc2_truncate, .null_ok = TRUE)
+
+  # Check string format against known valid patterns
+  if (!any(
+      grepl('^(gzip|zstd|lz4|bshuf-zstd|bzip2)(\\-[0-9]+)?$',              compress),
+      grepl('^(none|zfp-rev|bshuf-lz4|szip-ec|szip-nn|lzf|snappy)$',       compress),
+      grepl('^blosc1(\\-(snappy|(lz4|gzip|zstd)(\\-[0-9]+)?))?$',          compress),
+      grepl('^blosc2(\\-(ndlz|(lz4|gzip|zstd)(\\-[0-9]+)?))?$',            compress),
+      grepl('^(blosc2\\-)?zfp\\-((prec|rate)\\-[0-9]+|acc\\-[0-9\\.]+)$',  compress) )) {
+    stop("Invalid `compress` string: '", compress, "'.", call. = FALSE)
+  }
+  
+  blosc <- switch(substr(compress, 1, 6), 'blosc1' = 1L, 'blosc2' = 2L, 0L)
+
+  # Extract the base codec name
+  codecs <- c(
+    'gzip', 'none', 'bshuf-lz4', 'bshuf-zstd', 'lz4', 'zstd', 
+    'bzip2', 'lzf', 'zfp-rev', 'zfp-prec', 'zfp-acc', 'zfp-rate', 
+    'szip-ec', 'szip-nn', 'snappy', 'ndlz', 'blosclz')
+  for (codec in codecs)
+    if (isTRUE(grepl(codec, compress, fixed = TRUE))) break
+  
+  # Parse the level, applying sensible defaults
+  level_str <- rev(strsplit(compress, "-")[[1]])[[1]]
+  level <- suppressWarnings(as.numeric(level_str))
+  
+  if (is.na(level)) {
+    level <- switch(codec, 'gzip' = 5, 'zstd' = 3, 'bshuf-zstd' = 3, 'bzip2' = 9, 'lz4' = 0, 0)
+  } else {
+    rng <- switch(codec, 
+      'gzip' = c(1, 9), 'bzip2' = c(1, 9), 'lz4' = c(0, 12), 
+      'zstd' = c(1, 22), 'bshuf-zstd' = c(1, 22), NULL)
+    
+    if (!is.null(rng) && (!isTRUE(level %% 1 == 0) || level < rng[[1]] || level > rng[[2]])) {
+      stop(compress, " level must be an integer between ", rng[[1]]," and ", rng[[2]], ".", call. = FALSE)
+    }
+  }
+
+  if (is.null(float_rounding))  float_rounding  <- NA
+  if (is.null(blosc2_truncate)) blosc2_truncate <- NA
+
+  for (var in c('int_packing', 'float_rounding'))
+    if (!is.na(get(var))) {
+      if (grepl('(szip|zfp|bshuf)', codec)) stop("`", var, "` is not compatible with `", codec, "`.",     call. = FALSE)
+      if (!is.na(blosc2_truncate))          stop("`", var, "` is not compatible with `blosc2_truncate`.", call. = FALSE)
+      if (isTRUE(blosc2_delta))             stop("`", var, "` is not compatible with `blosc2_delta`.",    call. = FALSE)
+    }
+
+  structure(
+    .Data = compress,
+    class = 'compress',
+    codec          = as.character(codec),
+    level          = as.double(level),
+    blosc          = as.integer(blosc), 
+    int_packing    = as.integer(int_packing),
+    float_rounding = as.integer(float_rounding),
+    chunk_size     = as.integer(chunk_size), 
+    checksum       = as.logical(checksum),
+    b2_delta       = as.logical(blosc2_delta), 
+    b2_trunc       = as.integer(blosc2_truncate)
+  )
+}
+
+
+
 #' Recursively write a list as a group
 #' @noRd
 #' @keywords internal
-write_group <- function(data, file, name, obj_as, attr_as, compress = "gzip-5", dry = FALSE) {
+write_group <- function(data, file, name, obj_as, attr_as, compress, dry = FALSE) {
 
   if (!dry) h5_delete(file, name, warn = FALSE)
   if (!dry) h5_create_group(file, name)
@@ -222,7 +428,7 @@ write_group <- function(data, file, name, obj_as, attr_as, compress = "gzip-5", 
 #' Write a single dataset or attribute
 #' @noRd
 #' @keywords internal
-write_data <- function(data, file, name, attr, obj_as, attr_as, compress = "none", dry = FALSE) {
+write_data <- function(data, file, name, attr, obj_as, attr_as, compress, dry = FALSE) {
   
   # Convert POSIXt vectors/columns to ISO 8601 character strings.
   if (inherits(data, "POSIXt")) {
@@ -263,22 +469,6 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress = "none
   dims <- validate_dims(data)
 
   if (is.null(attr)) {
-    
-    stopifnot(length(compress) == 1)
-    if (identical(compress, TRUE))  compress <- "gzip-5"
-    if (identical(compress, FALSE)) compress <- "none"
-    if (is.numeric(compress))       compress <- paste0("gzip-", compress)
-    compress <- trimws(tolower(as.character(compress)))
-    
-    opts <- c(
-      "none"    = 0L, "szip-nn" = 10L, "szip-ec" = 11L,
-      "gzip-1"  = 1L, "gzip-2"  = 2L,  "gzip-3"  = 3L, 
-      "gzip-4"  = 4L, "gzip-5"  = 5L,  "gzip-6"  = 6L, 
-      "gzip-7"  = 7L, "gzip-8"  = 8L,  "gzip-9"  = 9L )
-      
-    compress <- opts[[match.arg(compress, names(opts))]]
-      
-    
     if (!dry)
       .Call("C_h5_write_dataset", file, name, data, h5_type, dims, compress, PACKAGE = "h5lite")
     
@@ -302,7 +492,7 @@ write_attributes <- function(data, file, name, attr_as, dry = FALSE) {
   for (attr in attr_names) {
     attr_data <- base::attr(data, attr, exact = TRUE)
     if (is_list_group(attr_data)) next
-    write_data(attr_data, file, name, attr, attr_as, attr_as, dry = dry)
+    write_data(attr_data, file, name, attr, attr_as, attr_as, list("none", NULL, NULL), dry = dry)
   }
 }
 

@@ -9,11 +9,21 @@ assert_scalar_logical <- function(...) {
   }
 }
 
+assert_scalar_integer <- function(..., .null_ok = FALSE) {
+  dots <- list(...)
+  for (i in seq_along(dots)) {
+    x <- dots[[i]]
+    if (.null_ok && is.null(x)) next
+    if (!(is.numeric(x) && length(x) == 1 && !is.na(x) && isTRUE(x %% 1 == 0)))
+      stop("Argument `", match.call()[[i + 1]], "` must be a scalar integer.", call. = FALSE)
+  }
+}
+
 assert_scalar_character <- function(...) {
   dots <- list(...)
   for (i in seq_along(dots)) {
     x <- dots[[i]]
-    if (!(is.character(x) && length(x) == 1 && !is.na(x) && nzchar(x)))
+    if (!(is.character(x) && length(x) == 1 && !is.na(x) && nzchar(trimws(x))))
       stop("Argument `", match.call()[[i + 1]], "` must be a scalar character.", call. = FALSE)
   }
 }

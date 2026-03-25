@@ -1,5 +1,21 @@
+#include <Rinternals.h>
 #include <R_ext/Rdynload.h>
+#include "hdf5lib.h"
 #include "h5lite.h"
+
+
+SEXP C_register_hdf5_filters() {
+  hdf5lib_register_all_filters();
+  return R_NilValue;
+}
+
+// # nocov start
+SEXP C_destroy_hdf5_filters() {
+  hdf5lib_destroy_all_filters();
+  return R_NilValue;
+}
+// # nocov end
+
 
 /*
  * This structure defines the mapping between the C function names and the
@@ -7,6 +23,10 @@
  * The format is: {"r_name", (DL_FUNC) &c_function_name, number_of_arguments}.
  */
 static const R_CallMethodDef CallEntries[] = {
+  
+  /* init.c */
+  {"C_register_hdf5_filters", (DL_FUNC) &C_register_hdf5_filters, 0},
+  {"C_destroy_hdf5_filters",  (DL_FUNC) &C_destroy_hdf5_filters,  0},
   
   /* info.c */
   {"C_h5_typeof",      (DL_FUNC) &C_h5_typeof, 2},

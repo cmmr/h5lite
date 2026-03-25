@@ -16,7 +16,9 @@ It is designed for data scientists who want to read/write objects and move on, a
 If you've struggled with complex HDF5 bindings in the past, `h5lite` offers a fresh approach:
 
 1.  **It Just Works:** No need to understand HDF5 dataspaces, hyperslabs, or property lists. `h5lite` maps R objects (numeric, character, factor, data.frame, and more) directly to their HDF5 equivalents.
+
 2.  **Zero System Dependencies:** `h5lite` bundles the HDF5 library (via `hdf5lib`). Users do **not** need to install HDF5 system libraries manually.
+
 3.  **Smart Defaults, Full Control:** It automatically selects the most efficient data types (e.g., saving space by storing small integers as `int8`), but gives you granular control when you need to conform to a strict spec.
 
 

@@ -4,7 +4,7 @@
 \alias{h5_write}
 \title{Write an R Object to HDF5}
 \usage{
-h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip-5")
+h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip")
 }
 \arguments{
 \item{data}{The R object to write. Supported: \code{numeric}, \code{complex},
@@ -26,16 +26,11 @@ See the \strong{Data Type Selection} section for a full list of valid options
 (including \code{"int64"}, \code{"bfloat16"}, \code{"utf8[n]"}, etc.) and how to map
 sub-components of \code{data}.}
 
-\item{compress}{Compression configuration.
-\itemize{
-\item \code{"gzip-5"} (default): Standard zlib compression at level 5. Levels \code{"gzip-1"}
-through \code{"gzip-9"} are also supported. Safe and universally compatible.
-\item \code{"szip-nn"}: Szip with Nearest Neighbor coding. Best for continuous,
-correlated, or floating-point data (e.g., time series or smooth gradients).
-\item \code{"szip-ec"}: Szip with Entropy Coding. Best for uncorrelated, discrete,
-or categorical integer data.
-\item \code{"none"}: Disables compression entirely.
-}}
+\item{compress}{Compression configuration. Default is \code{"gzip"}.
+Pass a basic string to specify the algorithm and level (e.g., \code{"zstd-7"}),
+or pass a \code{compress} object created by \code{\link[=h5_compression]{h5_compression()}} for advanced
+pipeline control (including scale-offset algorithms, Fletcher32 checksums,
+or Blosc2 pre-filters). See \code{\link[=h5_compression]{h5_compression()}} for full details.}
 }
 \value{
 Invisibly returns \code{file}. This function is called for its side effects.
@@ -196,5 +191,5 @@ h5_str(file)
 unlink(file)
 }
 \seealso{
-\code{\link[=h5_read]{h5_read()}}
+\code{\link[=h5_read]{h5_read()}}, \code{\link[=h5_compression]{h5_compression()}}
 }

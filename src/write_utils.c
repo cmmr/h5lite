@@ -145,11 +145,12 @@ herr_t write_buffer_to_object(hid_t obj_id, hid_t mem_type_id, void *buffer) {
 
 /*
  * Implements a heuristic to determine chunk dimensions for a dataset.
- * The goal is to create chunks that are roughly 1MB in size by iteratively
- * halving the largest dimension until the target size is met.
+ * The goal is to create chunks that are roughly 1MB in size (default)
+ * by iteratively halving the largest dimension until the target size is met.
  */
-void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize_t *out_chunk_dims) {
-  const hsize_t TARGET_SIZE = 1024 * 1024; /* Target 1 MiB per chunk */
+void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, SEXP compress, hsize_t *out_chunk_dims) {
+  
+  hsize_t target_size   = (hsize_t)asInteger(getAttrib(compress, install("chunk_size")));
   hsize_t current_bytes = type_size;
 
   for (int i = 0; i < rank; i++) {
@@ -157,8 +158,8 @@ void calculate_chunk_dims(int rank, const hsize_t *dims, size_t type_size, hsize
     current_bytes *= dims[i];
   }
 
-  if (current_bytes > TARGET_SIZE) {
-    while (current_bytes > TARGET_SIZE) {
+  if (current_bytes > target_size) {
+    while (current_bytes > target_size) {
       int max_idx = 0;
       for (int i = 1; i < rank; i++) {
         if (out_chunk_dims[i] > out_chunk_dims[max_idx]) max_idx = i;

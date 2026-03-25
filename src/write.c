@@ -1,5 +1,160 @@
 #include "h5lite.h"
-#include "H5DSpublic.h" /* Required for Dimension Scales */
+
+extern herr_t H5Pset_zfp_rate(hid_t plist, double rate);
+extern herr_t H5Pset_zfp_precision(hid_t plist, unsigned int prec);
+extern herr_t H5Pset_zfp_accuracy(hid_t plist, double acc);
+extern herr_t H5Pset_zfp_reversible(hid_t plist);
+
+/* --- Centralized Compression Logic --- */
+#include <math.h>
+#include <stdint.h>
+#include <string.h>
+#include <hdf5.h>
+#include <Rinternals.h>
+
+void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_dims, SEXP compress) {
+
+    const char *codec     = CHAR(STRING_ELT(getAttrib(compress, install("codec")), 0));
+    double dbl_level      = asReal(getAttrib(compress, install("level")));
+    int    blosc          = asInteger(getAttrib(compress, install("blosc")));
+    int    int_packing    = asInteger(getAttrib(compress, install("int_packing")));
+    int    float_rounding = asInteger(getAttrib(compress, install("float_rounding")));
+    int    checksum       = asLogical(getAttrib(compress, install("checksum")));
+    int    b2_delta       = asLogical(getAttrib(compress, install("b2_delta")));
+    int    b2_trunc       = asInteger(getAttrib(compress, install("b2_trunc")));
+    
+    unsigned int int_level = (unsigned int)dbl_level; 
+    
+    /* 1. Gracefully bypass all filters for scalar datasets */
+    if (rank == 0) return;
+
+    H5T_class_t tclass = H5Tget_class(type_id);
+    size_t type_size   = H5Tget_size(type_id);
+    int    is_numeric  = (tclass == H5T_INTEGER || tclass == H5T_FLOAT);
+    int    is_float    = (tclass == H5T_FLOAT);
+
+    int is_scaled = 0;
+    if      (tclass == H5T_INTEGER && int_packing    != NA_INTEGER) { is_scaled = 1; }
+    else if (tclass == H5T_FLOAT   && float_rounding != NA_INTEGER) { is_scaled = 2; }
+
+    /* 2. Sanity Checks: Gatekeeping for SZIP and ZFP variants */
+    if (strncmp(codec, "szip", 4) == 0) {
+      if (!is_numeric || is_scaled)                { codec = "gzip"; int_level = 5; }
+    }
+    else if (strncmp(codec, "zfp",  3) == 0) {
+        if      (!is_numeric || is_scaled)         { codec = "gzip"; int_level = 5; }
+        else if (type_size != 4 && type_size != 8) { codec = "gzip"; int_level = 5; }
+        else if (blosc > 0 && !is_float)           { codec = "gzip"; int_level = 5; }
+    }
+
+    /* Adjust chunking for SZIP */
+    unsigned int pixels_per_block = 32;
+    if (strncmp(codec, "szip", 4) == 0) {
+        hsize_t fastest_dim = chunk_dims[rank - 1];
+        if (fastest_dim >= 32) {
+            chunk_dims[rank - 1] = (fastest_dim / 32) * 32;
+        } else if (fastest_dim >= 2) {
+            chunk_dims[rank - 1] = (fastest_dim / 2) * 2;
+            pixels_per_block = (unsigned int)chunk_dims[rank - 1];
+        } else {
+            codec = "gzip";
+            int_level = 5;
+        }
+    }
+
+    /* 3. Set Chunking (Mandatory prerequisite for all subsequent filters) */
+    H5Pset_chunk(dcpl_id, rank, chunk_dims);
+
+    /* 4. Apply Scale-Offset */
+    if (is_scaled) {
+      if (is_float) { H5Pset_scaleoffset(dcpl_id, H5Z_SO_FLOAT_DSCALE, float_rounding); }
+      else          { H5Pset_scaleoffset(dcpl_id, H5Z_SO_INT,          int_packing);    }
+    }
+    
+    /* 5. Determine Shuffle (Strictly mutually exclusive with Scale-Offset) */
+    unsigned int blosc_shuffle = 0;
+    if      (is_scaled)                       {}
+    else if (strncmp(codec, "szip",  4) == 0) {} 
+    else if (strncmp(codec, "zfp",   3) == 0) {} 
+    else if (strncmp(codec, "bshuf", 5) == 0) {} 
+    else if (blosc > 0)     { blosc_shuffle = 2; } 
+    else if (type_size > 1) { H5Pset_shuffle(dcpl_id); }
+
+    /* 6. Apply Primary Compressor */
+    if (strcmp(codec, "gzip") == 0) { H5Pset_deflate(dcpl_id, int_level); }
+    
+    else if (blosc > 0) {
+      int filter_id = (blosc == 1) ? 32001 : 32026;
+      
+      unsigned int blosc_level = int_level;
+      if      (strcmp(codec, "zstd") == 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 22.0); }
+      else if (strcmp(codec, "lz4")  == 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 12.0); }
+      if (blosc_level > 9) blosc_level = 9;
+      
+      int nelmts = 7;
+      unsigned int meta = blosc_level;
+      unsigned int mask = blosc_shuffle;
+      
+      if (blosc == 2 && !is_scaled) {
+        if (b2_delta) mask += 4;
+        
+        if (b2_trunc != NA_INTEGER) {
+          mask += 8;
+          nelmts = 8;
+          meta = (unsigned int)b2_trunc;
+        }
+      }
+      
+      int compcode = 0; 
+      if      (strcmp(codec, "lz4")      == 0) { compcode = 1;  }
+      else if (strcmp(codec, "snappy")   == 0) { compcode = 2;  }
+      else if (strcmp(codec, "gzip")     == 0) { compcode = 3;  }
+      else if (strcmp(codec, "zstd")     == 0) { compcode = 4;  }
+      else if (strcmp(codec, "ndlz")     == 0) { compcode = 11; }
+      else if (strcmp(codec, "zfp-rate") == 0) { 
+        compcode = 35; nelmts = 8; 
+        meta = (unsigned int)round((dbl_level / (type_size * 8.0)) * 100.0);
+      }
+      else if (strcmp(codec, "zfp-prec") == 0) { 
+        compcode = 34; nelmts = 8; 
+        meta = int_level; 
+      }
+      else if (strcmp(codec, "zfp-acc")  == 0) { 
+        compcode = 33; nelmts = 8; 
+        int exp = (int)floor(log10(dbl_level));
+        meta = (unsigned int)((uint8_t)exp);
+      }
+      
+      unsigned int cd_values[8] = {0, 0, 0, 0, blosc_level, mask, compcode, meta};
+      H5Pset_filter(dcpl_id, filter_id, H5Z_FLAG_OPTIONAL, nelmts, cd_values);
+    }
+    
+    else if (strcmp(codec, "szip-ec") == 0) { H5Pset_szip(dcpl_id, H5_SZIP_EC_OPTION_MASK, pixels_per_block); } 
+    else if (strcmp(codec, "szip-nn") == 0) { H5Pset_szip(dcpl_id, H5_SZIP_NN_OPTION_MASK, pixels_per_block); } 
+    
+    else if (strcmp(codec, "zstd")    == 0) {
+        unsigned int cd_values[1] = { int_level };
+        H5Pset_filter(dcpl_id, 32015, H5Z_FLAG_OPTIONAL, 1, cd_values);
+    } 
+    else if (strcmp(codec, "lz4") == 0) {
+        unsigned int cd_values[2] = { 0, int_level > 0 ? 9 : 0 }; 
+        H5Pset_filter(dcpl_id, 32004, H5Z_FLAG_OPTIONAL, 2, cd_values);
+    } 
+    else if (strncmp(codec, "bshuf", 5) == 0) {
+        unsigned int cd_values[3] = { 0, 0, int_level };
+        if      (strcmp(codec, "bshuf-lz4")  == 0) cd_values[1] = 2;
+        else if (strcmp(codec, "bshuf-zstd") == 0) cd_values[1] = 3;
+        H5Pset_filter(dcpl_id, 32008, H5Z_FLAG_OPTIONAL, 3, cd_values);
+    }
+    
+    else if (strcmp(codec, "zfp-rev")  == 0) { H5Pset_zfp_reversible(dcpl_id);          }
+    else if (strcmp(codec, "zfp-prec") == 0) { H5Pset_zfp_precision(dcpl_id, int_level);    }
+    else if (strcmp(codec, "zfp-acc")  == 0) { H5Pset_zfp_accuracy(dcpl_id, dbl_level); }
+    else if (strcmp(codec, "zfp-rate") == 0) { H5Pset_zfp_rate(dcpl_id, dbl_level);     }
+
+    /* 7. Apply Checksum (Must be the absolute last filter in the pipeline) */
+    if (checksum) H5Pset_fletcher32(dcpl_id);
+}
 
 
 /*
@@ -235,10 +390,9 @@ static SEXP write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_n
 
 
 /* --- WRITER: DATASET --- */
-SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP sexp_compress) {
+SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
-  int compress = asInteger(sexp_compress);
   
   hid_t file_id = open_or_create_file(fname);
 
@@ -287,51 +441,12 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
       
       /* Only apply chunking/compression if requested and applicable */
-      if (compress > 0 && rank > 0 && XLENGTH(data) > 0) {
-        
+      if (rank > 0 && XLENGTH(data) > 0) {
         size_t type_size = H5Tget_size(file_type_id);
         hsize_t *chunk_dims = (hsize_t *) R_alloc(rank, sizeof(hsize_t));
-        calculate_chunk_dims(rank, h5_dims, type_size, chunk_dims);
+        calculate_chunk_dims(rank, h5_dims, type_size, compress, chunk_dims);
         
-        unsigned int pixels_per_block = 32;
-        
-        /* --- Handle SZIP Chunk Alignment & Fallbacks --- */
-        if ((compress == 10 || compress == 11) && H5Tget_class(file_type_id) != H5T_STRING) {
-          hsize_t fastest_dim = chunk_dims[rank - 1];
-          
-          if (fastest_dim >= 32) {
-            /* Round down to the nearest multiple of 32 */
-            chunk_dims[rank - 1] = (fastest_dim / 32) * 32;
-          } else if (fastest_dim >= 2) {
-            /* For small dimensions, round down to nearest even number */
-            chunk_dims[rank - 1] = (fastest_dim / 2) * 2;
-            pixels_per_block = (unsigned int)chunk_dims[rank - 1];
-          } else {
-            /* Fastest dim is 1. Szip requires an even block size >= 2. 
-             Gracefully fall back to gzip level 5. */
-            compress = 5; 
-          }
-        }
-        
-        /* Apply the final valid chunk dimensions */
-        H5Pset_chunk(dcpl_id, rank, chunk_dims);
-        
-        /* --- Apply Compression Filters --- */
-        if (compress >= 1 && compress <= 9) {
-          /* GZIP (1-9) */
-          if (type_size > 1) H5Pset_shuffle(dcpl_id);
-          H5Pset_deflate(dcpl_id, (unsigned int)compress);
-        } 
-        else if (compress == 10 || compress == 11) {
-          /* SZIP (10 = NN, 11 = EC) */
-          if (H5Tget_class(file_type_id) == H5T_STRING) {
-            if (type_size > 1) H5Pset_shuffle(dcpl_id);
-            H5Pset_deflate(dcpl_id, 5); /* Fallback for strings */
-          } else {
-            unsigned int options_mask = (compress == 10) ? H5_SZIP_NN_OPTION_MASK : H5_SZIP_EC_OPTION_MASK;
-            H5Pset_szip(dcpl_id, options_mask, pixels_per_block);
-          }
-        }
+        apply_compression(dcpl_id, file_type_id, rank, chunk_dims, compress);
       }
       
       /* Create the dataset passing both LCPL (name encoding) and DCPL (compression) */
@@ -386,7 +501,7 @@ SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP dat
   else if (TYPEOF(data) == VECSXP) { /* a data.frame */
     /* Attribute writing mode: is_attribute = 1. Scales will NOT be written.
        write_dataframe handles internal ACPL creation for UTF-8 names. */
-    errmsg = write_dataframe(file_id, obj_id, aname, data, dtype, 0, 1);
+    errmsg = write_dataframe(file_id, obj_id, aname, data, dtype, R_NilValue, 1);
   }
   else { /* an atomic type or NULL */
     const char *dtype_str_check = CHAR(STRING_ELT(dtype, 0));
