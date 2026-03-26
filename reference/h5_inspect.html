@@ -96,11 +96,6 @@ layout, chunk dimensions, and a detailed list of all applied filters.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Layout:  chunked             Disk:    120.00 B</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Chunks:  [10 x 10]           Ratio:   1.67x</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Pipeline: scaleoffset -&gt; lz4 -&gt; fletcher32 </span>
-<span class="r-in"><span><span class="co">#&gt; &lt;HDF5 Dataset Properties&gt;</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Type:    uint16              Size:    200.00 B</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Layout:  chunked             Disk:    120.00 B</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Chunks:  [10 x 10]           Ratio:   1.67x</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Pipeline: scaleoffset -&gt; lz4 -&gt; fletcher32</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">mtx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="fl">100</span>, <span class="fl">10</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">mtx</span>, <span class="va">file</span>, <span class="st">"float_mtx"</span>, compress <span class="op">=</span> <span class="st">'blosc2-zfp-prec-3'</span><span class="op">)</span></span></span>
@@ -111,16 +106,10 @@ layout, chunk dimensions, and a detailed list of all applied filters.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Layout:  chunked             Disk:    1.48 KB</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Chunks:  [100 x 10]          Ratio:   5.29x</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Pipeline: blosc2 [zfp-prec] </span>
-<span class="r-in"><span><span class="co">#&gt; &lt;HDF5 Dataset Properties&gt;</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Type:    float64             Size:    7.81 KB</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Layout:  chunked             Disk:    1.49 KB</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Chunks:  [100 x 10]          Ratio:   5.23x</span></span></span>
-<span class="r-in"><span><span class="co">#&gt;   Pipeline: blosc2 [zfp-prec]</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Print the raw cd_values for blosc2</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dput.html" class="external-link">dput</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">filters</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">cd_values</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> c(2L, 0L, 8L, 8000L, 3L, 0L, 34L, 2L, 100L, 10L, 3L)</span>
-<span class="r-in"><span><span class="co">#&gt; c(2L, 0L, 8L, 8000L, 3L, 0L, 34L, 2L, 100L, 10L, 3L)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>
