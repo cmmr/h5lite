@@ -39,6 +39,9 @@ static const R_CallMethodDef CallEntries[] = {
   {"C_h5_names",       (DL_FUNC) &C_h5_names, 3},
   {"C_h5_attr_names",  (DL_FUNC) &C_h5_attr_names, 2},
   
+  /* inspect.c */
+  {"C_h5_inspect",     (DL_FUNC) &C_h5_inspect, 2},
+  
   /* ls.c */
   {"C_h5_str", (DL_FUNC) &C_h5_str, 5},
   {"C_h5_ls",  (DL_FUNC) &C_h5_ls, 5},

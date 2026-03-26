@@ -29,6 +29,7 @@ reference:
       - h5_class
       - h5_dim
       - h5_exists
+      - h5_inspect
       - h5_is_dataset
       - h5_is_group
       - h5_length

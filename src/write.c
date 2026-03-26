@@ -106,12 +106,12 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
       }
       
       int compcode = 0; 
-      if      (strcmp(codec, "lz4")      == 0) { compcode = 1;  }
-      else if (strcmp(codec, "snappy")   == 0) { compcode = 2;  }
-      else if (strcmp(codec, "gzip")     == 0) { compcode = 3;  }
-      else if (strcmp(codec, "zstd")     == 0) { compcode = 4;  }
-      else if (strcmp(codec, "ndlz")     == 0) { compcode = 11; }
-      else if (strcmp(codec, "zfp-rate") == 0) { 
+      if      (strcmp(codec, "lz4")      == 0) { compcode = int_level ? 2 : 1; }
+      else if (strcmp(codec, "snappy")   == 0) { compcode = 3;  }
+      else if (strcmp(codec, "gzip")     == 0) { compcode = 4;  }
+      else if (strcmp(codec, "zstd")     == 0) { compcode = 5;  }
+      else if (strcmp(codec, "ndlz")     == 0) { compcode = 32; }
+      else if (strcmp(codec, "zfp-rate") == 0) {
         compcode = 35; nelmts = 8; 
         meta = (unsigned int)round((dbl_level / (type_size * 8.0)) * 100.0);
       }
@@ -145,6 +145,16 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
         if      (strcmp(codec, "bshuf-lz4")  == 0) cd_values[1] = 2;
         else if (strcmp(codec, "bshuf-zstd") == 0) cd_values[1] = 3;
         H5Pset_filter(dcpl_id, 32008, H5Z_FLAG_OPTIONAL, 3, cd_values);
+    }
+    else if (strcmp(codec, "bzip2") == 0) {
+      unsigned int cd_values[1] = { int_level };
+      H5Pset_filter(dcpl_id, 307, H5Z_FLAG_OPTIONAL, 1, cd_values);
+    }
+    else if (strcmp(codec, "lzf") == 0) {
+      H5Pset_filter(dcpl_id, 32000, H5Z_FLAG_OPTIONAL, 0, NULL);
+    }
+    else if (strcmp(codec, "snappy") == 0) {
+      H5Pset_filter(dcpl_id, 32003, H5Z_FLAG_OPTIONAL, 0, NULL);
     }
     
     else if (strcmp(codec, "zfp-rev")  == 0) { H5Pset_zfp_reversible(dcpl_id);          }

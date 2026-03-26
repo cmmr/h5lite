@@ -55,6 +55,9 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsi
 void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data);
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx);
 
+/* --- inspect.c --- */
+SEXP C_h5_inspect(SEXP filename, SEXP dset_name);
+
 /* --- info.c --- */
 SEXP h5_type_to_rstr(hid_t type_id);
 SEXP C_h5_typeof(SEXP filename, SEXP dset_name);
