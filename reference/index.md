@@ -30,7 +30,6 @@ Functions for exploring the contents and properties of an HDF5 file.
 - [`h5_exists()`](https://cmmr.github.io/h5lite/reference/h5_exists.md)
   : Check if an HDF5 File, Object, or Attribute Exists
 - [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
-  [`print(`*`<inspect>`*`)`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
   : Inspect HDF5 Dataset Creation Properties
 - [`h5_is_dataset()`](https://cmmr.github.io/h5lite/reference/h5_is_dataset.md)
   : Check if an HDF5 Object is a Dataset

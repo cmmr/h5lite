@@ -1,7 +1,7 @@
 # Define HDF5 Compression and Filter Settings
 
-Constructs a comprehensive filter pipeline configuration (`compress`) to
-be passed as the `compress` argument to
+Constructs a comprehensive filter pipeline configuration to be passed as
+the `compress` argument to
 [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
 This function allows fine-grained control over chunking, pre-filters,
 compression algorithms, and data scaling.
@@ -42,7 +42,8 @@ h5_compression(
 
 - int_packing:
 
-  Control the HDF5 Scale-Offset filter for integer datasets.
+  Control the HDF5 Scale-Offset filter for integer datasets. *(Note:
+  Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
 
   - `FALSE` (Default): Disabled.
 
@@ -50,19 +51,18 @@ h5_compression(
     optimal minimum bit-width for each individual chunk.
 
   - Integer (e.g., `8`): Forces packing into exactly that many bits.
-    *(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2
-    pre-filters).*
 
 - float_rounding:
 
-  Control the HDF5 Scale-Offset filter for floating-point datasets.
+  Control the HDF5 Scale-Offset filter for floating-point
+  datasets.*(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2
+  pre-filters).*
 
   - `NULL` (Default): Disabled.
 
   - Integer (e.g., `3`): The number of base-10 decimal places of detail
     to preserve before truncating and packing the values (e.g.,
-    `3.141`). Negative numbers round to powers of 10. *(Note:
-    Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
+    `3.141`). Negative numbers round to powers of 10.
 
 - blosc2_delta:
 
@@ -190,19 +190,19 @@ disabled** in the following scenarios:
 
 ``` r
 # 1. Simple fast compression (Zstd level 7)
-fs <- h5_compression("zstd-7")
+cfg <- h5_compression("zstd-7")
 
 # 2. Optimal integer packing (Scale-Offset)
-fs <- h5_compression("gzip-9", int_packing = TRUE)
+cfg <- h5_compression("gzip-9", int_packing = TRUE)
 
 # 3. Complex Blosc2 Pipeline (Delta + Zstd)
-fs <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+cfg <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
 
 # 4. Lossy ZFP compression (Tolerance of 0.05)
-fs <- h5_compression("zfp-acc-0.05")
+cfg <- h5_compression("zfp-acc-0.05")
 
 if (FALSE) { # \dontrun{
 # Pass the compress directly to h5_write
-h5_write(my_data, "data.h5", "dataset", compress = fs)
+h5_write(my_data, "data.h5", "dataset", compress = cfg)
 } # }
 ```

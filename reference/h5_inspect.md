@@ -8,9 +8,6 @@ filters.
 
 ``` r
 h5_inspect(file, name)
-
-# S3 method for class 'inspect'
-print(x, ...)
 ```
 
 ## Arguments
@@ -22,14 +19,6 @@ print(x, ...)
 - name:
 
   The full path of the dataset to inspect.
-
-- x:
-
-  An object of class `inspect`.
-
-- ...:
-
-  Further arguments passed to or from other methods.
 
 ## Value
 
