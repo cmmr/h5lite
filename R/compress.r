@@ -125,7 +125,7 @@
 #' 
 #' print(cmp)
 #' 
-#' inspect(file, "sets")
+#' h5_inspect(file, "sets")
 #' 
 #' # Clean up
 #' unlink(file)

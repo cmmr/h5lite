@@ -167,7 +167,7 @@ h5_write(combn(1:10, 3), file, "sets", compress = cmp)
 
 print(cmp)
 
-inspect(file, "sets")
+h5_inspect(file, "sets")
 
 # Clean up
 unlink(file)
