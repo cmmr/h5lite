@@ -1,10 +1,8 @@
 # h5lite <img src="man/figures/logo.png" align="right" width="184" height="200" alt="h5lite logo" />
 
-<!-- badges: start -->
 [![cran](https://img.shields.io/cran/v/h5lite?logo=r&label=CRAN)](https://CRAN.R-project.org/package=h5lite)
 [![conda](https://img.shields.io/conda/v/conda-forge/r-h5lite?logo=anaconda&label=conda)](https://anaconda.org/conda-forge/r-h5lite)
 [![covr](https://img.shields.io/codecov/c/gh/cmmr/h5lite?logo=codecov)](https://app.codecov.io/gh/cmmr/h5lite)
-<!-- badges: end -->
 
 **h5lite** is the pain-free way to work with HDF5 files in R.
 
@@ -33,8 +31,8 @@ install.packages("h5lite")
 Or the development version from GitHub:
 
 ```r
-# install.packages("devtools")
-devtools::install_github("cmmr/h5lite")
+# install.packages("pak")
+pak::pak("cmmr/h5lite")
 ```
 
 
@@ -60,8 +58,9 @@ my_vec <- h5_read(file, "my_vector")
 
 # 4. Inspect the file
 h5_ls(file)
-#> [1] "my_vector"                  "my_matrix"                  "simulation_config"         
-#> [4] "simulation_config/version"  "simulation_config/params"   "simulation_config/params/a"
+#> [1] "my_vector"                  "my_matrix"
+#> [3] "simulation_config"          "simulation_config/version"
+#> [5] "simulation_config/params"   "simulation_config/params/a"
 #> [7] "simulation_config/params/b"
 
 h5_str(file)
@@ -136,15 +135,17 @@ h5_str(file)
 #>     └── $note <ascii>
 ```
 
-### Data Compression (Szip & Gzip)
-`h5lite` supports transparent data compression using the `compress` argument. While `gzip` is the universal standard, `szip` is available for high-performance scientific data.
+### Advanced Compression & Chunking
+
+`h5lite` natively bundles an extensive suite of state-of-the-art compression filters (including **Blosc2**, **Zstandard**, **LZ4**, and lossy **ZFP**). For simple use cases, you can pass a string configuration to the `compress` argument. For precise control over the pipeline—including chunk sizing, bitshuffling, and Scale-Offset scaling—use the `h5_compression()` function.
 
 ```r
-# Standard Gzip (levels 1-9)
-h5_write(rnorm(1000), file, "data_gz", compress = "gzip-5")
+# Simple setup: High-performance Blosc2 with Zstandard
+h5_write(rnorm(1000), file, "data_blosc", compress = "blosc2-zstd")
 
-# Szip (Nearest Neighbor for smooth signals or Entropy Coding for discrete data)
-h5_write(rnorm(1000), file, "data_sz", compress = "szip-nn")
+# Advanced setup: LZ4 compression, optimal integer packing, and custom chunk sizing
+cmp <- h5_compression("lz4-9", int_packing = TRUE, chunk_size = 512 * 1024)
+h5_write(1:1000, file, "data_custom", compress = cmp)
 ```
 
 ### Efficient Partial Reading
@@ -169,12 +170,13 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 
 **Use `rhdf5` or `hdf5r` if you need to:**
 
--   Work with complex or custom HDF5 data types not supported by `h5lite` (e.g., bitfields, references).
--   Have fine-grained control over file properties, chunking shapes, or custom compression filters.
+-   Work with complex or custom HDF5 data types not supported by `h5lite` (e.g., bitfields, references, variable-length nested arrays).
+-   Perform advanced, multi-dimensional hyperslab selections that cannot be expressed with simple `start`/`count` parameters.
 
 **Use `h5lite` if you want to:**
 
 -   Quickly and safely get data into or out of a file.
+-   Take advantage of modern, zero-config compression pipelines (Blosc2, Zstd, ZFP) without building system libraries.
 -   Perform efficient partial reads without the complexity of low-level hyperslab math.
 -   Avoid thinking about low-level details.
 
@@ -184,7 +186,7 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 -   **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
 -   **[Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
 -   **[Data Types](https://cmmr.github.io/h5lite/articles/data-types.html)**: Controlling storage types.
--   **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**: Szip/Gzip compression details.
+-   **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**: Configuring modern codecs and tuning chunk size.
 -   **[Partial Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**: Efficiently reading data subsets with `start` and `count`.
 -   **[Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
 -   **[Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.
