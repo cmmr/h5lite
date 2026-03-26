@@ -237,8 +237,12 @@ print(cmp)
 #>   Chunk Size:      1.00 MB
 #>   Checksum:        Fletcher32
 
-inspect(file, "sets")
-#> Error in inspect(file, "sets"): could not find function "inspect"
+h5_inspect(file, "sets")
+#> <HDF5 Dataset Properties>
+#>   Type:    uint8               Size:    360.00 B
+#>   Layout:  chunked             Disk:    79.00 B
+#>   Chunks:  [3 x 120]           Ratio:   4.56x
+#>   Pipeline: gzip -> fletcher32 
 
 # Clean up
 unlink(file)

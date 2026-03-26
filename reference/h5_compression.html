@@ -256,8 +256,12 @@ shuffled, so the step is skipped.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Chunk Size:      1.00 MB</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Checksum:        Fletcher32</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="fu">inspect</span><span class="op">(</span><span class="va">file</span>, <span class="st">"sets"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in inspect(file, "sets"):</span> could not find function "inspect"</span>
+<span class="r-in"><span><span class="fu"><a href="h5_inspect.html">h5_inspect</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"sets"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;HDF5 Dataset Properties&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Type:    uint8               Size:    360.00 B</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Layout:  chunked             Disk:    79.00 B</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Chunks:  [3 x 120]           Ratio:   4.56x</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Pipeline: gzip -&gt; fletcher32 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Clean up</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
