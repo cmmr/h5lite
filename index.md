@@ -68,8 +68,9 @@ my_vec <- h5_read(file, "my_vector")
 
 # 4. Inspect the file
 h5_ls(file)
-#> [1] "my_vector"                  "my_matrix"                  "simulation_config"         
-#> [4] "simulation_config/version"  "simulation_config/params"   "simulation_config/params/a"
+#> [1] "my_vector"                  "my_matrix"
+#> [3] "simulation_config"          "simulation_config/version"
+#> [5] "simulation_config/params"   "simulation_config/params/a"
 #> [7] "simulation_config/params/b"
 
 h5_str(file)
