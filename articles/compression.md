@@ -178,38 +178,85 @@ to reproduce your original values.
   operations are run in reverse to restore the original values, less any
   exact precision lost during the initial rounding step.
 
-&nbsp;
+``` r
+# 1. Integer Packing Example
+# A dataset with a small range of values (e.g., years 2000 to 2050)
+years <- sample(2000:2050, 100000, replace = TRUE)
 
-    ---
+# By default, R uses 32-bit integers. 
+# With int_packing = TRUE, HDF5 subtracts 2000 from all values,
+# leaving numbers from 0 to 50, which fit perfectly into just 6 bits!
+cmp_int <- h5_compression("lz4-9", int_packing = TRUE)
+h5_write(years, file, "data/packed_years", compress = cmp_int)
 
+# 2. Float Rounding Example
+# Sensor data where anything beyond 2 decimal places is just noise
+sensor_data <- rnorm(100000, mean = 98.6, sd = 0.5)
 
-    ## Filter Interactions & Invalid Combinations
+# Multiplies by 10^2 (e.g., 98.614... -> 9861.4...), rounds to 9861, and bit-packs.
+# When read back into R, it is automatically divided by 100 to restore 98.61.
+cmp_float <- h5_compression("zstd-5", float_rounding = 2)
+h5_write(sensor_data, file, "data/rounded_sensors", compress = cmp_float)
+```
 
-    Filters in HDF5 operate in a sequential pipeline, and certain filters destroy the underlying byte structures that downstream algorithms rely on. `h5_compression()` strictly enforces mutual exclusions and will throw an error if you attempt an invalid combination:
+------------------------------------------------------------------------
 
-    1.  **Shuffling vs. Scale-Offset:** Pre-filters like Bitshuffle and Byte Shuffle rearrange the byte stream to group similar bits together for better compression. Scale-Offset (`int_packing` or `float_rounding`) packs data into non-standard bit widths, which destroys byte alignment. Therefore, **all automatic shuffling is forcefully disabled if Scale-Offset is active**.
+## Filter Interactions & Invalid Combinations
 
-    2.  **Mathematical vs. Shuffling Codecs:** ZFP and Szip perform mathematical compression directly on raw numerical values. They will completely fail or corrupt if the bitstream is rearranged beforehand. **Do not combine ZFP or Szip with Scale-Offset, Bitshuffle, or Blosc2 pre-filters.**
+Filters in HDF5 operate in a sequential pipeline, and certain filters
+destroy the underlying byte structures that downstream algorithms rely
+on.
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+strictly enforces mutual exclusions and will throw an error if you
+attempt an invalid combination:
 
-    3.  **String Data Limitations:** Szip and ZFP cannot be applied to character vectors. String compression relies on standard algorithms like `gzip` or `zstd`, and only works on *fixed-length* strings. Variable-length strings (such as those containing `NA` values) cannot be compressed by chunk filters at all.
+1.  **Shuffling vs. Scale-Offset:** Pre-filters like Bitshuffle and Byte
+    Shuffle rearrange the byte stream to group similar bits together for
+    better compression. Scale-Offset (`int_packing` or `float_rounding`)
+    packs data into non-standard bit widths, which destroys byte
+    alignment. Therefore, **all automatic shuffling is forcefully
+    disabled if Scale-Offset is active**.
 
-    ---
+2.  **Mathematical vs. Shuffling Codecs:** ZFP and Szip perform
+    mathematical compression directly on raw numerical values. They will
+    completely fail or corrupt if the bitstream is rearranged
+    beforehand. **Do not combine ZFP or Szip with Scale-Offset,
+    Bitshuffle, or Blosc2 pre-filters.**
 
+3.  **String Data Limitations:** Szip and ZFP cannot be applied to
+    character vectors. String compression relies on standard algorithms
+    like `gzip` or `zstd`, and only works on *fixed-length* strings.
+    Variable-length strings (such as those containing `NA` values)
+    cannot be compressed by chunk filters at all.
 
-    ## Tuning Chunk Size
+------------------------------------------------------------------------
 
-    HDF5 does not compress a dataset as one monolithic block. Instead, it divides the dataset into smaller "chunks" and compresses each independently. 
+## Tuning Chunk Size
 
-    By default, `h5_compression()` targets a **1 MB chunk size** (`chunk_size = 1048576`), which is an excellent default. However, you should manually tune this depending on your specific access patterns:
+HDF5 does not compress a dataset as one monolithic block. Instead, it
+divides the dataset into smaller “chunks” and compresses each
+independently.
 
-    * **Too Small (< 10 KB):** Imposes huge metadata overhead. The internal HDF5 B-tree will bloat the file size, and the compression algorithms won't have enough data to identify repeating patterns.
+By default,
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+targets a **1 MB chunk size** (`chunk_size = 1048576`), which is an
+excellent default. However, you should manually tune this depending on
+your specific access patterns:
 
-    * **Too Large (> 50 MB):** If you only want to read a tiny slice (e.g., 10 rows) of your dataset, HDF5 is forced to load and decompress the *entire chunk* containing those rows into memory. Overly large chunks cause massive read latency for subsetting operations.
+- **Too Small (\< 10 KB):** Imposes huge metadata overhead. The internal
+  HDF5 B-tree will bloat the file size, and the compression algorithms
+  won’t have enough data to identify repeating patterns.
 
-    ```r
-    # Optimizing for reading small, 100KB slices at a time
-    cmp_chunk <- h5_compression("blosc2-zstd-5", chunk_size = 102400)
-    h5_write(matrix(rnorm(10000), 100, 100), file, "data/tuned_chunks", compress = cmp_chunk)
+- **Too Large (\> 50 MB):** If you only want to read a tiny slice (e.g.,
+  10 rows) of your dataset, HDF5 is forced to load and decompress the
+  *entire chunk* containing those rows into memory. Overly large chunks
+  cause massive read latency for subsetting operations.
+
+``` r
+# Optimizing for reading small, 100KB slices at a time
+cmp_chunk <- h5_compression("blosc2-zstd-5", chunk_size = 102400)
+h5_write(matrix(rnorm(10000), 100, 100), file, "data/tuned_chunks", compress = cmp_chunk)
+```
 
 ------------------------------------------------------------------------
 

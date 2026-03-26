@@ -332,39 +332,83 @@ described above. When the data is decoded, the operations are run in
 reverse to restore the original values, less any exact precision lost
 during the initial rounding step.</p></li>
 </ul>
-<pre><code>
----
-
-
-## Filter Interactions &amp; Invalid Combinations
-
-Filters in HDF5 operate in a sequential pipeline, and certain filters destroy the underlying byte structures that downstream algorithms rely on. `h5_compression()` strictly enforces mutual exclusions and will throw an error if you attempt an invalid combination:
-
-1.  **Shuffling vs. Scale-Offset:** Pre-filters like Bitshuffle and Byte Shuffle rearrange the byte stream to group similar bits together for better compression. Scale-Offset (`int_packing` or `float_rounding`) packs data into non-standard bit widths, which destroys byte alignment. Therefore, **all automatic shuffling is forcefully disabled if Scale-Offset is active**.
-
-2.  **Mathematical vs. Shuffling Codecs:** ZFP and Szip perform mathematical compression directly on raw numerical values. They will completely fail or corrupt if the bitstream is rearranged beforehand. **Do not combine ZFP or Szip with Scale-Offset, Bitshuffle, or Blosc2 pre-filters.**
-
-3.  **String Data Limitations:** Szip and ZFP cannot be applied to character vectors. String compression relies on standard algorithms like `gzip` or `zstd`, and only works on *fixed-length* strings. Variable-length strings (such as those containing `NA` values) cannot be compressed by chunk filters at all.
-
----
-
-
-## Tuning Chunk Size
-
-HDF5 does not compress a dataset as one monolithic block. Instead, it divides the dataset into smaller "chunks" and compresses each independently. 
-
-By default, `h5_compression()` targets a **1 MB chunk size** (`chunk_size = 1048576`), which is an excellent default. However, you should manually tune this depending on your specific access patterns:
-
-* **Too Small (&lt; 10 KB):** Imposes huge metadata overhead. The internal HDF5 B-tree will bloat the file size, and the compression algorithms won't have enough data to identify repeating patterns.
-
-* **Too Large (&gt; 50 MB):** If you only want to read a tiny slice (e.g., 10 rows) of your dataset, HDF5 is forced to load and decompress the *entire chunk* containing those rows into memory. Overly large chunks cause massive read latency for subsetting operations.
-
-```r
-# Optimizing for reading small, 100KB slices at a time
-cmp_chunk &lt;- h5_compression("blosc2-zstd-5", chunk_size = 102400)
-h5_write(matrix(rnorm(10000), 100, 100), file, "data/tuned_chunks", compress = cmp_chunk)</code></pre>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># 1. Integer Packing Example</span></span>
+<span><span class="co"># A dataset with a small range of values (e.g., years 2000 to 2050)</span></span>
+<span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">2000</span><span class="op">:</span><span class="fl">2050</span>, <span class="fl">100000</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># By default, R uses 32-bit integers. </span></span>
+<span><span class="co"># With int_packing = TRUE, HDF5 subtracts 2000 from all values,</span></span>
+<span><span class="co"># leaving numbers from 0 to 50, which fit perfectly into just 6 bits!</span></span>
+<span><span class="va">cmp_int</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_compression.html">h5_compression</a></span><span class="op">(</span><span class="st">"lz4-9"</span>, int_packing <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">years</span>, <span class="va">file</span>, <span class="st">"data/packed_years"</span>, compress <span class="op">=</span> <span class="va">cmp_int</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Float Rounding Example</span></span>
+<span><span class="co"># Sensor data where anything beyond 2 decimal places is just noise</span></span>
+<span><span class="va">sensor_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">100000</span>, mean <span class="op">=</span> <span class="fl">98.6</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Multiplies by 10^2 (e.g., 98.614... -&gt; 9861.4...), rounds to 9861, and bit-packs.</span></span>
+<span><span class="co"># When read back into R, it is automatically divided by 100 to restore 98.61.</span></span>
+<span><span class="va">cmp_float</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_compression.html">h5_compression</a></span><span class="op">(</span><span class="st">"zstd-5"</span>, float_rounding <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">sensor_data</span>, <span class="va">file</span>, <span class="st">"data/rounded_sensors"</span>, compress <span class="op">=</span> <span class="va">cmp_float</span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
+</div>
+<div class="section level2">
+<h2 id="filter-interactions-invalid-combinations">Filter Interactions &amp; Invalid Combinations<a class="anchor" aria-label="anchor" href="#filter-interactions-invalid-combinations"></a>
+</h2>
+<p>Filters in HDF5 operate in a sequential pipeline, and certain filters
+destroy the underlying byte structures that downstream algorithms rely
+on. <code><a href="../reference/h5_compression.html">h5_compression()</a></code> strictly enforces mutual exclusions
+and will throw an error if you attempt an invalid combination:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Shuffling vs. Scale-Offset:</strong> Pre-filters like
+Bitshuffle and Byte Shuffle rearrange the byte stream to group similar
+bits together for better compression. Scale-Offset
+(<code>int_packing</code> or <code>float_rounding</code>) packs data
+into non-standard bit widths, which destroys byte alignment. Therefore,
+<strong>all automatic shuffling is forcefully disabled if Scale-Offset
+is active</strong>.</p></li>
+<li><p><strong>Mathematical vs. Shuffling Codecs:</strong> ZFP and Szip
+perform mathematical compression directly on raw numerical values. They
+will completely fail or corrupt if the bitstream is rearranged
+beforehand. <strong>Do not combine ZFP or Szip with Scale-Offset,
+Bitshuffle, or Blosc2 pre-filters.</strong></p></li>
+<li><p><strong>String Data Limitations:</strong> Szip and ZFP cannot be
+applied to character vectors. String compression relies on standard
+algorithms like <code>gzip</code> or <code>zstd</code>, and only works
+on <em>fixed-length</em> strings. Variable-length strings (such as those
+containing <code>NA</code> values) cannot be compressed by chunk filters
+at all.</p></li>
+</ol>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="tuning-chunk-size">Tuning Chunk Size<a class="anchor" aria-label="anchor" href="#tuning-chunk-size"></a>
+</h2>
+<p>HDF5 does not compress a dataset as one monolithic block. Instead, it
+divides the dataset into smaller “chunks” and compresses each
+independently.</p>
+<p>By default, <code><a href="../reference/h5_compression.html">h5_compression()</a></code> targets a <strong>1 MB
+chunk size</strong> (<code>chunk_size = 1048576</code>), which is an
+excellent default. However, you should manually tune this depending on
+your specific access patterns:</p>
+<ul>
+<li><p><strong>Too Small (&lt; 10 KB):</strong> Imposes huge metadata
+overhead. The internal HDF5 B-tree will bloat the file size, and the
+compression algorithms won’t have enough data to identify repeating
+patterns.</p></li>
+<li><p><strong>Too Large (&gt; 50 MB):</strong> If you only want to read
+a tiny slice (e.g., 10 rows) of your dataset, HDF5 is forced to load and
+decompress the <em>entire chunk</em> containing those rows into memory.
+Overly large chunks cause massive read latency for subsetting
+operations.</p></li>
+</ul>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Optimizing for reading small, 100KB slices at a time</span></span>
+<span><span class="va">cmp_chunk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_compression.html">h5_compression</a></span><span class="op">(</span><span class="st">"blosc2-zstd-5"</span>, chunk_size <span class="op">=</span> <span class="fl">102400</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10000</span><span class="op">)</span>, <span class="fl">100</span>, <span class="fl">100</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/tuned_chunks"</span>, compress <span class="op">=</span> <span class="va">cmp_chunk</span><span class="op">)</span></span></code></pre></div>
+<hr>
 </div>
 <div class="section level2">
 <h2 id="evaluating-results-with-h5_inspect">Evaluating Results with <code>h5_inspect()</code><a class="anchor" aria-label="anchor" href="#evaluating-results-with-h5_inspect"></a>
@@ -374,7 +418,7 @@ strategy is working. The <code><a href="../reference/h5_inspect.html">h5_inspect
 to peek under the hood of any dataset, revealing its storage layout,
 chunk dimensions, the exact filter pipeline applied, and the resulting
 compression ratio.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Write some highly compressible (sequential) integer data</span></span>
 <span><span class="va">cmp_pack</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_compression.html">h5_compression</a></span><span class="op">(</span><span class="st">'lz4-9'</span>, int_packing <span class="op">=</span> <span class="cn">TRUE</span>, checksum <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">5001</span><span class="op">:</span><span class="fl">5100</span>, <span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"inspect/packed_mtx"</span>, compress <span class="op">=</span> <span class="va">cmp_pack</span><span class="op">)</span></span>
@@ -390,7 +434,7 @@ compression ratio.</p>
 <p>You can use this compression ratio readout to iteratively test
 different <code><a href="../reference/h5_compression.html">h5_compression()</a></code> configurations until you find
 the perfect balance for your specific data.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Clean up</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></code></pre></div>
 <p><em>For additional details about these codecs and the underlying
