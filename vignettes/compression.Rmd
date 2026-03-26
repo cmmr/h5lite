@@ -118,11 +118,32 @@ h5_write(rnorm(1e5), file, "data/zfp_floats", compress = cmp_zfp)
 
 
 ### Scale-Offset (Integer Packing & Float Rounding)
+
 The native HDF5 Scale-Offset filter mathematically scales your data so it can be stored using fewer bits. It processes data one chunk at a time, and automatically reverses these operations when you read the file to reproduce your original values.
 
 * **Integer Packing (`int_packing`):** When you set `int_packing = TRUE`, HDF5 subtracts the minimum value in the chunk from all the other values. It then encodes these new, smaller values using the exact minimum number of bits necessary. For datasets with small ranges or lots of zeros, this saves a massive amount of space. (Alternatively, passing a number like `int_packing = 8` forces it to pack the data into exactly 8 bits).
 
 * **Float Rounding (`float_rounding`):** When you pass an integer (like `float_rounding = 3`), HDF5 multiplies all the floating-point values by 10^3 to shift the decimal point. It then rounds the results to the nearest whole integer. Once they are integers, it applies the exact same bit-packing method described above. When the data is decoded, the operations are run in reverse to restore the original values, less any exact precision lost during the initial rounding step.
+
+```r
+# 1. Integer Packing Example
+# A dataset with a small range of values (e.g., years 2000 to 2050)
+years <- sample(2000:2050, 100000, replace = TRUE)
+
+# By default, R uses 32-bit integers. 
+# With int_packing = TRUE, HDF5 subtracts 2000 from all values,
+# leaving numbers from 0 to 50, which fit perfectly into just 6 bits!
+cmp_int <- h5_compression("lz4-9", int_packing = TRUE)
+h5_write(years, file, "data/packed_years", compress = cmp_int)
+
+# 2. Float Rounding Example
+# Sensor data where anything beyond 2 decimal places is just noise
+sensor_data <- rnorm(100000, mean = 98.6, sd = 0.5)
+
+# Multiplies by 10^2 (e.g., 98.614... -> 9861.4...), rounds to 9861, and bit-packs.
+# When read back into R, it is automatically divided by 100 to restore 98.61.
+cmp_float <- h5_compression("zstd-5", float_rounding = 2)
+h5_write(sensor_data, file, "data/rounded_sensors", compress = cmp_float)
 ```
 
 ---
