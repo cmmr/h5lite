@@ -59,6 +59,7 @@ h5_inspect <- function(file, name) {
 
 #' Print method for HDF5 inspect objects
 #'
+#' @rdname h5_inspect
 #' @param x An object of class `inspect`.
 #' @param ... Further arguments passed to or from other methods.
 #' @export
