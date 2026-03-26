@@ -2,21 +2,14 @@
 % Please edit documentation in R/inspect.r
 \name{h5_inspect}
 \alias{h5_inspect}
-\alias{print.inspect}
 \title{Inspect HDF5 Dataset Creation Properties}
 \usage{
 h5_inspect(file, name)
-
-\method{print}{inspect}(x, ...)
 }
 \arguments{
 \item{file}{The path to the HDF5 file.}
 
 \item{name}{The full path of the dataset to inspect.}
-
-\item{x}{An object of class \code{inspect}.}
-
-\item{...}{Further arguments passed to or from other methods.}
 }
 \value{
 An object of class \code{inspect} (a named list) containing:

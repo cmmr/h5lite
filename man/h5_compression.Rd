@@ -25,22 +25,22 @@ Default is \code{1048576} (1 MB).}
 \item{checksum}{A logical value indicating whether to apply the Fletcher32
 checksum filter at the end of the pipeline to detect data corruption. Default is \code{FALSE}.}
 
-\item{int_packing}{Control the HDF5 Scale-Offset filter for integer datasets.
+\item{int_packing}{Control the HDF5 Scale-Offset filter for integer datasets. \emph{(Note:
+Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters).}
 \itemize{
 \item \code{FALSE} (Default): Disabled.
 \item \code{TRUE}: Automatically calculates and applies the mathematically optimal minimum
 bit-width for each individual chunk.
 \item Integer (e.g., \code{8}): Forces packing into exactly that many bits.
-\emph{(Note: Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters).}
 }}
 
-\item{float_rounding}{Control the HDF5 Scale-Offset filter for floating-point datasets.
+\item{float_rounding}{Control the HDF5 Scale-Offset filter for floating-point
+datasets.\emph{(Note: Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters).}
 \itemize{
 \item \code{NULL} (Default): Disabled.
 \item Integer (e.g., \code{3}): The number of base-10 decimal places of detail to preserve
 before truncating and packing the values (e.g., \code{3.141}). Negative numbers
 round to powers of 10.
-\emph{(Note: Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters).}
 }}
 
 \item{blosc2_delta}{A logical value. If \code{TRUE} and a \code{blosc2} compressor is selected,
@@ -54,7 +54,7 @@ exactly the specified number of uncompressed bits. Default is \code{NULL}.}
 An S3 object of class \code{compress} containing the parsed pipeline parameters.
 }
 \description{
-Constructs a comprehensive filter pipeline configuration (\code{compress}) to be passed
+Constructs a comprehensive filter pipeline configuration to be passed
 as the \code{compress} argument to \code{\link[=h5_write]{h5_write()}}. This function allows fine-grained
 control over chunking, pre-filters, compression algorithms, and data scaling.
 }
@@ -148,20 +148,20 @@ shuffled, so the step is skipped.
 
 \examples{
 # 1. Simple fast compression (Zstd level 7)
-fs <- h5_compression("zstd-7")
+cfg <- h5_compression("zstd-7")
 
 # 2. Optimal integer packing (Scale-Offset)
-fs <- h5_compression("gzip-9", int_packing = TRUE)
+cfg <- h5_compression("gzip-9", int_packing = TRUE)
 
 # 3. Complex Blosc2 Pipeline (Delta + Zstd)
-fs <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+cfg <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
 
 # 4. Lossy ZFP compression (Tolerance of 0.05)
-fs <- h5_compression("zfp-acc-0.05")
+cfg <- h5_compression("zfp-acc-0.05")
 
 \dontrun{
 # Pass the compress directly to h5_write
-h5_write(my_data, "data.h5", "dataset", compress = fs)
+h5_write(my_data, "data.h5", "dataset", compress = cfg)
 }
 }
 \seealso{
