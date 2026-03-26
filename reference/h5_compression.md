@@ -25,9 +25,10 @@ h5_compression(
 - compress:
 
   A string specifying the compression algorithm and optional level
-  (e.g., `"gzip-5"`, `"zstd-7"`, `"blosc2-lz4-9"`). See the **Valid
-  Compression Strings** section below for an exhaustive list of
-  supported formats. Default is `"gzip"`.
+  (e.g., `"none"`, `"gzip"`, `"zstd-7"`, `"lz4"`, `"blosc1-lz4-9"`,
+  `"blosc2-gzip-3"`, `"blosc2-zstd"`). See the **Valid Compression
+  Strings** section below for an exhaustive list of supported formats.
+  Default is `"gzip"`.
 
 - chunk_size:
 
@@ -184,25 +185,61 @@ disabled** in the following scenarios:
 
 ## See also
 
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md),
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md)
 
 ## Examples
 
 ``` r
 # 1. Simple fast compression (Zstd level 7)
-cfg <- h5_compression("zstd-7")
+h5_compression("zstd-7")
+#> <HDF5 Compression Configuration>
+#>   Codec:           zstd-7
+#>   Shuffle:         Byte Shuffle (Native HDF5)
+#>   Chunk Size:      1.00 MB
+#>   Checksum:        None
 
 # 2. Optimal integer packing (Scale-Offset)
-cfg <- h5_compression("gzip-9", int_packing = TRUE)
+h5_compression("gzip-9", int_packing = TRUE)
+#> <HDF5 Compression Configuration>
+#>   Codec:           gzip-9
+#>   Shuffle:         None (Disabled by Scale-Offset)
+#>   Chunk Size:      1.00 MB
+#>   Checksum:        None
+#>   Int Packing:     Optimal (Auto)
 
 # 3. Complex Blosc2 Pipeline (Delta + Zstd)
-cfg <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+#> <HDF5 Compression Configuration>
+#>   Codec:           blosc2-zstd-5
+#>   Shuffle:         Bitshuffle (Blosc Internal)
+#>   Chunk Size:      1.00 MB
+#>   Checksum:        None
+#>   Blosc2 Delta:    TRUE
 
 # 4. Lossy ZFP compression (Tolerance of 0.05)
-cfg <- h5_compression("zfp-acc-0.05")
+h5_compression("zfp-acc-0.05")
+#> <HDF5 Compression Configuration>
+#>   Codec:           zfp-acc-0.05
+#>   Shuffle:         None (Incompatible with zfp)
+#>   Chunk Size:      1.00 MB
+#>   Checksum:        None
 
-if (FALSE) { # \dontrun{
-# Pass the compress directly to h5_write
-h5_write(my_data, "data.h5", "dataset", compress = cfg)
-} # }
+# Pass the compress object directly to h5_write
+file <- tempfile(fileext = ".h5")
+cmp  <- h5_compression("gzip-9", checksum = TRUE)
+h5_write(combn(1:10, 3), file, "sets", compress = cmp)
+
+print(cmp)
+#> <HDF5 Compression Configuration>
+#>   Codec:           gzip-9
+#>   Shuffle:         Byte Shuffle (Native HDF5)
+#>   Chunk Size:      1.00 MB
+#>   Checksum:        Fletcher32
+
+inspect(file, "sets")
+#> Error in inspect(file, "sets"): could not find function "inspect"
+
+# Clean up
+unlink(file)
 ```

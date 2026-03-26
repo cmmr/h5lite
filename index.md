@@ -203,8 +203,7 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 - **[Data
   Types](https://cmmr.github.io/h5lite/articles/data-types.html)**:
   Controlling storage types.
-- **[Data
-  Compression](https://cmmr.github.io/h5lite/articles/data-compression.html)**:
+- **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**:
   Szip/Gzip compression details.
 - **[Partial
   Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**:
@@ -215,8 +214,7 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 - **[Data
   Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**:
   Using compound datasets.
-- **[Data
-  Organization](https://cmmr.github.io/h5lite/articles/data-organization.html)**:
+- **[Organization](https://cmmr.github.io/h5lite/articles/organization.html)**:
   Using groups and lists to structure files.
 - **[Attributes
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.html)**:

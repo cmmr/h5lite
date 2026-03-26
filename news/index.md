@@ -2,8 +2,12 @@
 
 ## h5lite 2.1.0.0
 
-- Added support for SZIP compression - see
-  [`vignette('data-compression')`](https://cmmr.github.io/h5lite/articles/data-compression.md).
+- New functions:
+  [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+  and
+  [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md).
+- Added support for a variety of compression codecs - see
+  [`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md).
 - Added support for partial reading - see
   [`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md).
 - [`h5_length()`](https://cmmr.github.io/h5lite/reference/h5_length.md)

@@ -23,7 +23,7 @@ This function acts as a unified writer for datasets, groups (lists), and attribu
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/data-compression.html">Data Compression</a></li>
+    <li><a class="dropdown-item" href="../articles/compression.html">Compression</a></li>
     <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/data-organization.html">Data Organization</a></li>
     <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
@@ -90,11 +90,12 @@ sub-components of <code>data</code>.</p></dd>
 
 
 <dt id="arg-compress">compress<a class="anchor" aria-label="anchor" href="#arg-compress"></a></dt>
-<dd><p>Compression configuration. Default is <code>"gzip"</code>.
-Pass a basic string to specify the algorithm and level (e.g., <code>"zstd-7"</code>),
-or pass a <code>compress</code> object created by <code><a href="h5_compression.html">h5_compression()</a></code> for advanced
-pipeline control (including scale-offset algorithms, Fletcher32 checksums,
-or Blosc2 pre-filters). See <code><a href="h5_compression.html">h5_compression()</a></code> for full details.</p></dd>
+<dd><p>Compression configuration. Default is <code>"gzip"</code>. Pass a basic string
+to specify the algorithm and level (e.g., <code>"none"</code>, <code>"gzip"</code>, <code>"zstd-7"</code>, <code>"lz4"</code>,
+<code>"blosc1-lz4-9"</code>, <code>"blosc2-gzip-3"</code>, <code>"blosc2-zstd"</code>), or pass a <code>compress</code> object
+created by <code><a href="h5_compression.html">h5_compression()</a></code> for advanced pipeline control (including scale-offset
+algorithms, Fletcher32 checksums, or Blosc2 pre-filters). See <code><a href="h5_compression.html">h5_compression()</a></code>
+for the complete list of available codecs and options.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -211,7 +212,7 @@ link.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="h5_read.html">h5_read()</a></code>, <code><a href="h5_compression.html">h5_compression()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="h5_read.html">h5_read()</a></code>, <code><a href="h5_compression.html">h5_compression()</a></code>, <code><a href="../articles/compression.html">vignette('compression')</a></code></p></div>
     </div>
 
     <div class="section level2">

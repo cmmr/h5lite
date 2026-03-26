@@ -6,8 +6,7 @@
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
 - [Attributes
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
-- [Data
-  Compression](https://cmmr.github.io/h5lite/articles/data-compression.md):
+- [Compression](https://cmmr.github.io/h5lite/articles/compression.md):
 - [Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.md):
 - [Data
   Organization](https://cmmr.github.io/h5lite/articles/data-organization.md):

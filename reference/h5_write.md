@@ -46,13 +46,14 @@ h5_write(data, file, name, attr = NULL, as = "auto", compress = "gzip")
 - compress:
 
   Compression configuration. Default is `"gzip"`. Pass a basic string to
-  specify the algorithm and level (e.g., `"zstd-7"`), or pass a
-  `compress` object created by
+  specify the algorithm and level (e.g., `"none"`, `"gzip"`, `"zstd-7"`,
+  `"lz4"`, `"blosc1-lz4-9"`, `"blosc2-gzip-3"`, `"blosc2-zstd"`), or
+  pass a `compress` object created by
   [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
   for advanced pipeline control (including scale-offset algorithms,
   Fletcher32 checksums, or Blosc2 pre-filters). See
   [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-  for full details.
+  for the complete list of available codecs and options.
 
 ## Value
 
@@ -164,7 +165,8 @@ without breaking the link.
 ## See also
 
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md),
-[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md),
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md)
 
 ## Examples
 
