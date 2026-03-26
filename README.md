@@ -184,11 +184,11 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 -   **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**: A general introduction.
 -   **[Atomic Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**: Details on vectors and scalars.
 -   **[Data Types](https://cmmr.github.io/h5lite/articles/data-types.html)**: Controlling storage types.
--   **[Data Compression](https://cmmr.github.io/h5lite/articles/data-compression.html)**: Szip/Gzip compression details.
+-   **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**: Szip/Gzip compression details.
 -   **[Partial Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**: Efficiently reading data subsets with `start` and `count`.
 -   **[Matrices and Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**: Handling multi-dimensional data.
 -   **[Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.html)**: Using compound datasets.
--   **[Data Organization](https://cmmr.github.io/h5lite/articles/data-organization.html)**: Using groups and lists to structure files.
+-   **[Organization](https://cmmr.github.io/h5lite/articles/organization.html)**: Using groups and lists to structure files.
 -   **[Attributes In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.html)**: A deep dive into metadata handling.
 -   **[Object-Oriented Interface](https://cmmr.github.io/h5lite/articles/oo-interface.html)**: A guide to the `h5_open()` handle for a streamlined workflow.
 -   **[Parallel Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**: Guide for multi-threaded and multi-process access.

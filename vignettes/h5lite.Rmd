@@ -139,4 +139,4 @@ h5_ls(file)
 h5_str(file)
 ```
 
-For advanced file operations, including moving, deleting, and verifying objects, refer to `vignette('data-organization')`.
+For advanced file operations, including moving, deleting, and verifying objects, refer to `vignette('organization')`.

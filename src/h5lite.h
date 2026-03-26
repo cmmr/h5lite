@@ -102,9 +102,9 @@ SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id);
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress);
 SEXP C_h5_write_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP data, SEXP dtype, SEXP dims);
 SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int rank, hsize_t *h5_dims);
-void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_dims, SEXP compress);
 
 /* --- write_utils.c --- */
+void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_dims, SEXP compress);
 hid_t open_or_create_file(const char *fname);
 hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims);
 herr_t handle_overwrite(hid_t file_id, const char *name);

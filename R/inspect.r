@@ -55,6 +55,14 @@ h5_inspect <- function(file, name) {
 }
 
 
+# Helper to format raw bytes nicely
+fmt_bytes <- function(b) {
+  if (is.na(b) || b == 0) return("0 B")
+  units <- c("B", "KB", "MB", "GB", "TB", "PB", "EB")
+  idx   <- max(1, min(7, floor(log(b, 1024)) + 1))
+  sprintf("%.2f %s", b / (1024^(idx - 1)), units[idx])
+}
+
 
 
 #' Print method for HDF5 inspect objects
@@ -64,13 +72,6 @@ h5_inspect <- function(file, name) {
 #' @param ... Further arguments passed to or from other methods.
 #' @export
 print.inspect <- function(x, ...) {
-  # Helper to format raw bytes nicely
-  fmt_bytes <- function(b) {
-    if (is.na(b) || b == 0) return("0 B")
-    units <- c("B", "KB", "MB", "GB", "TB")
-    idx <- max(1, min(5, floor(log(b, 1024)) + 1))
-    sprintf("%.2f %s", b / (1024^(idx - 1)), units[idx])
-  }
   
   cat("<HDF5 Dataset Properties>\n")
   
