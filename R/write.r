@@ -199,7 +199,7 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzi
 
 #' Define HDF5 Compression and Filter Settings
 #' 
-#' Constructs a comprehensive filter pipeline configuration (`compress`) to be passed 
+#' Constructs a comprehensive filter pipeline configuration to be passed 
 #' as the `compress` argument to [h5_write()]. This function allows fine-grained 
 #' control over chunking, pre-filters, compression algorithms, and data scaling.
 #'
@@ -210,18 +210,18 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzi
 #'   Default is `1048576` (1 MB).
 #' @param checksum A logical value indicating whether to apply the Fletcher32 
 #'   checksum filter at the end of the pipeline to detect data corruption. Default is `FALSE`.
-#' @param int_packing Control the HDF5 Scale-Offset filter for integer datasets.
+#' @param int_packing Control the HDF5 Scale-Offset filter for integer datasets. *(Note: 
+#'   Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
 #'   * `FALSE` (Default): Disabled.
 #'   * `TRUE`: Automatically calculates and applies the mathematically optimal minimum 
 #'     bit-width for each individual chunk.
 #'   * Integer (e.g., `8`): Forces packing into exactly that many bits.
-#'   *(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
-#' @param float_rounding Control the HDF5 Scale-Offset filter for floating-point datasets.
+#' @param float_rounding Control the HDF5 Scale-Offset filter for floating-point 
+#'   datasets.*(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
 #'   * `NULL` (Default): Disabled.
 #'   * Integer (e.g., `3`): The number of base-10 decimal places of detail to preserve 
 #'     before truncating and packing the values (e.g., `3.141`). Negative numbers 
 #'     round to powers of 10.
-#'   *(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
 #' @param blosc2_delta A logical value. If `TRUE` and a `blosc2` compressor is selected, 
 #'   applies the Blosc2 Delta pre-filter before compression. Default is `FALSE`.
 #' @param blosc2_truncate An integer. If provided and a `blosc2` compressor is selected, 
@@ -304,20 +304,20 @@ h5_write <- function(data, file, name, attr = NULL, as = "auto", compress = "gzi
 #' @export
 #' @examples
 #' # 1. Simple fast compression (Zstd level 7)
-#' fs <- h5_compression("zstd-7")
+#' cfg <- h5_compression("zstd-7")
 #' 
 #' # 2. Optimal integer packing (Scale-Offset)
-#' fs <- h5_compression("gzip-9", int_packing = TRUE)
+#' cfg <- h5_compression("gzip-9", int_packing = TRUE)
 #' 
 #' # 3. Complex Blosc2 Pipeline (Delta + Zstd)
-#' fs <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
+#' cfg <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
 #' 
 #' # 4. Lossy ZFP compression (Tolerance of 0.05)
-#' fs <- h5_compression("zfp-acc-0.05")
+#' cfg <- h5_compression("zfp-acc-0.05")
 #' 
 #' \dontrun{
 #' # Pass the compress directly to h5_write
-#' h5_write(my_data, "data.h5", "dataset", compress = fs)
+#' h5_write(my_data, "data.h5", "dataset", compress = cfg)
 #' }
 h5_compression <- function(
     compress = "gzip", chunk_size = 1024 * 1024, checksum = FALSE, 
