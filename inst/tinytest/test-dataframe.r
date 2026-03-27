@@ -1,4 +1,5 @@
-test_that("Data frames work (Compound)", {
+local({
+  #test_that("Data frames work (Compound)", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -39,7 +40,7 @@ test_that("Data frames work (Compound)", {
   
   h5_write(df, file, "df", as = col_map)
   expect_equal(h5_class(file, "df"), "data.frame")
-  expect_match(h5_typeof(file, "df"), "compound\\[\\d+\\]")
+  expect_true(grepl("compound\\[\\d+\\]", h5_typeof(file, "df")))
   
   res <- h5_read(file, "df")
   expect_null(res$skp)
@@ -68,7 +69,7 @@ test_that("Data frames work (Compound)", {
   
   h5_write(df, file, "df", "attr")
   expect_equal(h5_class(file, "df", "attr"), "data.frame")
-  expect_match(h5_typeof(file, "df", "attr"), "compound\\[\\d+\\]")
+  expect_true(grepl("compound\\[\\d+\\]", h5_typeof(file, "df", "attr")))
   
   res <- h5_read(file, "df", "attr")
   expect_equal(res$int, df$int)
@@ -89,7 +90,8 @@ test_that("Data frames work (Compound)", {
   expect_error(h5_write(no_cols, file, "no_cols"))
 })
 
-test_that("Data frame columns with POSIXt are converted", {
+local({
+  #test_that("Data frame columns with POSIXt are converted", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

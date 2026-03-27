@@ -1,4 +1,5 @@
-test_that("Character scalars work", {
+local({
+  #test_that("Character scalars work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -25,7 +26,8 @@ test_that("Character scalars work", {
 })
 
 
-test_that("Character vectors work", {
+local({
+  #test_that("Character vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -54,7 +56,8 @@ test_that("Character vectors work", {
 })
 
 
-test_that("Character matrices work", {
+local({
+  #test_that("Character matrices work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -83,7 +86,8 @@ test_that("Character matrices work", {
 })
 
 
-test_that("Character attributes work", {
+local({
+  #test_that("Character attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -111,7 +115,8 @@ test_that("Character attributes work", {
   expect_equal(h5_read(file, "dset", attr = "info"), "metadata")
 })
 
-test_that("UTF-8 characters are preserved", {
+local({
+  #test_that("UTF-8 characters are preserved", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -140,7 +145,8 @@ test_that("UTF-8 characters are preserved", {
   expect_equal(h5_read(file, "city"), ascii_str)
 })
 
-test_that("Character errors work", {
+local({
+  #test_that("Character errors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

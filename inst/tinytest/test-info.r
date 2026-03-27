@@ -1,4 +1,5 @@
-test_that("h5_typeof and h5_class", {
+local({
+  #test_that("h5_typeof and h5_class", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -41,7 +42,7 @@ test_that("h5_typeof and h5_class", {
   expect_equal(h5_typeof(file, 'ds_utf8'),     'utf8')
   expect_equal(h5_typeof(file, 'ds_ascii'),    'ascii')
   expect_equal(h5_typeof(file, 'ds_complex'),  'complex')
-  expect_match(h5_typeof(file, 'ds_compound'), 'compound\\[\\d+\\]')
+  expect_true(grepl('compound\\[\\d+\\]', h5_typeof(file, 'ds_compound')))
   expect_equal(h5_typeof(file, 'ds_opaque'),   'opaque')
   expect_equal(h5_typeof(file, 'ds_enum'),     'enum')
 
@@ -67,11 +68,12 @@ test_that("h5_typeof and h5_class", {
   expect_equal(h5_class(file, '/', 'attr_null'),  'NULL')
 
 
-  expect_output(h5_str(file))
+  expect_stdout(h5_str(file))
 })
 
 
-test_that("h5_dim / h5_length", {
+local({
+  #test_that("h5_dim / h5_length", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -133,11 +135,12 @@ test_that("h5_dim / h5_length", {
   expect_equal(h5_length(file, "missing_object"), NA_integer_)
   expect_equal(h5_length(file, "missing_object", "missing_attr"), NA_integer_)
 
-  expect_output(h5_str(file))
+  expect_stdout(h5_str(file))
 })
 
 
-test_that("h5_exists", {
+local({
+  #test_that("h5_exists", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
 
@@ -173,7 +176,8 @@ test_that("h5_exists", {
 })
 
 
-test_that("h5_is_group / h5_is_dataset", {
+local({
+  #test_that("h5_is_group / h5_is_dataset", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
 
@@ -218,7 +222,8 @@ test_that("h5_is_group / h5_is_dataset", {
 })
 
 
-test_that("h5_names / h5_attr_names", {
+local({
+  #test_that("h5_names / h5_attr_names", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
 

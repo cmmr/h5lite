@@ -1,4 +1,5 @@
-test_that("validate_start_count handles missing count correctly", {
+local({
+  #test_that("validate_start_count handles missing count correctly", {
   file <- tempfile(fileext = ".h5")
   v <- 1:10
   h5_write(v, file, "v")
@@ -36,7 +37,8 @@ test_that("validate_start_count handles missing count correctly", {
   unlink(file)
 })
 
-test_that("partial reading works for 1D atomic vectors (with naming logic)", {
+local({
+  #test_that("partial reading works for 1D atomic vectors (with naming logic)", {
   file <- tempfile(fileext = ".h5")
   
   # Scalar
@@ -68,7 +70,8 @@ test_that("partial reading works for 1D atomic vectors (with naming logic)", {
   unlink(file)
 })
 
-test_that("partial reading works for matrices (with dimension dropping)", {
+local({
+  #test_that("partial reading works for matrices (with dimension dropping)", {
   file <- tempfile(fileext = ".h5")
   
   # 5x4 matrix
@@ -109,7 +112,8 @@ test_that("partial reading works for matrices (with dimension dropping)", {
   unlink(file)
 })
 
-test_that("partial reading works for data.frames (no dropping allowed)", {
+local({
+  #test_that("partial reading works for data.frames (no dropping allowed)", {
   file <- tempfile(fileext = ".h5")
   
   df <- data.frame(
@@ -123,13 +127,13 @@ test_that("partial reading works for data.frames (no dropping allowed)", {
   
   # 1. Range Indexing
   res1 <- h5_read(file, "df", start = 2, count = 3)
-  expect_s3_class(res1, "data.frame")
+  expect_inherits(res1, "data.frame")
   expect_equal(nrow(res1), 3)
   expect_equal(rownames(res1), c("r2", "r3", "r4"))
   
   # 2. Exact Indexing (count = NULL) -> Data Frames should never drop!
   res2 <- h5_read(file, "df", start = 2)
-  expect_s3_class(res2, "data.frame")
+  expect_inherits(res2, "data.frame")
   expect_equal(nrow(res2), 1)
   expect_equal(rownames(res2), "r2")
   expect_equal(res2$val, 2.2)
@@ -137,7 +141,8 @@ test_that("partial reading works for data.frames (no dropping allowed)", {
   unlink(file)
 })
 
-test_that("partial reading works for named N-dimensional arrays", {
+local({
+  #test_that("partial reading works for named N-dimensional arrays", {
   file <- tempfile(fileext = ".h5")
   
   # Create a 2x3x4x5 array (Rows=2, Cols=3, 3rd=4, 4th=5)
@@ -173,7 +178,8 @@ test_that("partial reading works for named N-dimensional arrays", {
   unlink(file)
 })
 
-test_that("partial reading works for unnamed N-dimensional arrays", {
+local({
+  #test_that("partial reading works for unnamed N-dimensional arrays", {
   file <- tempfile(fileext = ".h5")
   
   # Create a 2x3x4x5 array (Rows=2, Cols=3, 3rd=4, 4th=5)

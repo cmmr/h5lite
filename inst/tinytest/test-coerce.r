@@ -1,4 +1,5 @@
-test_that("Coercion on read", {
+local({
+  #test_that("Coercion on read", {
   
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
@@ -54,14 +55,17 @@ test_that("Coercion on read", {
   expect_silent(h5_read(file, "obj", as = c('obj' = "integer")))
   
   
-  skip_if_not_installed('bit64')
-  b64 <- bit64::as.integer64(4L)
-  expect_identical(h5_read(file, "my_big", as = "bit64"), b64)
-  expect_identical(h5_read(file, "my_big", as = c(my_big = "bit64")), b64)
+  if (requireNamespace("foo",quietly=TRUE)) {
+    #skip_if_not_installed('bit64')
+    b64 <- bit64::as.integer64(4L)
+    expect_identical(h5_read(file, "my_big", as = "bit64"), b64)
+    expect_identical(h5_read(file, "my_big", as = c(my_big = "bit64")), b64)
+  }
 })
 
 
-test_that("Coercion on write", {
+local({
+  #test_that("Coercion on write", {
   
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))

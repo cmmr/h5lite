@@ -1,4 +1,5 @@
-test_that("Integer scalars and vectors work", {
+local({
+  #test_that("Integer scalars and vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -36,7 +37,8 @@ test_that("Integer scalars and vectors work", {
   expect_equal(h5_read(file, "vec_na", as = "integer"), vec_na)
 })
 
-test_that("Integer matrices and arrays work", {
+local({
+  #test_that("Integer matrices and arrays work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -74,7 +76,8 @@ test_that("Integer matrices and arrays work", {
   expect_equal(h5_length(file, "arr3d"), prod(c(2,3,4)))
 })
 
-test_that("Integer attributes work", {
+local({
+  #test_that("Integer attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -88,7 +91,8 @@ test_that("Integer attributes work", {
   expect_error(h5_write(1:5, file, "data", attr = "meta"))
 })
 
-test_that("Specific integer types (int8-int64) can be forced", {
+local({
+  #test_that("Specific integer types (int8-int64) can be forced", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -102,7 +106,8 @@ test_that("Specific integer types (int8-int64) can be forced", {
   expect_error(h5_write(val, file, "u8", as = "uint8"))
 })
 
-test_that("Compression", {
+local({
+  #test_that("Compression", {
   
   file_compressed   <- tempfile(fileext = ".h5")
   file_uncompressed <- tempfile(fileext = ".h5")
@@ -127,14 +132,15 @@ test_that("Compression", {
   vec <- rep(1L, 10000000)
   h5_write(vec, file_compressed,   "vec", compress = "gzip-5")
   h5_write(vec, file_uncompressed, "vec", compress = "none")
-  expect_lt(file.size(file_compressed), file.size(file_uncompressed))
+  expect_true(file.size(file_compressed) < file.size(file_uncompressed))
   
   
   # fallback to gzip for strings
   h5_write(letters, file_uncompressed, "letters", compress = "szip-nn")
   
   
-  testthat::skip_on_cran()
+  exit_if_not(at_home())
+  #skip_on_cran()
   
   mtx <- matrix(vec, nrow = 100)
   h5_write(mtx, file_compressed, "mtx", compress = "gzip-5")

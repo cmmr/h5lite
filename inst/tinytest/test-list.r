@@ -1,4 +1,5 @@
-test_that("Lists (Groups) work recursively", {
+local({
+  #test_that("Lists (Groups) work recursively", {
   
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
@@ -22,7 +23,8 @@ test_that("Lists (Groups) work recursively", {
 })
 
 
-test_that("Mappings apply per list element/attr", {
+local({
+  #test_that("Mappings apply per list element/attr", {
   
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))

@@ -1,4 +1,5 @@
-test_that("Logical scalars and vectors work", {
+local({
+  #test_that("Logical scalars and vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
 
@@ -16,7 +17,8 @@ test_that("Logical scalars and vectors work", {
   expect_equal(h5_read(file, "scalar", as = "logical"), TRUE)
 })
 
-test_that("Logical matrices work", {
+local({
+  #test_that("Logical matrices work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -25,7 +27,8 @@ test_that("Logical matrices work", {
   expect_equal(h5_read(file, "matrix", as = "logical"), mat)
 })
 
-test_that("Logical attributes work", {
+local({
+  #test_that("Logical attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -34,7 +37,8 @@ test_that("Logical attributes work", {
   expect_equal(h5_read(file, "dset", attr = "is_valid", as = "logical"), TRUE)
 })
 
-test_that("NAs in logicals are handled", {
+local({
+  #test_that("NAs in logicals are handled", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

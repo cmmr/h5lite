@@ -1,13 +1,12 @@
-library(testthat)
-library(h5lite)
 
 # ==============================================================================
 # 1. R-Level: h5_compression() Argument Parsing & Defaults
 # ==============================================================================
-test_that("h5_compression parses inputs and applies defaults", {
+local({
+  #test_that("h5_compression parses inputs and applies defaults", {
   
   # Base object checks
-  expect_s3_class(h5_compression(), "compress")
+  expect_inherits(h5_compression(), "compress")
   
   # Identity checks (inherits 'compress')
   fs <- h5_compression("zstd-5")
@@ -37,7 +36,8 @@ test_that("h5_compression parses inputs and applies defaults", {
 # ==============================================================================
 # 2. R-Level: h5_compression() Error Triggers (stop() cases)
 # ==============================================================================
-test_that("h5_compression triggers all boundary and type errors", {
+local({
+  #test_that("h5_compression triggers all boundary and type errors", {
   
   # Type mismatches
   expect_error(h5_compression(chunk_size = 1.23), "must be a scalar integer")
@@ -71,7 +71,8 @@ test_that("h5_compression triggers all boundary and type errors", {
 # ==============================================================================
 # 3. C-Level: apply_compression() Valid Codec & Pipeline Applications
 # ==============================================================================
-test_that("apply_compression succeeds for all standard codecs", {
+local({
+  #test_that("apply_compression succeeds for all standard codecs", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
@@ -92,7 +93,8 @@ test_that("apply_compression succeeds for all standard codecs", {
   expect_silent(h5_write(v_int, f, "bshuf_zstd", compress = h5_compression("bshuf-zstd-5")))
 })
 
-test_that("apply_compression succeeds for Blosc architectures", {
+local({
+  #test_that("apply_compression succeeds for Blosc architectures", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
@@ -115,7 +117,8 @@ test_that("apply_compression succeeds for Blosc architectures", {
                          compress = h5_compression("blosc2-zstd-5", blosc2_truncate = 16)))
 })
 
-test_that("apply_compression succeeds for all ZFP modes", {
+local({
+  #test_that("apply_compression succeeds for all ZFP modes", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
@@ -137,7 +140,8 @@ test_that("apply_compression succeeds for all ZFP modes", {
 # ==============================================================================
 # 4. C-Level: Defensive Fallbacks & Edge Cases
 # ==============================================================================
-test_that("apply_compression safely degrades un-chunkable or invalid data", {
+local({
+  #test_that("apply_compression safely degrades un-chunkable or invalid data", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
@@ -175,7 +179,8 @@ test_that("apply_compression safely degrades un-chunkable or invalid data", {
   expect_silent(h5_write(1:100, f, "b2_zfp_int", compress = fs_b2_zfp)) 
 })
 
-test_that("apply_compression defensive C-level modifier fallbacks trigger", {
+local({
+  #test_that("apply_compression defensive C-level modifier fallbacks trigger", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
@@ -197,83 +202,86 @@ test_that("apply_compression defensive C-level modifier fallbacks trigger", {
 # ==============================================================================
 # 5. R-Level: print.compress() Code Coverage
 # ==============================================================================
-test_that("print.compress evaluates base configuration and unit math", {
+local({
+  #test_that("print.compress evaluates base configuration and unit math", {
   
   # Base output and 0-byte (B) edge case + Checksum
   c_base <- h5_compression("none", chunk_size = 500, checksum = TRUE)
-  expect_output(print(c_base), "<HDF5 Compression Configuration>")
-  expect_output(print(c_base), "Codec:\\s+none")
-  expect_output(print(c_base), "Shuffle:\\s+None")
-  expect_output(print(c_base), "Chunk Size:\\s+500.00 B")
-  expect_output(print(c_base), "Checksum:\\s+Fletcher32")
+  expect_stdout(print(c_base), "<HDF5 Compression Configuration>")
+  expect_stdout(print(c_base), "Codec:\\s+none")
+  expect_stdout(print(c_base), "Shuffle:\\s+None")
+  expect_stdout(print(c_base), "Chunk Size:\\s+500.00 B")
+  expect_stdout(print(c_base), "Checksum:\\s+Fletcher32")
   
   # KB size conversion
   c_kb <- h5_compression("gzip-5", chunk_size = 2048)
-  expect_output(print(c_kb), "Chunk Size:\\s+2.00 KB")
+  expect_stdout(print(c_kb), "Chunk Size:\\s+2.00 KB")
   
   # MB size conversion (default 1048576)
   c_mb <- h5_compression("lz4-0")
-  expect_output(print(c_mb), "Chunk Size:\\s+1.00 MB")
+  expect_stdout(print(c_mb), "Chunk Size:\\s+1.00 MB")
   
   # GB size conversion
   c_gb <- h5_compression("zstd-5", chunk_size = 1024^3)
-  expect_output(print(c_gb), "Chunk Size:\\s+1.00 GB")
+  expect_stdout(print(c_gb), "Chunk Size:\\s+1.00 GB")
   
   # Force NA level to test `if (!is.na(lvl))` bypass
   c_na <- c_base
   attr(c_na, "level") <- NA
-  expect_output(print(c_na), "Codec:\\s+none\n")
+  expect_stdout(print(c_na), "Codec:\\s+none\n")
 })
 
-test_that("print.compress evaluates shuffle exclusion hierarchy", {
+local({
+  #test_that("print.compress evaluates shuffle exclusion hierarchy", {
   
   # 1. is_scaled (Highest priority override)
   c_scaled <- h5_compression("gzip-5", int_packing = TRUE)
-  expect_output(print(c_scaled), "Shuffle:\\s+None \\(Disabled by Scale-Offset\\)")
+  expect_stdout(print(c_scaled), "Shuffle:\\s+None \\(Disabled by Scale-Offset\\)")
   
   # 2. SZIP
   c_szip <- h5_compression("szip-nn")
-  expect_output(print(c_szip), "Shuffle:\\s+None \\(Incompatible with szip\\)")
+  expect_stdout(print(c_szip), "Shuffle:\\s+None \\(Incompatible with szip\\)")
   
   # 3. ZFP
   c_zfp <- h5_compression("zfp-rate-16")
-  expect_output(print(c_zfp), "Shuffle:\\s+None \\(Incompatible with zfp\\)")
+  expect_stdout(print(c_zfp), "Shuffle:\\s+None \\(Incompatible with zfp\\)")
   
   # 4. Standalone Bitshuffle
   c_bshuf <- h5_compression("bshuf-lz4")
-  expect_output(print(c_bshuf), "Shuffle:\\s+Bitshuffle \\(Standalone Plugin\\)")
+  expect_stdout(print(c_bshuf), "Shuffle:\\s+Bitshuffle \\(Standalone Plugin\\)")
   
   # 5. Blosc Internal Bitshuffle
   c_blosc <- h5_compression("blosc1-lz4-5")
-  expect_output(print(c_blosc), "Shuffle:\\s+Bitshuffle \\(Blosc Internal\\)")
+  expect_stdout(print(c_blosc), "Shuffle:\\s+Bitshuffle \\(Blosc Internal\\)")
   
   # 6. Native Fallback
   c_native <- h5_compression("gzip-9")
-  expect_output(print(c_native), "Shuffle:\\s+Byte Shuffle \\(Native HDF5\\)")
+  expect_stdout(print(c_native), "Shuffle:\\s+Byte Shuffle \\(Native HDF5\\)")
 })
 
-test_that("print.compress evaluates modifiers correctly", {
+local({
+  #test_that("print.compress evaluates modifiers correctly", {
   
   # Int Packing: Optimal / Auto (0L)
   c_ip_auto <- h5_compression("gzip-5", int_packing = TRUE)
-  expect_output(print(c_ip_auto), "Int Packing:\\s+Optimal \\(Auto\\)")
+  expect_stdout(print(c_ip_auto), "Int Packing:\\s+Optimal \\(Auto\\)")
   
   # Int Packing: Manual Bits
   c_ip_man <- h5_compression("gzip-5", int_packing = 8)
-  expect_output(print(c_ip_man), "Int Packing:\\s+8 bits")
+  expect_stdout(print(c_ip_man), "Int Packing:\\s+8 bits")
   
   # Float Rounding
   c_fr <- h5_compression("gzip-5", float_rounding = 3)
-  expect_output(print(c_fr), "Float Rounding:\\s+3 decimal places")
+  expect_stdout(print(c_fr), "Float Rounding:\\s+3 decimal places")
   
   # Blosc2 Modifiers
   c_b2 <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE, blosc2_truncate = 16)
-  expect_output(print(c_b2), "Codec:\\s+blosc2-zstd-5")
-  expect_output(print(c_b2), "Blosc2 Delta:\\s+TRUE")
-  expect_output(print(c_b2), "Blosc2 Trunc:\\s+16 bits")
+  expect_stdout(print(c_b2), "Codec:\\s+blosc2-zstd-5")
+  expect_stdout(print(c_b2), "Blosc2 Delta:\\s+TRUE")
+  expect_stdout(print(c_b2), "Blosc2 Trunc:\\s+16 bits")
   
   # Blosc2 without modifiers (covers the nested if bypasses)
   c_b2_bare <- h5_compression("blosc2-zstd-5")
   # Assert it prints normally without throwing errors for missing attributes
-  expect_output(print(c_b2_bare), "Codec:\\s+blosc2-zstd-5")
+  expect_stdout(print(c_b2_bare), "Codec:\\s+blosc2-zstd-5")
 })

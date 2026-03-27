@@ -1,4 +1,5 @@
-test_that("Factors work (ENUM)", {
+local({
+  #test_that("Factors work (ENUM)", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -13,7 +14,8 @@ test_that("Factors work (ENUM)", {
   expect_equal(h5_read(file, "m"), m)
 })
 
-test_that("Factors with NA throw error", {
+local({
+  #test_that("Factors with NA throw error", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -21,7 +23,8 @@ test_that("Factors with NA throw error", {
   expect_error(h5_write(f, file, "f"), "Factors with NA values cannot be written")
 })
 
-test_that("Factor attributes work", {
+local({
+  #test_that("Factor attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -32,7 +35,8 @@ test_that("Factor attributes work", {
   expect_equal(h5_read(file, "dset", attr = "quality"), f)
 })
 
-test_that("Different magnitudes of levels", {
+local({
+  #test_that("Different magnitudes of levels", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

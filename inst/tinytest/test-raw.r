@@ -1,4 +1,5 @@
-test_that("Raw scalars and vectors work", {
+local({
+  #test_that("Raw scalars and vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -13,7 +14,8 @@ test_that("Raw scalars and vectors work", {
   expect_equal(h5_read(file, "vec", "attr"), vec)
 })
 
-test_that("Raw matrices work", {
+local({
+  #test_that("Raw matrices work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

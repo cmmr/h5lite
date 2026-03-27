@@ -1,4 +1,5 @@
-test_that("Double scalars and vectors work", {
+local({
+  #test_that("Double scalars and vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -10,7 +11,8 @@ test_that("Double scalars and vectors work", {
   expect_equal(h5_read(file, "scalar"), pi)
 })
 
-test_that("Special values (NA, NaN, Inf) work", {
+local({
+  #test_that("Special values (NA, NaN, Inf) work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -25,7 +27,8 @@ test_that("Special values (NA, NaN, Inf) work", {
   expect_equal(res[5], -Inf)
 })
 
-test_that("Double matrices work", {
+local({
+  #test_that("Double matrices work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -34,7 +37,8 @@ test_that("Double matrices work", {
   expect_equal(h5_read(file, "matrix"), mat)
 })
 
-test_that("Double attributes work", {
+local({
+  #test_that("Double attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -43,7 +47,8 @@ test_that("Double attributes work", {
   expect_equal(h5_read(file, "dset", attr = "p_val"), 1.23)
 })
 
-test_that("Precision control (float32)", {
+local({
+  #test_that("Precision control (float32)", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

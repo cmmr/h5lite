@@ -1,4 +1,5 @@
-test_that("Complex scalars and vectors work", {
+local({
+  #test_that("Complex scalars and vectors work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -11,7 +12,8 @@ test_that("Complex scalars and vectors work", {
   expect_equal(h5_read(file, "scalar"), 1+1i)
 })
 
-test_that("Complex matrices work", {
+local({
+  #test_that("Complex matrices work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -20,7 +22,8 @@ test_that("Complex matrices work", {
   expect_equal(h5_read(file, "mat"), mat)
 })
 
-test_that("Complex attributes work", {
+local({
+  #test_that("Complex attributes work", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   

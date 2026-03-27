@@ -1,7 +1,6 @@
-# test-inspect.r
-library(testthat)
 
-test_that("h5_inspect validates inputs and handles errors", {
+local({
+  #test_that("h5_inspect validates inputs and handles errors", {
   file <- tempfile(fileext = ".h5")
   
   # Create a group (not a dataset)
@@ -16,18 +15,19 @@ test_that("h5_inspect validates inputs and handles errors", {
   unlink(file)
 })
 
-test_that("h5_inspect handles uncompressed scalars and print formatting", {
+local({
+  #test_that("h5_inspect handles uncompressed scalars and print formatting", {
   file <- tempfile(fileext = ".h5")
   
   # Rank-0 Scalar (Bypasses chunking and compression entirely)
   h5_write(I(42L), file, "scalar_val")
   res <- h5_inspect(file, "scalar_val")
   
-  expect_s3_class(res, "inspect")
-  expect_type(res, "list")
+  expect_inherits(res, "inspect")
+  expect_inherits(res, "list")
   expect_equal(res$layout, "contiguous") # Rank 0 defaults to contiguous
   expect_null(res$chunk_dims)
-  expect_length(res$filters, 0)
+  expect_equal(length(res$filters), 0)
   
   out <- capture.output(print(res))
   expect_true(any(grepl("None \\(Uncompressed\\)", out)))
@@ -55,7 +55,8 @@ test_that("h5_inspect handles uncompressed scalars and print formatting", {
   unlink(file)
 })
 
-test_that("h5_inspect detects standard compressors and fletcher32", {
+local({
+  #test_that("h5_inspect detects standard compressors and fletcher32", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(rnorm(400), 20, 20)
   
@@ -72,7 +73,8 @@ test_that("h5_inspect detects standard compressors and fletcher32", {
   unlink(file)
 })
 
-test_that("h5_inspect decodes SZIP variations", {
+local({
+  #test_that("h5_inspect decodes SZIP variations", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(1L:2500L, 50, 50)
   
@@ -87,7 +89,8 @@ test_that("h5_inspect decodes SZIP variations", {
   unlink(file)
 })
 
-test_that("h5_inspect decodes Bitshuffle internal pipelines", {
+local({
+  #test_that("h5_inspect decodes Bitshuffle internal pipelines", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(1L:2500L, 50, 50)
   
@@ -102,7 +105,8 @@ test_that("h5_inspect decodes Bitshuffle internal pipelines", {
   unlink(file)
 })
 
-test_that("h5_inspect decodes Blosc1 and Blosc2 pre-filters", {
+local({
+  #test_that("h5_inspect decodes Blosc1 and Blosc2 pre-filters", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(rnorm(2500), 50, 50)
   
@@ -127,7 +131,8 @@ test_that("h5_inspect decodes Blosc1 and Blosc2 pre-filters", {
   unlink(file)
 })
 
-test_that("h5_inspect decodes ZFP standalone and Blosc2 modes", {
+local({
+  #test_that("h5_inspect decodes ZFP standalone and Blosc2 modes", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(rnorm(2500), 50, 50)
   
@@ -145,7 +150,8 @@ test_that("h5_inspect decodes ZFP standalone and Blosc2 modes", {
   unlink(file)
 })
 
-test_that("h5_inspect detects Scale-Offset integer and float packing", {
+local({
+  #test_that("h5_inspect detects Scale-Offset integer and float packing", {
   file <- tempfile(fileext = ".h5")
   
   # Integer Packing
@@ -165,7 +171,8 @@ test_that("h5_inspect detects Scale-Offset integer and float packing", {
   unlink(file)
 })
 
-test_that("h5_inspect decodes legacy and unconfigurable compressors", {
+local({
+  #test_that("h5_inspect decodes legacy and unconfigurable compressors", {
   file <- tempfile(fileext = ".h5")
   dat <- matrix(1L:2500L, 50, 50)
   

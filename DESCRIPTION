@@ -21,12 +21,10 @@ URL: https://github.com/cmmr/h5lite, https://cmmr.github.io/h5lite/
 BugReports: https://github.com/cmmr/h5lite/issues
 Depends: R (>= 4.2.0)
 LinkingTo: hdf5lib (>= 2.1.0.0)
-Suggests: bit64, knitr, rmarkdown, testthat (>= 3.0.0)
+Suggests: bit64, knitr, tinytest
 NeedsCompilation: yes
 License: MIT + file LICENSE
 Encoding: UTF-8
-Config/testthat/edition: 3
-Config/Needs/website: rmarkdown
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr

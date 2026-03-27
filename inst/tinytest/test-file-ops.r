@@ -1,4 +1,5 @@
-test_that("File creation and existence", {
+local({
+  #test_that("File creation and existence", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -8,7 +9,8 @@ test_that("File creation and existence", {
   expect_true(h5_exists(file, "/"))
 })
 
-test_that("Group creation", {
+local({
+  #test_that("Group creation", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -22,7 +24,8 @@ test_that("Group creation", {
   expect_error(h5_create_group(file, "a"))
 })
 
-test_that("Move and Delete", {
+local({
+  #test_that("Move and Delete", {
   
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
@@ -48,7 +51,8 @@ test_that("Move and Delete", {
   expect_false(h5_exists(file, "b"))
 })
 
-test_that("ls, str, and names", {
+local({
+  #test_that("ls, str, and names", {
   file <- tempfile(fileext = ".h5")
   on.exit(unlink(file))
   
@@ -75,9 +79,9 @@ test_that("ls, str, and names", {
   expect_equal(length(h5_ls(file, recursive = FALSE, full.names = TRUE)), 2)
   expect_equal(length(h5_ls(file, "lst/b")), 0)
   expect_equal(length(h5_ls(file, "lst", full.names = TRUE)), 6)
-  expect_output(h5_str(file))
-  expect_output(h5_str(file, "lst"))
-  expect_output(h5_str(file, "lst", attrs = FALSE))
+  expect_stdout(h5_str(file))
+  expect_stdout(h5_str(file, "lst"))
+  expect_stdout(h5_str(file, "lst", attrs = FALSE))
   
   expect_error(h5_ls(tempfile())) # file doesn't exist
 })
