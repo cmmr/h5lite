@@ -4,13 +4,13 @@
 #include "h5lite.h"
 
 
-SEXP C_register_hdf5_filters() {
+SEXP C_register_hdf5_filters(void) {
   hdf5lib_register_all_filters();
   return R_NilValue;
 }
 
 // # nocov start
-SEXP C_destroy_hdf5_filters() {
+SEXP C_destroy_hdf5_filters(void) {
   hdf5lib_destroy_all_filters();
   return R_NilValue;
 }
