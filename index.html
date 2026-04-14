@@ -138,28 +138,13 @@
 <span><span class="co">#&gt;         └── b &lt;uint8 × 1&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="smart-data-typing">Smart Data Typing<a class="anchor" aria-label="anchor" href="#smart-data-typing"></a>
-</h2>
-<p><code>h5lite</code> inspects your data and chooses the safest, most compact HDF5 data type automatically. You don’t need to know the specific HDF5 type codes; <code>h5lite</code> handles the translation.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># R uses 32-bit integers by default</span></span>
-<span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span> </span>
-<span></span>
-<span><span class="co"># h5lite detects these values fit in 8 bits and saves space automatically</span></span>
-<span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, <span class="st">"smart_ints"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt; ...</span></span>
-<span><span class="co">#&gt; └── smart_ints &lt;uint8 x 100&gt;</span></span></code></pre></div>
-</div>
-<div class="section level2">
 <h2 id="power-user-features">Power User Features<a class="anchor" aria-label="anchor" href="#power-user-features"></a>
 </h2>
 <div class="section level3">
 <h3 id="the-as-argument-precise-control">The <code>as</code> Argument: Precise Control<a class="anchor" aria-label="anchor" href="#the-as-argument-precise-control"></a>
 </h3>
 <p>Need to conform to a specific file specification? The <code>as</code> argument allows you to override automatic behavior and explicitly define on-disk types.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Force specific numeric types</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, <span class="va">file</span>, <span class="st">"dataset_a"</span>, as <span class="op">=</span> <span class="st">"int32"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"dataset_b"</span>, as <span class="op">=</span> <span class="st">"float32"</span><span class="op">)</span></span>
@@ -173,7 +158,7 @@
 <span><span class="co">#&gt; ├── dataset_b &lt;float32 × 10&gt;</span></span>
 <span><span class="co">#&gt; └── fixed_strs &lt;ascii[10] × 2&gt;</span></span></code></pre></div>
 <p>When writing Data Frames, you can map types for specific columns using a named vector.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  id    <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, </span>
 <span>  score <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.1</span>, <span class="fl">2.2</span>, <span class="fl">3.3</span>, <span class="fl">4.4</span>, <span class="fl">5.5</span><span class="op">)</span>,</span>
@@ -195,7 +180,7 @@
 <h3 id="advanced-compression--chunking">Advanced Compression &amp; Chunking<a class="anchor" aria-label="anchor" href="#advanced-compression--chunking"></a>
 </h3>
 <p><code>h5lite</code> natively bundles an extensive suite of state-of-the-art compression filters (including <strong>Blosc2</strong>, <strong>Zstandard</strong>, <strong>LZ4</strong>, and lossy <strong>ZFP</strong>). For simple use cases, you can pass a string configuration to the <code>compress</code> argument. For precise control over the pipeline—including chunk sizing, bitshuffling, and Scale-Offset scaling—use the <code><a href="reference/h5_compression.html">h5_compression()</a></code> function.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simple setup: High-performance Blosc2 with Zstandard</span></span>
 <span><span class="fu"><a href="reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data_blosc"</span>, compress <span class="op">=</span> <span class="st">"blosc2-zstd"</span><span class="op">)</span></span>
 <span></span>
@@ -207,7 +192,7 @@
 <h3 id="efficient-partial-reading">Efficient Partial Reading<a class="anchor" aria-label="anchor" href="#efficient-partial-reading"></a>
 </h3>
 <p>For large datasets that exceed system RAM, <code>h5lite</code> provides partial reading via <code>start</code> and <code>count</code> parameters. It automatically targets the most logical dimension (e.g., rows in a matrix or elements in a vector).</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Read a 100-row slice starting from row 500</span></span>
 <span><span class="va">subset</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"large_matrix"</span>, start <span class="op">=</span> <span class="fl">500</span>, count <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></code></pre></div>
 </div>

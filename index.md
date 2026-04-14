@@ -85,24 +85,6 @@ h5_str(file)
 #>         └── b <uint8 × 1>
 ```
 
-## Smart Data Typing
-
-`h5lite` inspects your data and chooses the safest, most compact HDF5
-data type automatically. You don’t need to know the specific HDF5 type
-codes; `h5lite` handles the translation.
-
-``` r
-# R uses 32-bit integers by default
-x <- 1:100 
-
-# h5lite detects these values fit in 8 bits and saves space automatically
-h5_write(x, file, "smart_ints")
-
-h5_str(file)
-#> ...
-#> └── smart_ints <uint8 x 100>
-```
-
 ## Power User Features
 
 ### The `as` Argument: Precise Control
