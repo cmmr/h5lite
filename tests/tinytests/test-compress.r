@@ -122,7 +122,7 @@ local({
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
   
-  v_float <- rnorm(100)
+  v_float <- abs(rnorm(100))
   
   # Standalone ZFP
   expect_silent(h5_write(v_float, f, "zfp_rev", compress = h5_compression("zfp-rev")))
