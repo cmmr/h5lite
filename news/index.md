@@ -1,6 +1,6 @@
 # Changelog
 
-## h5lite 2.1.0.0
+## h5lite 2.1.1.0
 
 - New functions:
   [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
@@ -12,7 +12,8 @@
   [`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md).
 - [`h5_length()`](https://cmmr.github.io/h5lite/reference/h5_length.md)
   and [`h5_dim()`](https://cmmr.github.io/h5lite/reference/h5_dim.md)
-  now return numeric values instead of integer.
+  now return numeric values instead of integer to support very large
+  datasets.
 
 ## h5lite 2.0.0.2
 
