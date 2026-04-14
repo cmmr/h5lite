@@ -113,22 +113,23 @@ h5_open <- function (file) {
   env$.wd    <- "/"
   class(env) <- "h5"
   
-  env$read         = \(name = ".",       attr = NULL, as = "auto")                      { h5_run(env, h5_read)  }
-  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = "gzip-5") { h5_run(env, h5_write) }
-  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)                { h5_run(env, h5_ls)    }
+  env$read         = \(name = ".",       attr = NULL, as = "auto")                    { h5_run(env, h5_read)  }
+  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = "gzip") { h5_run(env, h5_write) }
+  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)              { h5_run(env, h5_ls)    }
   env$attr_names   = \(name = ".")                     { h5_run(env, h5_attr_names)   }
   env$class        = \(name, attr = NULL)              { h5_run(env, h5_class)        }
+  env$create_group = \(name)                           { h5_run(env, h5_create_group) }
+  env$delete       = \(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
   env$dim          = \(name, attr = NULL)              { h5_run(env, h5_dim)          }
   env$exists       = \(name, attr = NULL)              { h5_run(env, h5_exists)       }
+  env$inspect      = \(name)                           { h5_run(env, h5_inspect)      }
   env$is_dataset   = \(name)                           { h5_run(env, h5_is_dataset)   }
   env$is_group     = \(name)                           { h5_run(env, h5_is_group)     }
   env$length       = \(name = ".", attr = NULL)        { h5_run(env, h5_length)       }
+  env$move         = \(from, to)                       { h5_run(env, h5_move)         }
   env$names        = \(name = ".")                     { h5_run(env, h5_names)        }
   env$str          = \(name = ".", attrs = TRUE)       { h5_run(env, h5_str)          }
   env$typeof       = \(name, attr = NULL)              { h5_run(env, h5_typeof)       }
-  env$create_group = \(name)                           { h5_run(env, h5_create_group) }
-  env$delete       = \(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
-  env$move         = \(from, to)                       { h5_run(env, h5_move)         }
   
   # Navigation methods
   env$cd = function (group = "/") {
