@@ -1,8 +1,8 @@
 ---
-title: "Data Organization"
+title: "Organization"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Data Organization}
+  %\VignetteIndexEntry{Organization}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
