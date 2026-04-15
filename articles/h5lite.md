@@ -185,4 +185,5 @@ h5_str(file)
 ```
 
 For advanced file operations, including moving, deleting, and verifying
-objects, refer to `vignette('organization')`.
+objects, refer to
+[`vignette('organization')`](https://cmmr.github.io/h5lite/articles/organization.md).

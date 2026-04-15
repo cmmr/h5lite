@@ -8,8 +8,6 @@
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
 - [Compression](https://cmmr.github.io/h5lite/articles/compression.md):
 - [Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.md):
-- [Data
-  Organization](https://cmmr.github.io/h5lite/articles/data-organization.md):
 - [Data Types &
   Compression](https://cmmr.github.io/h5lite/articles/data-types.md):
 - [Get Started with
@@ -18,6 +16,7 @@
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.md):
 - [Object-Oriented
   Interface](https://cmmr.github.io/h5lite/articles/oo-interface.md):
+- [Organization](https://cmmr.github.io/h5lite/articles/organization.md):
 - [Parallel
   Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):
 - [Partial
