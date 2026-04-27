@@ -55,7 +55,7 @@ local({
   expect_silent(h5_read(file, "obj", as = c('obj' = "integer")))
   
   
-  if (requireNamespace("foo",quietly=TRUE)) {
+  if (requireNamespace("bit64", quietly=TRUE)) {
     #skip_if_not_installed('bit64')
     b64 <- bit64::as.integer64(4L)
     expect_identical(h5_read(file, "my_big", as = "bit64"), b64)
