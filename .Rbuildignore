@@ -12,3 +12,5 @@
 ^src/.*\.dll$
 ^man/figures/logo_
 ^\.Rproj\.user$
+^\.positai$
+^\.claude$

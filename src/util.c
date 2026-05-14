@@ -196,8 +196,8 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
   
   /* Search for type-specific and general type mappings. */
   
-  char needle_full[12];
-  char needle_type[12];
+  char needle_full[32];
+  char needle_type[32];
   
   /* Construct type keys (e.g., ".int32", ".uint") based on HDF5 class and sign. */
   int bitwidth = (int)H5Tget_size(file_type_id) * 8;

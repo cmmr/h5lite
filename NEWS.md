@@ -1,3 +1,8 @@
+# h5lite 2.1.1.1
+
+* Fixed warnings introduced by GCC 16: `‘%d’ directive output may be truncated` in `utils.c`.
+
+
 # h5lite 2.1.1.0
 
 * New functions: `h5_compression()` and `h5_inspect()`.

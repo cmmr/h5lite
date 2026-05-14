@@ -8,3 +8,4 @@ h5lite.Rproj
 rhub_check.r
 src/*.o
 src/*.dll
+.positai
