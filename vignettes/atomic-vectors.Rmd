@@ -109,7 +109,7 @@ By default (`as = "auto"`), `h5lite` chooses the most efficient string represent
 You can explicitly request variable-length storage using `as = "utf8"` or `as = "ascii"`.
 
 * **Pros:** Most flexible; exact memory usage per string; supports `NA` (stored as NULL pointers).
-* **Cons:** Cannot be compressed using standard HDF5 filters; slower to read/write for extreme dataset sizes.
+* **Cons:** The text is stored outside the dataset's chunks, so it is not compressed. It is also slower to read and write at very large sizes.
 
 ```{r}
 # Variable length strings (handles NA)
@@ -133,24 +133,27 @@ h5_write(c("short", "longer", "longest"), file, "strings/auto_fixed", as = "asci
 
 ## Compression
 
-Compression in HDF5 requires the dataset to be "chunked". `h5lite` handles chunking parameters automatically when you enable compression.
-
-You can configure compression using the `compress` argument:
-
-* `"gzip-5"` (default): Standard zlib compression at level 5. Levels `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally compatible.
-* `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous, correlated, or floating-point data (e.g., time series or smooth gradients).
-* `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated, discrete, or categorical integer data.
-* `"none"`: Disables compression entirely.
+Vectors are compressed automatically. By default, `h5lite` uses gzip level 5 with byte shuffling, which any HDF5 software can read. Use the `compress` argument to choose a different codec:
 
 ```{r}
-# Write a large vector with max zlib compression
 x <- rep(rnorm(100), 100)
-h5_write(x, file, "compressed_data", compress = "gzip-9")
 
-# Write a smooth, correlated dataset using szip Nearest Neighbor
-smooth_data <- sin(seq(0, 10, length.out = 1000))
-h5_write(smooth_data, file, "szip_data", compress = "szip-nn")
+# Default: gzip level 5
+h5_write(x, file, "compressed/default")
+
+# Zstandard: faster than gzip, with a similar or better ratio
+h5_write(x, file, "compressed/zstd", compress = "zstd-5")
+
+# Disable compression
+h5_write(x, file, "compressed/none", compress = "none")
 ```
+
+Two details are specific to vectors:
+
+* **Scalars written with `I()` are never compressed.**
+* **Only fixed-length strings are compressed.** Variable-length strings, the default when a vector contains `NA`, are stored uncompressed.
+
+*For the full list of codecs (Zstandard, LZ4, Blosc2, ZFP, and more), lossy compression, and tuning, see `vignette('compression')`.*
 
 ## 64-bit Integers
 

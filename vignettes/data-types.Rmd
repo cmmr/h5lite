@@ -1,8 +1,8 @@
 ---
-title: "Data Types & Compression"
+title: "Data Types"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Data Types & Compression}
+  %\VignetteIndexEntry{Data Types}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,7 +11,7 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`h5lite` is designed to seamlessly map R's diverse data structures to HDF5's portable format. This vignette explains the supported R data types, how `h5lite` writes them to HDF5, and how you can precisely control data types and compression when needed.
+`h5lite` is designed to seamlessly map R's diverse data structures to HDF5's portable format. This vignette explains the supported R data types, how `h5lite` writes them to HDF5, and how you can precisely control data types when needed.
 
 ```{r setup}
 library(h5lite)
@@ -131,7 +131,7 @@ HDF5 supports two methods for storing strings. By default (`as = "auto"`), `h5li
 
 Explicitly requested with `as = "utf8"` or `as = "ascii"`.
 
-* Compressible: **NO**
+* Compressible: **NO** (the text is stored outside the dataset's chunks)
 * Handles `NA`: **YES**
 
 ```r
@@ -235,37 +235,19 @@ The `NULL` object in R is mapped to a dataset with a **NULL Dataspace** (`H5S_NU
 h5_write(NULL, file, "placeholders/empty_slot")
 ```
 
-## Compression
+## Data Types and Compression
 
-HDF5 supports transparent data compression using the zlib (gzip) and szip algorithms. You can control the compression behavior using the `compress` argument.
+Every dataset is compressed by default (gzip level 5 with byte shuffling), and the storage type you choose affects how well it compresses:
 
-* **`"gzip-5"`** (default): Standard zlib compression at level 5. Levels `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally compatible.
-* **`"szip-nn"`**: Szip with Nearest Neighbor coding. Best for continuous, correlated, or floating-point data (e.g., time series or smooth gradients).
-* **`"szip-ec"`**: Szip with Entropy Coding. Best for uncorrelated, discrete, or categorical integer data.
-* **`"none"`**: Disables compression entirely.
+* **Smaller types mean less data.** Storing doubles as `float32` halves their size before compression even starts. The compact integer types that `as = "auto"` picks save space the same way.
+* **Fixed-length strings compress. Variable-length strings don't.** If text makes up much of your data, use `as = "utf8[]"` when there are no `NA` values.
+* **ZFP needs 32- or 64-bit numeric types.** If you use the ZFP codec on whole numbers, set `as = "int32"`, `"int64"`, `"float32"`, or `"float64"` explicitly. Otherwise `h5lite` falls back to gzip.
 
 ```{r}
-# Maximum zlib compression
-h5_write(rnorm(1000), file, "data/max", compress = "gzip-9")
-
-# Szip Entropy Coding for discrete integer data
-h5_write(sample(1:5, 1000, replace = TRUE), file, "data/szip", compress = "szip-ec")
+h5_write(rnorm(1000), file, "compressed/zstd", as = "float32", compress = "zstd-5")
 ```
 
-### The Shuffle Filter
-
-When `gzip` compression is enabled, `h5lite` automatically applies the HDF5 **Byte Shuffle Filter** before the data is compressed. The Shuffle Filter does not compress data itself; rather, it rearranges the byte stream to make it more compressible by zlib.
-
-It works by separating the bytes of each value by their significance. For example, in a 4-byte integer array:
-
-1.  All the 1st bytes (least significant) are grouped together.
-2.  All the 2nd bytes are grouped together.
-3.  And so on.
-
-**Why this helps:**
-
-* **Integers:** Small integers often have many zero-padding bytes. The shuffle filter groups these zeros into long runs, which zlib compresses extremely efficiently. This allows `int32` data to compress nearly as well as `int8` data if the values are small.
-* **Doubles:** Floating point numbers often share the same exponent bytes if they are in a similar range. The shuffle filter groups these identical exponent bytes, creating repetitive patterns that zlib can compress.
+*For codec choices, lossy compression, chunk sizing, and inspecting the results, see `vignette('compression')`.*
 
 ```{r, include = FALSE}
 unlink(file)

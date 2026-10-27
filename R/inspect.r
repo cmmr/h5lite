@@ -72,7 +72,7 @@ print.inspect <- function(x, ...) {
   cat(sprintf("%-30s %-8s %s\n", left_2, "Disk:", fmt_bytes(x$storage_size)))
   
   # --- Row 3: Chunks & Ratio ---
-  chunk_str <- if (is.null(x$chunk_dims)) "N/A" else paste0("[", paste(x$chunk_dims, collapse = " x "), "]")
+  chunk_str <- if (is.null(x$chunk_dims)) "N/A" else paste0("[", paste(format(x$chunk_dims, scientific = FALSE, trim = TRUE), collapse = " x "), "]")
   left_3 <- sprintf("  %-8s %s", "Chunks:", chunk_str)
   
   ratio <- "N/A"

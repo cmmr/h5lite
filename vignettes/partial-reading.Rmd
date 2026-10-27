@@ -42,6 +42,8 @@ If you are the one designing and writing the HDF5 file, you should actively cons
 
 The "smart" `start` parameter is purposefully designed to work seamlessly with datasets that are arranged optimally in this way, ensuring that the most efficient access patterns are also the easiest to type.
 
+Chunk size matters too. If you expect users to read small slices, smaller chunks mean less data is decompressed for each read. `h5_inspect()` shows a dataset's chunk dimensions, and the `chunk_size` argument of `h5_compression()` changes them. See the *Chunking* section of `vignette('compression')`.
+
 ### Memory Efficiency of `start` and `count`
 
 Another massive benefit of partial reading is the memory footprint of the request itself. 

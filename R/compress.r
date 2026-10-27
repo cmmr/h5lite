@@ -136,6 +136,7 @@ h5_compression <- function(
     blosc2_delta = FALSE, blosc2_truncate = NULL ) {
   
   if (inherits(compress, 'compress'))           return(compress)
+  if (isTRUE(compress))                          compress <- "gzip"
   if (is.numeric(compress) && compress %in% 1:9) compress <- paste0("gzip-", compress)
   if (!is.character(compress))                   compress <- "none"
   compress <- tolower(trimws(compress))
@@ -210,6 +211,33 @@ h5_compression <- function(
     b2_delta       = as.logical(blosc2_delta), 
     b2_trunc       = as.integer(blosc2_truncate)
   )
+}
+
+#' Drop lossy filters that would corrupt non-finite values
+#'
+#' ZFP and floating-point Scale-Offset cannot represent `NA`, `NaN`, or `Inf`:
+#' they come back as arbitrary numbers. Data containing them is written with
+#' the default gzip pipeline instead of ZFP, and without `float_rounding`.
+#' @noRd
+#' @keywords internal
+protect_nonfinite <- function(data, compress) {
+
+  uses_zfp <- startsWith(attr(compress, "codec"), "zfp")
+  rounds   <- !is.na(attr(compress, "float_rounding"))
+
+  if (!uses_zfp && !rounds)                     return(compress)
+  if (!(is.numeric(data) || is.logical(data)))  return(compress)
+  if (all(is.finite(data)))                     return(compress)
+
+  if (uses_zfp) {
+    compress <- h5_compression(
+      compress   = "gzip",
+      chunk_size = attr(compress, "chunk_size"),
+      checksum   = attr(compress, "checksum") )
+  }
+
+  attr(compress, "float_rounding") <- NA_integer_
+  compress
 }
 
 #' @keywords internal

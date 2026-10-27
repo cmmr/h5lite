@@ -31,16 +31,18 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
   if      (tclass == H5T_INTEGER && int_packing    != NA_INTEGER) { is_scaled = 1; }
   else if (tclass == H5T_FLOAT   && float_rounding != NA_INTEGER) { is_scaled = 2; }
   
-  /* 2. Sanity Checks: Gatekeeping for SZIP and ZFP variants */
+  /* 2. Sanity Checks: Gatekeeping for SZIP and ZFP variants.
+   * Unsupported data falls back to the default pipeline (shuffle + gzip-5),
+   * so Blosc is switched off too. */
   if (strncmp(codec, "szip", 4) == 0) {
-    if (!is_numeric || is_scaled)                { codec = "gzip"; int_level = 5; }
+    if (!is_numeric || is_scaled)                { codec = "gzip"; int_level = 5; blosc = 0; }
   }
   else if (strncmp(codec, "zfp",  3) == 0) {
-    if      (!is_numeric || is_scaled)         { codec = "gzip"; int_level = 5; }
-    else if (type_size != 4 && type_size != 8) { codec = "gzip"; int_level = 5; }
-    else if (blosc > 0 && !is_float)           { codec = "gzip"; int_level = 5; }
+    if      (!is_numeric || is_scaled)         { codec = "gzip"; int_level = 5; blosc = 0; }
+    else if (type_size != 4 && type_size != 8) { codec = "gzip"; int_level = 5; blosc = 0; }
+    else if (blosc > 0 && !is_float)           { codec = "gzip"; int_level = 5; blosc = 0; }
   }
-  
+
   /* Adjust chunking for SZIP */
   unsigned int pixels_per_block = 32;
   if (strncmp(codec, "szip", 4) == 0) {
@@ -55,7 +57,10 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
       int_level = 5;
     }
   }
-  
+
+  /* With no filters to apply, leave the dataset contiguous */
+  if (strcmp(codec, "none") == 0 && !is_scaled && !checksum) return;
+
   /* 3. Set Chunking (Mandatory prerequisite for all subsequent filters) */
   H5Pset_chunk(dcpl_id, rank, chunk_dims);
   
@@ -68,21 +73,24 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
   /* 5. Determine Shuffle (Strictly mutually exclusive with Scale-Offset) */
   unsigned int blosc_shuffle = 0;
   if      (is_scaled)                       {}
-  else if (strncmp(codec, "szip",  4) == 0) {} 
+  else if (strcmp(codec,  "none")     == 0) {}
+  else if (strncmp(codec, "szip",  4) == 0) {}
   else if (strncmp(codec, "zfp",   3) == 0) {} 
   else if (strncmp(codec, "bshuf", 5) == 0) {} 
   else if (blosc > 0)     { blosc_shuffle = 2; } 
   else if (type_size > 1) { H5Pset_shuffle(dcpl_id); }
   
-  /* 6. Apply Primary Compressor */
-  if (strcmp(codec, "gzip") == 0) { H5Pset_deflate(dcpl_id, int_level); }
-  
-  else if (blosc > 0) {
+  /* 6. Apply Primary Compressor (Blosc first: its sub-codec may be "gzip") */
+  if (blosc > 0) {
     int filter_id = (blosc == 1) ? 32001 : 32026;
-    
-    unsigned int blosc_level = int_level;
-    if      (strcmp(codec, "zstd") == 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 22.0); }
-    else if (strcmp(codec, "lz4")  == 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 12.0); }
+
+    /* Map onto Blosc's 0-9 clevel scale, where 0 means "store uncompressed".
+     * Sub-codecs without a level of their own (blosclz, ndlz, snappy, standard
+     * lz4, and zfp, whose `level` holds its tolerance/bits) use Blosc's default. */
+    unsigned int blosc_level = 5;
+    if      (strcmp(codec, "gzip") == 0)                  { blosc_level = int_level; }
+    else if (strcmp(codec, "zstd") == 0)                  { blosc_level = (unsigned int)ceil((int_level * 9.0) / 22.0); }
+    else if (strcmp(codec, "lz4")  == 0 && int_level > 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 12.0); }
     if (blosc_level > 9) blosc_level = 9;
     
     int nelmts = 7;
@@ -122,7 +130,9 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     unsigned int cd_values[8] = {0, 0, 0, 0, blosc_level, mask, compcode, meta};
     H5Pset_filter(dcpl_id, filter_id, H5Z_FLAG_OPTIONAL, nelmts, cd_values);
   }
-  
+
+  else if (strcmp(codec, "gzip")    == 0) { H5Pset_deflate(dcpl_id, int_level); }
+
   else if (strcmp(codec, "szip-ec") == 0) { H5Pset_szip(dcpl_id, H5_SZIP_EC_OPTION_MASK, pixels_per_block); } 
   else if (strcmp(codec, "szip-nn") == 0) { H5Pset_szip(dcpl_id, H5_SZIP_NN_OPTION_MASK, pixels_per_block); } 
   
@@ -131,7 +141,7 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     H5Pset_filter(dcpl_id, 32015, H5Z_FLAG_OPTIONAL, 1, cd_values);
   } 
   else if (strcmp(codec, "lz4") == 0) {
-    unsigned int cd_values[2] = { 0, int_level > 0 ? 9 : 0 }; 
+    unsigned int cd_values[2] = { 0, int_level }; /* 0 = LZ4, 1-12 = LZ4-HC level */
     H5Pset_filter(dcpl_id, 32004, H5Z_FLAG_OPTIONAL, 2, cd_values);
   } 
   else if (strncmp(codec, "bshuf", 5) == 0) {

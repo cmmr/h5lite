@@ -140,3 +140,35 @@ h5_str(file)
 ```
 
 For advanced file operations, including moving, deleting, and verifying objects, refer to `vignette('organization')`.
+
+## Compression
+
+Every dataset is compressed automatically with gzip, which any HDF5 software can read. To use a faster, modern codec, set the `compress` argument. `h5_inspect()` shows how the data was stored:
+
+```{r}
+readings <- round(rnorm(10000, mean = 20, sd = 2), 1)
+h5_write(readings, file, "compressed", compress = "zstd-5")
+h5_inspect(file, "compressed")
+```
+
+`h5lite` bundles many codecs, including Zstandard, LZ4, Blosc2, and lossy ZFP. See `vignette('compression')` to choose between them.
+
+## Reading Part of a Dataset
+
+For large datasets, `start` and `count` read just the part you need:
+
+```{r}
+h5_read(file, "compressed", start = 101, count = 5)
+```
+
+See `vignette('partial-reading')` for how this works with matrices, arrays, and data frames.
+
+## Learn More
+
+* **Data structures:** `vignette('atomic-vectors')`, `vignette('matrices')`, `vignette('data-frames')`, `vignette('organization')`, and `vignette('attributes-in-depth')`
+* **Storage and performance:** `vignette('data-types')`, `vignette('compression')`, `vignette('partial-reading')`, and `vignette('parallel-io')`
+* **Interface:** `vignette('oo-interface')` for the `h5_open()` file handle
+
+```{r, include = FALSE}
+unlink(file)
+```

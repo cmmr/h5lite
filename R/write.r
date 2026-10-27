@@ -264,8 +264,10 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress, dry = 
   dims <- validate_dims(data)
 
   if (is.null(attr)) {
-    if (!dry)
+    if (!dry) {
+      compress <- protect_nonfinite(data, compress)
       .Call("C_h5_write_dataset", file, name, data, h5_type, dims, compress, PACKAGE = "h5lite")
+    }
     
     write_attributes(data, file, name, attr_as, dry = dry)
   }
