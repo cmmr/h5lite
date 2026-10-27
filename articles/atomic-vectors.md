@@ -7,6 +7,7 @@ maps these R types to HDF5 datasets and provides guidance on controlling
 storage types and compression.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -19,6 +20,7 @@ package automatically creates the necessary dataset and handles
 dimensions.
 
 ``` r
+
 # Write a numeric vector
 vec <- c(1.5, 2.3, 4.2, 5.1)
 h5_write(vec, file, "data/numeric_vector")
@@ -40,6 +42,7 @@ consistency with R’s vector behavior. To write a true HDF5 scalar, you
 must wrap the value in [`I()`](https://rdrr.io/r/base/AsIs.html).
 
 ``` r
+
 # 1. Default: 1D Array (Length 1)
 h5_write(42, file, "structure/array_1d")
 
@@ -83,6 +86,7 @@ To ensure data safety, `h5lite` performs the following check:
   restores them as `numeric` vectors with `NA`.
 
 ``` r
+
 # Integer vector with NO missing values -> Automatic optimal type (uint8)
 h5_write(c(1L, 2L, 3L), file, "safe/ints")
 h5_typeof(file, "safe/ints")
@@ -104,6 +108,7 @@ type.
 outside the integer type’s range then `h5lite` will throw an error.*
 
 ``` r
+
 # Store small integers as 8-bit signed integers
 h5_write(c(10, -5, 100), file, "small_ints", as = "int8")
 
@@ -134,10 +139,12 @@ or `as = "ascii"`.
 
 - **Pros:** Most flexible; exact memory usage per string; supports `NA`
   (stored as NULL pointers).
-- **Cons:** Cannot be compressed using standard HDF5 filters; slower to
-  read/write for extreme dataset sizes.
+- **Cons:** The text is stored outside the dataset’s chunks, so it is
+  not compressed. It is also slower to read and write at very large
+  sizes.
 
 ``` r
+
 # Variable length strings (handles NA)
 h5_write(c("apple", "banana", NA), file, "strings/var")
 ```
@@ -152,6 +159,7 @@ the number of bytes.
   **does not support `NA`**.
 
 ``` r
+
 # Fixed length strings (10 bytes per string)
 h5_write(c("A", "B", "C"), file, "strings/fixed", as = "ascii[10]")
 
@@ -161,30 +169,34 @@ h5_write(c("short", "longer", "longest"), file, "strings/auto_fixed", as = "asci
 
 ## Compression
 
-Compression in HDF5 requires the dataset to be “chunked”. `h5lite`
-handles chunking parameters automatically when you enable compression.
-
-You can configure compression using the `compress` argument:
-
-- `"gzip-5"` (default): Standard zlib compression at level 5. Levels
-  `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally
-  compatible.
-- `"szip-nn"`: Szip with Nearest Neighbor coding. Best for continuous,
-  correlated, or floating-point data (e.g., time series or smooth
-  gradients).
-- `"szip-ec"`: Szip with Entropy Coding. Best for uncorrelated,
-  discrete, or categorical integer data.
-- `"none"`: Disables compression entirely.
+Vectors are compressed automatically. By default, `h5lite` uses gzip
+level 5 with byte shuffling, which any HDF5 software can read. Use the
+`compress` argument to choose a different codec:
 
 ``` r
-# Write a large vector with max zlib compression
-x <- rep(rnorm(100), 100)
-h5_write(x, file, "compressed_data", compress = "gzip-9")
 
-# Write a smooth, correlated dataset using szip Nearest Neighbor
-smooth_data <- sin(seq(0, 10, length.out = 1000))
-h5_write(smooth_data, file, "szip_data", compress = "szip-nn")
+x <- rep(rnorm(100), 100)
+
+# Default: gzip level 5
+h5_write(x, file, "compressed/default")
+
+# Zstandard: faster than gzip, with a similar or better ratio
+h5_write(x, file, "compressed/zstd", compress = "zstd-5")
+
+# Disable compression
+h5_write(x, file, "compressed/none", compress = "none")
 ```
+
+Two details are specific to vectors:
+
+- **Scalars written with [`I()`](https://rdrr.io/r/base/AsIs.html) are
+  never compressed.**
+- **Only fixed-length strings are compressed.** Variable-length strings,
+  the default when a vector contains `NA`, are stored uncompressed.
+
+*For the full list of codecs (Zstandard, LZ4, Blosc2, ZFP, and more),
+lossy compression, and tuning, see
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md).*
 
 ## 64-bit Integers
 
@@ -193,6 +205,7 @@ provides an `integer64` class. `h5lite` supports reading and writing
 these types directly to HDF5 `int64`.
 
 ``` r
+
 if (requireNamespace("bit64", quietly = TRUE)) {
   val <- bit64::as.integer64(c("9223372036854775807", "-9223372036854775807"))
   

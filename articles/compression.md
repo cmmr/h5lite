@@ -1,302 +1,662 @@
 # Compression
 
-HDF5 supports transparent data compression, allowing you to drastically
-reduce the file size of your datasets with minimal effort. While the
-HDF5 ecosystem has historically relied on standard `gzip` and `szip`,
-modern data pipelines require higher throughput and advanced techniques
-like lossy floating-point compression and optimized bitshuffling.
+HDF5 compresses data transparently. Datasets are compressed when they
+are written and decompressed when they are read, so your R code stays
+the same and only the file gets smaller. `h5lite` compresses every
+dataset by default. Through `hdf5lib`, it also bundles a full set of
+codecs: **gzip**, **szip**, **Zstandard**, **LZ4**, **bzip2**, **LZF**,
+**Snappy**, **Bitshuffle**, **Blosc**, **Blosc2**, and **ZFP**. All of
+them work out of the box, with no system libraries to install.
 
-Powered by `hdf5lib`, `h5lite` bundles an extensive suite of
-state-of-the-art compression filters natively, meaning you can use
-modern codecs like **Blosc2**, **Zstandard (Zstd)**, **LZ4**, and
-**ZFP** without installing any external system dependencies.
+This vignette covers:
 
-This vignette covers how to configure these compression pipelines using
-the
-[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-function, how to choose the right algorithm, how to tune chunk sizes,
-and how to inspect your results using
-[`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md).
+- [What `h5lite` does by default](#compression-by-default), and which
+  objects get compressed.
+- [How to choose a codec](#choosing-a-codec), including [how to
+  benchmark your own data](#comparing-codecs-on-your-own-data).
+- [Sharing compressed files](#sharing-files-with-other-software) with
+  Python and other HDF5 software.
+- [Lossy compression](#lossy-compression) for numeric data.
+- [How the filter pipeline is assembled](#the-filter-pipeline), [how
+  chunks are sized](#chunking), and [how to inspect the
+  results](#inspecting-the-results).
+- A [complete reference](#compression-string-reference) of compression
+  strings.
+
+## Compression by Default
+
+You don’t have to do anything to get compression:
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
+
+temps <- round(20 + cumsum(rnorm(1e5, sd = 0.05)), 2)
+h5_write(temps, file, "temps/default")
+
+h5_inspect(file, "temps/default")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    781.25 KB
+#>   Layout:  chunked             Disk:    389.53 KB
+#>   Chunks:  [100000]            Ratio:   2.01x
+#>   Pipeline: shuffle -> gzip
 ```
 
-## The `compress` Argument and `h5_compression()`
+The default, `compress = "gzip"`, means **gzip at level 5**, preceded by
+HDF5’s byte **shuffle** filter, with the data split into **chunks of
+about 1 MB**. Gzip is the default because every HDF5 installation can
+read it.
 
-For simple use cases, you can pass a configuration string directly to
-the `compress` argument of
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
-`h5lite` handles the underlying chunking requirements automatically.
+To use a different codec, pass a string to `compress`:
 
 ``` r
-# Standard gzip compression at level 5
-h5_write(rnorm(1000), file, "data/simple_gzip", compress = "gzip-5")
 
-# High-performance Blosc2 with Zstandard
-h5_write(rnorm(1000), file, "data/simple_blosc2", compress = "blosc2-zstd-5")
+h5_write(temps, file, "temps/zstd", compress = "zstd-5")
+h5_write(temps, file, "temps/none", compress = "none")
 ```
 
-For advanced control over the entire compression pipeline - including
-chunk sizing, pre-filters, data scaling, and checksums - use the
+To control more than the codec, such as the chunk size, a checksum, or
+lossy pre-filters, build a configuration with
 [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-function to build a configuration object to pass to
-[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md).
+and pass that instead. Printing the configuration shows the pipeline it
+will build:
 
 ``` r
-# Advanced pipeline: LZ4 compression + optimal integer packing + Fletcher32 checksum
-cmp <- h5_compression(
-  compress    = "lz4-9", 
-  int_packing = TRUE, 
-  checksum    = TRUE,
-  chunk_size  = 512 * 1024 # 512 KB chunks
-)
 
-h5_write(1:1000, file, "data/advanced", compress = cmp)
+cmp <- h5_compression("zstd-5", checksum = TRUE, chunk_size = 256 * 1024)
+cmp
+#> <HDF5 Compression Configuration>
+#>   Codec:           zstd-5
+#>   Shuffle:         Byte Shuffle (Native HDF5)
+#>   Chunk Size:      256.00 KB
+#>   Checksum:        Fletcher32
+
+h5_write(temps, file, "temps/configured", compress = cmp)
 ```
 
-### Valid Compression Strings Reference
+The same `compress` argument works with the object-oriented interface
+(`h5$write()`). When you write a list, the configuration applies to
+every dataset created from that list.
 
-The `compress` argument accepts specific string syntaxes to define both
-the codec and its operational level. The table below lists all valid
-combinations and indicates whether they require, permit, or forbid a
-level or parameter suffix.
+### What Gets Compressed
 
-[TABLE]
+HDF5 can only compress *chunked datasets*, so a few kinds of objects are
+always stored uncompressed:
 
-------------------------------------------------------------------------
+| Object | Compressed? | Notes |
+|:---|:--:|:---|
+| Vectors, matrices, arrays | Yes | Numeric, logical, factor, complex, raw, and `integer64` data. |
+| Data frames | Yes | Whole rows (compound records) are compressed together. |
+| Fixed-length strings | Yes | Often compress extremely well. |
+| Variable-length strings | No | The text lives outside the dataset’s chunks. See below. |
+| Scalars (written with [`I()`](https://rdrr.io/r/base/AsIs.html)) | No | A single value is stored as-is. |
+| Attributes | No | HDF5 does not support filters on attributes. |
+| `NULL` and zero-length data | No | There is nothing to compress. |
 
-## Choosing a Codec: Modern vs. Legacy
-
-With so many options available, selecting the right codec depends on
-whether you are optimizing for extreme read/write speed, minimal file
-size, or universal compatibility.
-
-### 1. Blosc2 (Highly Recommended)
-
-**Blosc2** is a high-performance meta-compressor optimized for binary
-data. It automatically handles multi-threading and applies a highly
-optimized internal bitshuffle algorithm before passing the data to a
-sub-compressor.
-
-- **`"blosc2-zstd-[level]"`**: Offers the best overall balance of
-  extreme read/write speeds and excellent compression ratios. It
-  effectively replaces standard gzip for modern analytical workloads.
-
-- **`"blosc2-lz4-[level]"`**: Exceptionally fast. Best used when
-  read/write speed is the absolute highest priority and storage space is
-  less of a concern.
-
-### 2. Standalone Modern Codecs
-
-If you prefer not to use the Blosc2 wrapper, you can call modern codecs
-directly:
-
-- **`"zstd-[level]"`**: Zstandard (levels 1-22). Vastly superior to gzip
-  in both speed and compression ratio.
-
-- **`"lz4-[level]"`**: Standard LZ4 (level 0) or LZ4-HC (levels 1-12).
-
-### 3. Gzip (The Universal Standard)
-
-- **`"gzip-[level]"`**: Levels 1-9 (default is 5). Every compiled HDF5
-  library worldwide supports gzip. Use this *only* if you plan to share
-  your `.h5` files with external collaborators using older Python/Julia
-  tools, or if you are archiving them for long-term storage where
-  universal compatibility is mandatory.
-
-### 4. Legacy Codecs (Obsolete or Niche)
-
-- **`"szip-nn"` / `"szip-ec"`**: Historically fast for scientific data,
-  provided safely here via the permissively licensed `libaec` library.
-  Because the original library was frequently missing from legacy HDF5
-  distributions, szip never saw universal adoption and is now largely
-  obsolete compared to Blosc2 or Zstd.
-
-- **`"blosc1"`**, **`"snappy"`**, **`"lzf"`**, **`"bzip2"`**: Included
-  strictly to maintain backward compatibility, allowing you to read
-  archived `.h5` files and write to legacy data processing pipelines.
-  These early-generation algorithms lack the multi-threading
-  optimizations, speeds, and compression ratios of modern alternatives,
-  making them generally unsuitable for completely new datasets.
-
-------------------------------------------------------------------------
-
-## Lossy Compression: ZFP and Scale-Offset
-
-For massive numeric datasets, lossless compression may not provide
-enough space savings. `h5lite` supports two methods to discard
-mathematically insignificant precision in exchange for massive
-compression ratios.
-
-### ZFP (Floating-Point & Integer)
-
-ZFP is a specialized algorithm designed for high-throughput, lossy
-compression of numerical arrays. It offers incredible ratios but
-**requires purely numeric values**.
-
-*(Note: The standalone `"zfp-..."` codecs support both integers and
-floats. However, if ZFP is wrapped inside Blosc2 via `"blosc2-zfp-..."`,
-it can only encode floating-point values).*
-
-- **Accuracy Mode (`"zfp-acc-[tolerance]"`):** Guarantees that no
-  decompressed value will differ from the original by more than the
-  given absolute tolerance (e.g., `"zfp-acc-0.001"`).
-- **Precision Mode (`"zfp-prec-[bits]"`):** Preserves a specific number
-  of bits of precision (e.g., `"zfp-prec-16"`).
-- **Rate Mode (`"zfp-rate-[bits]"`):** Forces the compressed data to use
-  exactly a certain number of bits of storage per value (e.g.,
-  `"zfp-rate-8"`).
+**Strings deserve special attention.** By default, `h5lite` stores
+character vectors as *fixed-length* strings when they contain no `NA`
+and have similar lengths, and as *variable-length* strings otherwise.
+Fixed-length strings sit in the chunks and compress like any other data.
+Variable-length strings are kept in a separate area of the file, so the
+filter pipeline only ever sees small references to them. If you want
+text compressed, write it as fixed-length with `as = "utf8[]"`.
+Fixed-length strings can’t hold `NA`, though.
 
 ``` r
-# Lossy compression: decompressed values will be accurate to within +/- 0.05
-cmp_zfp <- h5_compression("zfp-acc-0.05")
-h5_write(rnorm(1e5), file, "data/zfp_floats", compress = cmp_zfp)
+
+words <- sample(c("control", "treatment", "placebo"), 1e4, replace = TRUE)
+h5_write(words, file, "strings/fixed")
+h5_inspect(file, "strings/fixed")
+#> <HDF5 Dataset Properties>
+#>   Type:    utf8[9]             Size:    87.89 KB
+#>   Layout:  chunked             Disk:    21.87 KB
+#>   Chunks:  [10000]             Ratio:   4.02x
+#>   Pipeline: shuffle -> gzip
 ```
 
-### Scale-Offset (Integer Packing & Float Rounding)
+Very small datasets can end up a few bytes *larger* after compression
+because of filter overhead. This is harmless and isn’t worth optimizing.
 
-The native HDF5 Scale-Offset filter mathematically scales your data so
-it can be stored using fewer bits. It processes data one chunk at a
-time, and automatically reverses these operations when you read the file
-to reproduce your original values.
+## Choosing a Codec
 
-- **Integer Packing (`int_packing`):** When you set
-  `int_packing = TRUE`, HDF5 subtracts the minimum value in the chunk
-  from all the other values. It then encodes these new, smaller values
-  using the exact minimum number of bits necessary. For datasets with
-  small ranges or lots of zeros, this saves a massive amount of space.
-  (Alternatively, passing a number like `int_packing = 8` forces it to
-  pack the data into exactly 8 bits).
+The right codec depends on who will read the file and whether you care
+most about speed, size, or portability.
 
-- **Float Rounding (`float_rounding`):** When you pass an integer (like
-  `float_rounding = 3`), HDF5 multiplies all the floating-point values
-  by 10^3 to shift the decimal point. It then rounds the results to the
-  nearest whole integer. Once they are integers, it applies the exact
-  same bit-packing method described above. When the data is decoded, the
-  operations are run in reverse to restore the original values, less any
-  exact precision lost during the initial rounding step.
+| If you want… | Use | Why |
+|:---|:---|:---|
+| Files that any HDF5 software can read | `"gzip"` (the default) | Built into every HDF5 library. |
+| Fast I/O with good ratios | `"zstd-5"`, `"blosc2-zstd-5"` | Faster than gzip, with similar or better ratios. |
+| The fastest possible I/O | `"lz4"`, `"bshuf-lz4"` | Plain LZ4 trades ratio for speed. Bitshuffling often wins the ratio back on numeric data. |
+| The smallest lossless files | `"bshuf-zstd-19"`, `"zstd-19"` | Slow to write, but still fast to read. |
+| Integers that span a narrow range | `int_packing = TRUE` with any codec | Stores each value in the fewest bits possible. |
+| Numbers where a small error is fine | ZFP, `float_rounding`, `blosc2_truncate` | Lossy. See [Lossy Compression](#lossy-compression). |
+
+Every codec except gzip and szip is an HDF5 *plugin*. Other software
+needs that plugin installed to read the data. See [Sharing Files with
+Other Software](#sharing-files-with-other-software) before using these
+codecs for files that you hand off to others.
+
+### Gzip
+
+`"gzip-[level]"` (levels 1-9, default 5) is the universal standard. It
+isn’t the fastest or the strongest codec, but any HDF5 reader in any
+language can open it. Use it for files that you share, publish, or
+archive. Higher levels are slower and often barely smaller than level 5.
+
+### Zstandard and LZ4
+
+- **`"zstd-[level]"`** (levels 1-22, default 3): Zstandard compresses
+  about as well as gzip or better, in much less time. Levels 3-5 are a
+  good balance. Levels above about 15 are much slower to write but no
+  slower to read, which suits data that is written once and read many
+  times.
+
+- **`"lz4-[level]"`**: LZ4 favors speed over ratio. Level 0 (the
+  default) is standard LZ4. Levels 1-12 select the slower, stronger
+  LZ4-HC mode.
+
+### Blosc2 and Bitshuffle
+
+**Bitshuffle** rearranges data at the bit level before handing it to a
+compressor (see [Shuffling](#shuffling)). On numeric data, this often
+beats byte shuffling by a wide margin. You can get bitshuffling in two
+ways:
+
+- **`"bshuf-lz4"`** and **`"bshuf-zstd-[level]"`** use the standalone
+  Bitshuffle plugin with a built-in LZ4 or Zstandard compressor.
+
+- **`"blosc2-[codec]-[level]"`** uses **Blosc2**, a meta-compressor that
+  splits each chunk into cache-sized blocks, bitshuffles them, and
+  compresses them with a sub-codec: `"blosc2-zstd-5"` or
+  `"blosc2-lz4-5"`, for example. Blosc2 also offers the optional
+  [delta](#blosc2-delta) and
+  [truncate-precision](#blosc2-truncate-precision) pre-filters, and it
+  can run ZFP (`"blosc2-zfp-..."`).
+
+Blosc2 can compress the blocks of a chunk in parallel. It uses one
+thread unless you set the `BLOSC_NTHREADS` environment variable, for
+example with `Sys.setenv(BLOSC_NTHREADS = 4)`. Threads only pay off when
+chunks are large (say, `chunk_size = 16 * 1024^2` or more) and
+compression is slow, as with high Zstandard levels. With the default 1
+MB chunks, the cost of starting threads for each chunk can make I/O
+*slower*. Blosc (v1) always uses one thread.
+
+### Szip
+
+**`"szip-nn"`** and **`"szip-ec"`** are provided by the `libaec` library
+and are part of the core HDF5 filter set. **Nearest Neighbor** (`nn`)
+coding suits smooth, correlated data such as time series or gradients.
+**Entropy Coding** (`ec`) suits uncorrelated or categorical integer
+data. Szip works only on numeric data. For anything else, `h5lite` falls
+back to gzip (see [Rules and Automatic
+Adjustments](#rules-and-automatic-adjustments)). Modern codecs usually
+beat szip, but it is still common in some scientific fields, such as
+Earth observation data.
+
+### Legacy Codecs
+
+**`"blosc1-..."`**, **`"bzip2-[level]"`**, **`"lzf"`**, and
+**`"snappy"`** are included mainly so you can read and write files for
+older pipelines that already use them. They are generally slower or
+weaker than the codecs above, so they aren’t recommended for new data.
+
+### Comparing Codecs on Your Own Data
+
+Codec performance depends heavily on the data, so the most reliable way
+to choose is to try a few. This small helper writes the same object with
+each codec and reports the compression ratio:
 
 ``` r
-# 1. Integer Packing Example
-# A dataset with a small range of values (e.g., years 2000 to 2050)
-years <- sample(2000:2050, 100000, replace = TRUE)
 
-# By default, R uses 32-bit integers. 
-# With int_packing = TRUE, HDF5 subtracts 2000 from all values,
-# leaving numbers from 0 to 50, which fit perfectly into just 6 bits!
-cmp_int <- h5_compression("lz4-9", int_packing = TRUE)
-h5_write(years, file, "data/packed_years", compress = cmp_int)
+compression_ratio <- function(x, codecs, ...) {
+  tmp <- tempfile(fileext = ".h5")
+  on.exit(unlink(tmp))
+  sapply(codecs, function(codec) {
+    h5_write(x, tmp, "x", compress = h5_compression(codec, ...))
+    info <- h5_inspect(tmp, "x")
+    round(info$uncompressed_size / info$storage_size, 2)
+  })
+}
 
-# 2. Float Rounding Example
-# Sensor data where anything beyond 2 decimal places is just noise
-sensor_data <- rnorm(100000, mean = 98.6, sd = 0.5)
+codecs <- c("gzip", "zstd-5", "zstd-19", "lz4", "bshuf-lz4",
+            "bshuf-zstd-5", "blosc2-lz4-5", "blosc2-zstd-5")
 
-# Multiplies by 10^2 (e.g., 98.614... -> 9861.4...), rounds to 9861, and bit-packs.
-# When read back into R, it is automatically divided by 100 to restore 98.61.
-cmp_float <- h5_compression("zstd-5", float_rounding = 2)
-h5_write(sensor_data, file, "data/rounded_sensors", compress = cmp_float)
+# A slowly varying sensor signal (float64)
+compression_ratio(temps, codecs)
+#>          gzip        zstd-5       zstd-19           lz4     bshuf-lz4 
+#>          2.01          2.03          2.08          1.29          2.39 
+#>  bshuf-zstd-5  blosc2-lz4-5 blosc2-zstd-5 
+#>          2.46          1.31          2.47
+
+# Small counts (stored as uint8)
+compression_ratio(rpois(1e5, lambda = 3), codecs)
+#>          gzip        zstd-5       zstd-19           lz4     bshuf-lz4 
+#>          2.35          2.36          2.83          1.38          2.35 
+#>  bshuf-zstd-5  blosc2-lz4-5 blosc2-zstd-5 
+#>          2.46          2.44          2.49
 ```
 
-------------------------------------------------------------------------
+To compare speed too, wrap the
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) calls
+in [`system.time()`](https://rdrr.io/r/base/system.time.html), or use a
+benchmarking package such as `bench`. Use realistically large data: on
+tiny inputs, the timings mostly measure overhead.
 
-## Filter Interactions & Invalid Combinations
+## Sharing Files with Other Software
 
-Filters in HDF5 operate in a sequential pipeline, and certain filters
-destroy the underlying byte structures that downstream algorithms rely
-on.
+`h5lite` can read every codec it can write, so files compressed with any
+of them can be read by anyone using `h5lite`. Other software is a
+different story. HDF5 filters fall into two groups:
+
+- **Built into HDF5:** gzip, shuffle, scale-offset (`int_packing` and
+  `float_rounding`), and the Fletcher32 checksum are part of every HDF5
+  library. Szip is also built in when HDF5 is compiled with `libaec` or
+  `szip` support, which is common but not guaranteed.
+
+- **Plugins:** Zstandard, LZ4, bzip2, LZF, Snappy, Bitshuffle, Blosc,
+  Blosc2, and ZFP. Software that reads these datasets must have the
+  matching filter plugin. Otherwise it fails with an error saying that a
+  required filter is not available. The file itself is fine, but that
+  reader can’t decompress the data.
+
+How to get the plugins elsewhere:
+
+- **Python (`h5py`):** Install the
+  [`hdf5plugin`](https://pypi.org/project/hdf5plugin/) package and run
+  `import hdf5plugin` before opening the file. This registers Blosc,
+  Blosc2, Bitshuffle, bzip2, LZ4, ZFP, and Zstandard. LZF is already
+  built into `h5py`.
+
+- **Command-line tools, HDFView, and other languages:** Install the
+  filter plugin libraries and point the `HDF5_PLUGIN_PATH` environment
+  variable at the directory that contains them.
+
+**A practical rule:** use gzip, optionally with `int_packing`,
+`float_rounding`, or `checksum`, for files you hand off to others. Use
+the modern codecs for working files that you, or other `h5lite` users,
+will read.
+
+## Lossy Compression
+
+For large numeric datasets, you can get much higher compression ratios
+by discarding precision you don’t need. `h5lite` supports three lossy
+approaches.
+
+### ZFP
+
+ZFP is a compressor built specifically for numeric arrays. It has three
+lossy modes and one lossless mode:
+
+- **Accuracy** (`"zfp-acc-[tolerance]"`): No value changes by more than
+  the given absolute tolerance, such as `"zfp-acc-0.001"`.
+- **Precision** (`"zfp-prec-[bits]"`): Keeps a fixed number of bits of
+  precision, so the error scales with each value’s magnitude, such as
+  `"zfp-prec-16"`.
+- **Rate** (`"zfp-rate-[bits]"`): Stores exactly the given number of
+  bits per value, which gives a predictable file size, such as
+  `"zfp-rate-8"`.
+- **Reversible** (`"zfp-rev"`): Lossless.
+
+``` r
+
+h5_write(temps, file, "lossy/zfp", compress = "zfp-acc-0.01")
+
+# No value has moved by more than 0.01
+max(abs(h5_read(file, "lossy/zfp") - temps))
+#> [1] 0.004433594
+
+h5_inspect(file, "lossy/zfp")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    781.25 KB
+#>   Layout:  chunked             Disk:    163.39 KB
+#>   Chunks:  [100000]            Ratio:   4.78x
+#>   Pipeline: zfp
+```
+
+ZFP has requirements that are easy to miss:
+
+- **It needs 32- or 64-bit numeric types:** `float32`, `float64`,
+  `int32`, or `int64`. Inside Blosc2 (`"blosc2-zfp-..."`), only
+  `float32` and `float64` work. Because `h5lite` automatically stores
+  whole numbers in the smallest type that fits (often `uint8` or
+  `uint16`), integer data usually needs an explicit `as`. When the type
+  isn’t supported, `h5lite` quietly uses gzip instead, so check the
+  result with
+  [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md):
+
+  ``` r
+
+  # Stored as uint16, so ZFP is skipped and gzip is used instead
+  h5_write(1:1000, file, "lossy/zfp_skipped", compress = "zfp-rev")
+  h5_inspect(file, "lossy/zfp_skipped")
+  #> <HDF5 Dataset Properties>
+  #>   Type:    uint16              Size:    1.95 KB
+  #>   Layout:  chunked             Disk:    299.00 B
+  #>   Chunks:  [1000]              Ratio:   6.69x
+  #>   Pipeline: shuffle -> gzip
+
+  # Storing as int32 lets ZFP run
+  h5_write(1:1000, file, "lossy/zfp_int32", compress = "zfp-rev", as = "int32")
+  h5_inspect(file, "lossy/zfp_int32")
+  #> <HDF5 Dataset Properties>
+  #>   Type:    int32               Size:    3.91 KB
+  #>   Layout:  chunked             Disk:    1.53 KB
+  #>   Chunks:  [1000]              Ratio:   2.56x
+  #>   Pipeline: zfp
+  ```
+
+- **It can’t store `NA`, `NaN`, or `Inf`.** ZFP would turn them into
+  arbitrary numbers, so `h5lite` uses gzip instead for any dataset that
+  contains them.
+
+- **In Blosc2, accuracy mode supports only powers of ten.** For
+  `"blosc2-zfp-acc-[tolerance]"`, the tolerance is rounded down to a
+  power of ten (for example, `0.05` becomes `0.01`).
+
+### Scale-Offset: `int_packing` and `float_rounding`
+
+The Scale-Offset filter is built into HDF5, so it’s the one form of
+lossy compression that every HDF5 reader understands. It works on one
+chunk at a time and runs before the main compressor.
+
+- **`int_packing = TRUE`** (lossless) subtracts each chunk’s minimum
+  value and stores the remainders using the fewest bits that can
+  represent them. This is effective for integers that span a narrow
+  range, such as years, sensor counts, or IDs. Passing a number instead,
+  such as `int_packing = 8`, forces that bit width. Use a fixed width
+  only if you know the range fits.
+
+- **`float_rounding = d`** (lossy) stores floating-point values as
+  integer multiples of 10^(-d), measured from the chunk’s minimum, and
+  then bit-packs them. Every value comes back within half a unit of the
+  `d`-th decimal place, for example within ±0.005 when `d = 2`. Because
+  the steps are counted from the chunk’s minimum rather than from zero,
+  the values you read back won’t necessarily print as round decimals.
+
+``` r
+
+# Integers in a narrow range: lossless
+ids <- sample(100000:100100, 1e5, replace = TRUE)
+h5_write(ids, file, "packed/ids", compress = h5_compression("gzip", int_packing = TRUE))
+identical(h5_read(file, "packed/ids"), ids)
+#> [1] TRUE
+
+# Floats kept to 2 decimal places: lossy
+readings <- rnorm(1e5, mean = 98.6, sd = 0.5)
+h5_write(readings, file, "packed/readings",
+         compress = h5_compression("gzip", float_rounding = 2))
+max(abs(h5_read(file, "packed/readings") - readings))
+#> [1] 0.004999984
+
+h5_inspect(file, "packed/readings")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    781.25 KB
+#>   Layout:  chunked             Disk:    109.92 KB
+#>   Chunks:  [100000]            Ratio:   7.11x
+#>   Pipeline: scaleoffset -> gzip
+```
+
+A few things to know:
+
+- `int_packing` affects only datasets stored as integers, and
+  `float_rounding` affects only datasets stored as floating point. You
+  can set both in one configuration when you write a list that contains
+  both kinds of data.
+- Integer vectors that contain `NA` are stored as `float64`, so
+  `int_packing` doesn’t apply to them.
+- **`float_rounding` can’t store `NA` or `NaN`.** The filter would turn
+  them into ordinary numbers, so `h5lite` skips `float_rounding` for any
+  dataset that contains `NA`, `NaN`, or `Inf`.
+- Scale-Offset turns off shuffling, and it can’t be combined with szip,
+  ZFP, Bitshuffle, or the Blosc2 pre-filters.
+
+### Blosc2 Truncate Precision
+
+With any Blosc2 codec, `blosc2_truncate = n` keeps `n` bits of each
+floating-point value’s mantissa and zeroes the rest, which makes the
+data much more compressible. The relative error is about 2^(-n). A
+`float64` has 52 mantissa bits and a `float32` has 23, so
+`blosc2_truncate = 23` gives `float64` data roughly single-precision
+accuracy while keeping the `float64` type.
+
+``` r
+
+x <- rnorm(1e5)
+h5_write(x, file, "lossy/truncated",
+         compress = h5_compression("blosc2-zstd-5", blosc2_truncate = 16))
+
+# Largest relative error
+max(abs((h5_read(file, "lossy/truncated") - x) / x))
+#> [1] 1.523367e-05
+
+h5_inspect(file, "lossy/truncated")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    781.25 KB
+#>   Layout:  chunked             Disk:    261.72 KB
+#>   Chunks:  [100000]            Ratio:   2.99x
+#>   Pipeline: blosc2 [bitshuffle -> trunc(bits=16) -> zstd]
+```
+
+## The Filter Pipeline
+
 [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-strictly enforces mutual exclusions and will throw an error if you
-attempt an invalid combination:
+assembles HDF5’s filter pipeline for you. Data passes through these
+stages in order:
 
-1.  **Shuffling vs. Scale-Offset:** Pre-filters like Bitshuffle and Byte
-    Shuffle rearrange the byte stream to group similar bits together for
-    better compression. Scale-Offset (`int_packing` or `float_rounding`)
-    packs data into non-standard bit widths, which destroys byte
-    alignment. Therefore, **all automatic shuffling is forcefully
-    disabled if Scale-Offset is active**.
+1.  **Scale-Offset** (optional): `int_packing` or `float_rounding`.
+2.  **Shuffle**: rearranges bytes or bits so that the compressor finds
+    more patterns. Chosen automatically.
+3.  **Compressor**: the codec you chose.
+4.  **Fletcher32 checksum** (optional): `checksum = TRUE`.
 
-2.  **Mathematical vs. Shuffling Codecs:** ZFP and Szip perform
-    mathematical compression directly on raw numerical values. They will
-    completely fail or corrupt if the bitstream is rearranged
-    beforehand. **Do not combine ZFP or Szip with Scale-Offset,
-    Bitshuffle, or Blosc2 pre-filters.**
+### Shuffling
 
-3.  **String Data Limitations:** Szip and ZFP cannot be applied to
-    character vectors. String compression relies on standard algorithms
-    like `gzip` or `zstd`, and only works on *fixed-length* strings.
-    Variable-length strings (such as those containing `NA` values)
-    cannot be compressed by chunk filters at all.
+A shuffle filter doesn’t compress anything by itself. It reorders the
+data so that the compressor can do a better job. The **byte shuffle**
+groups the 1st byte of every value together, then the 2nd byte of every
+value, and so on:
 
-------------------------------------------------------------------------
+- **Integers:** Small values stored in a wide type have many zero bytes.
+  After shuffling, those zeros form long runs that compress extremely
+  well.
+- **Floating point:** Values of similar magnitude share their sign and
+  exponent bytes. Grouped together, those bytes become highly
+  repetitive.
 
-## Tuning Chunk Size
+**Bitshuffle** does the same thing one bit at a time, which exposes even
+more redundancy in numeric data.
 
-HDF5 does not compress a dataset as one monolithic block. Instead, it
-divides the dataset into smaller “chunks” and compresses each
-independently.
+`h5lite` picks the shuffle for you:
 
-By default,
-[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-targets a **1 MB chunk size** (`chunk_size = 1048576`), which is an
-excellent default. However, you should manually tune this depending on
-your specific access patterns:
+| Pipeline | Shuffle used |
+|:---|:---|
+| `"blosc1-..."` or `"blosc2-..."` | Blosc’s internal bitshuffle |
+| `"bshuf-lz4"` or `"bshuf-zstd"` | Bitshuffle (built into the codec) |
+| Any other codec (gzip, zstd, lz4, …) | HDF5’s byte shuffle |
+| Scale-Offset, szip, or ZFP | None. Shuffling would break these filters. |
+| 1-byte data (logicals, `uint8`, `int8`, small factors) | None. There is nothing to shuffle. |
 
-- **Too Small (\< 10 KB):** Imposes huge metadata overhead. The internal
-  HDF5 B-tree will bloat the file size, and the compression algorithms
-  won’t have enough data to identify repeating patterns.
+### Blosc2 Delta
 
-- **Too Large (\> 50 MB):** If you only want to read a tiny slice (e.g.,
-  10 rows) of your dataset, HDF5 is forced to load and decompress the
-  *entire chunk* containing those rows into memory. Overly large chunks
-  cause massive read latency for subsetting operations.
+With any Blosc2 codec, `blosc2_delta = TRUE` adds Blosc2’s delta
+pre-filter, which encodes values relative to a reference block before
+compression. It can help with slowly varying data, but it can also make
+things worse. Test it on your data with the helper from [Comparing
+Codecs](#comparing-codecs-on-your-own-data):
 
 ``` r
-# Optimizing for reading small, 100KB slices at a time
-cmp_chunk <- h5_compression("blosc2-zstd-5", chunk_size = 102400)
-h5_write(matrix(rnorm(10000), 100, 100), file, "data/tuned_chunks", compress = cmp_chunk)
+
+blosc2_codecs <- c("blosc2-zstd-5", "blosc2-lz4-5")
+rbind(
+  without_delta = compression_ratio(temps, blosc2_codecs),
+  with_delta    = compression_ratio(temps, blosc2_codecs, blosc2_delta = TRUE) )
+#>               blosc2-zstd-5 blosc2-lz4-5
+#> without_delta          2.47         1.31
+#> with_delta             2.45         1.44
 ```
 
-------------------------------------------------------------------------
+### Checksums
 
-## Evaluating Results with `h5_inspect()`
+`checksum = TRUE` appends a Fletcher32 checksum to every chunk.
+Corrupted chunks are then detected when they are read, instead of
+silently returning bad values. The checksum is built into HDF5, costs
+very little, and works with every codec.
 
-It can be difficult to know exactly how well your compression strategy
-is working. The
+### Rules and Automatic Adjustments
+
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+**raises an error** for settings that can never work:
+
+- An unrecognized compression string, or a level outside the codec’s
+  range.
+- `int_packing` or `float_rounding` combined with an szip, ZFP, or
+  `bshuf-` codec, or with `blosc2_delta` or `blosc2_truncate`.
+
+Other settings depend on the data being written, so
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+**quietly adjusts** them instead:
+
+- **Szip and ZFP** fall back to the default pipeline (shuffle + gzip
+  level 5) when the data type isn’t supported (see [ZFP](#zfp)), or when
+  the data is non-numeric, such as strings, data frames, or factors.
+  Szip also falls back when the chunk’s fastest-changing dimension has
+  fewer than 2 elements.
+- **Missing and non-finite values:** ZFP falls back to gzip, and
+  `float_rounding` is skipped, for data that contains `NA`, `NaN`, or
+  `Inf`, because those filters can’t store them.
+- **Shuffling** is skipped where it would be useless or harmful (see
+  [Shuffling](#shuffling)).
+- **`blosc2_delta` and `blosc2_truncate`** apply only to `"blosc2-..."`
+  codecs. With any other codec, they are ignored.
+- **Scalars** are never compressed.
+
+When in doubt,
 [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
-function allows you to peek under the hood of any dataset, revealing its
-storage layout, chunk dimensions, the exact filter pipeline applied, and
-the resulting compression ratio.
+shows the pipeline that was actually applied.
+
+## Chunking
+
+HDF5 doesn’t compress a dataset as one block. It splits the dataset into
+**chunks** and compresses each one independently. When you read any part
+of a chunk, HDF5 decompresses the entire chunk.
+
+`h5lite` picks chunk dimensions automatically. It starts with the full
+dataset and repeatedly halves its largest dimension until a chunk fits
+within `chunk_size`, which defaults to 1 MB. For a matrix with many more
+rows than columns, this keeps entire rows inside each chunk, which works
+well with [partial
+reading](https://cmmr.github.io/h5lite/articles/partial-reading.md) by
+row:
 
 ``` r
-# Write some highly compressible (sequential) integer data
-cmp_pack <- h5_compression('lz4-9', int_packing = TRUE, checksum = TRUE)
-h5_write(matrix(5001:5100, 10, 10), file, "inspect/packed_mtx", compress = cmp_pack)
 
-# Inspect the dataset's properties
-h5_inspect(file, "inspect/packed_mtx")
+mat <- matrix(rnorm(1e6), nrow = 10000, ncol = 100)   # 8 MB of float64
+
+h5_write(mat, file, "chunks/default")
+h5_inspect(file, "chunks/default")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    7.63 MB
+#>   Layout:  chunked             Disk:    6.74 MB
+#>   Chunks:  [1250 x 100]        Ratio:   1.13x
+#>   Pipeline: shuffle -> gzip
+
+h5_write(mat, file, "chunks/small", compress = h5_compression(chunk_size = 64 * 1024))
+h5_inspect(file, "chunks/small")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    7.63 MB
+#>   Layout:  chunked             Disk:    6.84 MB
+#>   Chunks:  [79 x 100]          Ratio:   1.11x
+#>   Pipeline: shuffle -> gzip
 ```
 
-**Output:**
+The default is a good choice for most data. Consider changing it when:
 
-``` text
-<HDF5 Dataset Properties>
-  Type:    uint16              Size:    200.00 B
-  Layout:  chunked             Disk:    120.00 B
-  Chunks:  [10 x 10]           Ratio:   1.67x
-  Pipeline: scaleoffset -> lz4 -> fletcher32
+- **You often read small slices** with `start` and `count`. Smaller
+  chunks (for example, 64-256 KB) mean less data is decompressed for
+  each read.
+- **You always read whole datasets.** Larger chunks may compress
+  slightly better.
+
+Avoid the extremes. Chunks below about 10 KB add a lot of indexing
+overhead and compress poorly. Chunks of tens of megabytes make every
+partial read expensive.
+
+## Inspecting the Results
+
+[`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
+reports how a dataset is stored:
+
+- **Type**: the HDF5 data type on disk.
+- **Size**: the uncompressed size of the data.
+- **Disk**: the space the data actually occupies in the file.
+- **Ratio**: Size divided by Disk.
+- **Layout**: `chunked` for compressed data. Scalars are stored as
+  `contiguous`.
+- **Chunks**: the chunk dimensions.
+- **Pipeline**: the filters that were actually applied, in order.
+
+``` r
+
+h5_inspect(file, "temps/configured")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    781.25 KB
+#>   Layout:  chunked             Disk:    400.67 KB
+#>   Chunks:  [25000]             Ratio:   1.95x
+#>   Pipeline: shuffle -> zstd -> fletcher32
 ```
 
-You can use this compression ratio readout to iteratively test different
+The returned object is a list, so you can also use the values in code.
+That’s what the `compression_ratio()` helper above does:
+
+``` r
+
+info <- h5_inspect(file, "temps/configured")
+info$storage_size
+#> [1] 410290
+sapply(info$filters, `[[`, "name")
+#> [1] "shuffle"    "zstd"       "fletcher32"
+```
+
+## Compression String Reference
+
+The `compress` argument of
+[`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md) and
 [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
-configurations until you find the perfect balance for your specific
-data.
+accepts the strings below. Strings are case-insensitive. A few
+shorthands also work: `compress = 1` through `compress = 9` selects that
+gzip level, `TRUE` selects the default (`"gzip"`), and `FALSE` selects
+`"none"`.
 
-``` r
-# Clean up
-unlink(file)
-```
+| Codec | Strings | Level or parameter |
+|:---|:---|:---|
+| None | `"none"` | \- |
+| Gzip | `"gzip"`, `"gzip-[level]"` | 1-9 (default 5) |
+| Zstandard | `"zstd"`, `"zstd-[level]"` | 1-22 (default 3) |
+| LZ4 | `"lz4"`, `"lz4-[level]"` | 0-12 (default 0). 0 is LZ4 and 1+ is LZ4-HC. |
+| Bitshuffle + LZ4 | `"bshuf-lz4"` | \- |
+| Bitshuffle + Zstandard | `"bshuf-zstd"`, `"bshuf-zstd-[level]"` | 1-22 (default 3) |
+| Blosc2 | `"blosc2"` (BloscLZ), `"blosc2-ndlz"` | \- |
+| Blosc2 + sub-codec | `"blosc2-lz4-[level]"`, `"blosc2-zstd-[level]"`, `"blosc2-gzip-[level]"` | Same ranges as the standalone codec |
+| Blosc2 + ZFP | `"blosc2-zfp-acc-[tol]"`, `"blosc2-zfp-prec-[bits]"`, `"blosc2-zfp-rate-[bits]"` | Required. `float32` and `float64` only. |
+| ZFP | `"zfp-acc-[tol]"`, `"zfp-prec-[bits]"`, `"zfp-rate-[bits]"` | Required |
+| ZFP (lossless) | `"zfp-rev"` | \- |
+| Szip | `"szip-nn"`, `"szip-ec"` | \- |
+| Blosc (v1) | `"blosc1"`, `"blosc1-snappy"`, `"blosc1-lz4-[level]"`, `"blosc1-zstd-[level]"`, `"blosc1-gzip-[level]"` | Same ranges as the standalone codec |
+| bzip2 | `"bzip2"`, `"bzip2-[level]"` | 1-9 (default 9) |
+| LZF, Snappy | `"lzf"`, `"snappy"` | \- |
 
-*For additional details about these codecs and the underlying library,
-please see <https://cmmr.github.io/hdf5lib/articles/compression.html>.*
+Inside Blosc and Blosc2, levels are mapped onto Blosc’s own 0-9 scale.
+The full range of a sub-codec’s levels is accepted, but some neighboring
+levels behave the same.
+
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+also accepts `chunk_size`, `checksum`, `int_packing`, `float_rounding`,
+`blosc2_delta`, and `blosc2_truncate`. See
+[`?h5_compression`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+for details.
+
+*For filter IDs, parameters, and implementation details of each codec,
+see the [hdf5lib compression
+guide](https://cmmr.github.io/hdf5lib/articles/compression.html).*

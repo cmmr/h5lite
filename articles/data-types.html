@@ -5,19 +5,19 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Data Types &amp; Compression • h5lite</title>
+<title>Data Types • h5lite</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" sizes="any" href="../favicon.ico">
 <link rel="manifest" href="../site.webmanifest">
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/Noto_Sans-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/Noto_Sans-0.4.10/font.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
-<meta property="og:title" content="Data Types &amp; Compression">
+<meta property="og:title" content="Data Types">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -27,7 +27,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,16 +41,22 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
-    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="../articles/compression.html">Compression</a></li>
-    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
-    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types &amp; Compression</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Data Structures</h6></li>
+    <li><a class="dropdown-item" href="../articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="../articles/matrices.html">Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="../articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="../articles/organization.html">Organization</a></li>
-    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="../articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Storage &amp; Performance</h6></li>
+    <li><a class="dropdown-item" href="../articles/data-types.html">Data Types</a></li>
+    <li><a class="dropdown-item" href="../articles/compression.html">Compression</a></li>
     <li><a class="dropdown-item" href="../articles/partial-reading.html">Partial Reading</a></li>
+    <li><a class="dropdown-item" href="../articles/parallel-io.html">Parallel Processing</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Interface</h6></li>
+    <li><a class="dropdown-item" href="../articles/oo-interface.html">Object-Oriented Interface</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -72,7 +78,7 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1>Data Types &amp; Compression</h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Data Types</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/cmmr/h5lite/blob/master/vignettes/data-types.Rmd" class="external-link"><code>vignettes/data-types.Rmd</code></a></small>
@@ -84,8 +90,7 @@
 <p><code>h5lite</code> is designed to seamlessly map R’s diverse data
 structures to HDF5’s portable format. This vignette explains the
 supported R data types, how <code>h5lite</code> writes them to HDF5, and
-how you can precisely control data types and compression when
-needed.</p>
+how you can precisely control data types when needed.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/cmmr/h5lite" class="external-link">h5lite</a></span><span class="op">)</span></span>
 <span><span class="va">file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".h5"</span><span class="op">)</span></span></code></pre></div>
@@ -245,7 +250,7 @@ supports reading and writing them via the <code>bit64</code>
 package.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"bit64"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">val</span> <span class="op">&lt;-</span> <span class="fu">bit64</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/bit64/man/as.integer64.character.html" class="external-link">as.integer64</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"9223372036854775807"</span>, <span class="st">"-9223372036854775807"</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">val</span> <span class="op">&lt;-</span> <span class="fu">bit64</span><span class="fu">::</span><span class="fu"><a href="https://bit64.r-lib.org/reference/as.integer64.character.html" class="external-link">as.integer64</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"9223372036854775807"</span>, <span class="st">"-9223372036854775807"</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">val</span>, <span class="va">file</span>, <span class="st">"integers/int64"</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 </div>
@@ -314,8 +319,8 @@ without <code>NA</code> to allow for compression.</li>
 <p>Explicitly requested with <code>as = "utf8"</code> or
 <code>as = "ascii"</code>.</p>
 <ul>
-<li>Compressible: <strong>NO</strong>
-</li>
+<li>Compressible: <strong>NO</strong> (the text is stored outside the
+dataset’s chunks)</li>
 <li>Handles <code>NA</code>: <strong>YES</strong>
 </li>
 </ul>
@@ -446,64 +451,33 @@ and consumes no storage space.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="cn">NULL</span>, <span class="va">file</span>, <span class="st">"placeholders/empty_slot"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="compression">Compression<a class="anchor" aria-label="anchor" href="#compression"></a>
+<h2 id="data-types-and-compression">Data Types and Compression<a class="anchor" aria-label="anchor" href="#data-types-and-compression"></a>
 </h2>
-<p>HDF5 supports transparent data compression using the zlib (gzip) and
-szip algorithms. You can control the compression behavior using the
-<code>compress</code> argument.</p>
+<p>Every dataset is compressed by default (gzip level 5 with byte
+shuffling), and the storage type you choose affects how well it
+compresses:</p>
 <ul>
 <li>
-<strong><code>"gzip-5"</code></strong> (default): Standard zlib
-compression at level 5. Levels <code>"gzip-1"</code> through
-<code>"gzip-9"</code> are also supported. Safe and universally
-compatible.</li>
+<strong>Smaller types mean less data.</strong> Storing doubles as
+<code>float32</code> halves their size before compression even starts.
+The compact integer types that <code>as = "auto"</code> picks save space
+the same way.</li>
 <li>
-<strong><code>"szip-nn"</code></strong>: Szip with Nearest Neighbor
-coding. Best for continuous, correlated, or floating-point data (e.g.,
-time series or smooth gradients).</li>
+<strong>Fixed-length strings compress. Variable-length strings
+don’t.</strong> If text makes up much of your data, use
+<code>as = "utf8[]"</code> when there are no <code>NA</code>
+values.</li>
 <li>
-<strong><code>"szip-ec"</code></strong>: Szip with Entropy Coding.
-Best for uncorrelated, discrete, or categorical integer data.</li>
-<li>
-<strong><code>"none"</code></strong>: Disables compression
-entirely.</li>
+<strong>ZFP needs 32- or 64-bit numeric types.</strong> If you use
+the ZFP codec on whole numbers, set <code>as = "int32"</code>,
+<code>"int64"</code>, <code>"float32"</code>, or <code>"float64"</code>
+explicitly. Otherwise <code>h5lite</code> falls back to gzip.</li>
 </ul>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Maximum zlib compression</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/max"</span>, compress <span class="op">=</span> <span class="st">"gzip-9"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Szip Entropy Coding for discrete integer data</span></span>
-<span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fl">1000</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"data/szip"</span>, compress <span class="op">=</span> <span class="st">"szip-ec"</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="the-shuffle-filter">The Shuffle Filter<a class="anchor" aria-label="anchor" href="#the-shuffle-filter"></a>
-</h3>
-<p>When <code>gzip</code> compression is enabled, <code>h5lite</code>
-automatically applies the HDF5 <strong>Byte Shuffle Filter</strong>
-before the data is compressed. The Shuffle Filter does not compress data
-itself; rather, it rearranges the byte stream to make it more
-compressible by zlib.</p>
-<p>It works by separating the bytes of each value by their significance.
-For example, in a 4-byte integer array:</p>
-<ol style="list-style-type: decimal">
-<li>All the 1st bytes (least significant) are grouped together.</li>
-<li>All the 2nd bytes are grouped together.</li>
-<li>And so on.</li>
-</ol>
-<p><strong>Why this helps:</strong></p>
-<ul>
-<li>
-<strong>Integers:</strong> Small integers often have many
-zero-padding bytes. The shuffle filter groups these zeros into long
-runs, which zlib compresses extremely efficiently. This allows
-<code>int32</code> data to compress nearly as well as <code>int8</code>
-data if the values are small.</li>
-<li>
-<strong>Doubles:</strong> Floating point numbers often share the
-same exponent bytes if they are in a similar range. The shuffle filter
-groups these identical exponent bytes, creating repetitive patterns that
-zlib can compress.</li>
-</ul>
-</div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1000</span><span class="op">)</span>, <span class="va">file</span>, <span class="st">"compressed/zstd"</span>, as <span class="op">=</span> <span class="st">"float32"</span>, compress <span class="op">=</span> <span class="st">"zstd-5"</span><span class="op">)</span></span></code></pre></div>
+<p><em>For codec choices, lossy compression, chunk sizing, and
+inspecting the results, see
+<code><a href="../articles/compression.html">vignette('compression')</a></code>.</em></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -516,7 +490,7 @@ zlib can compress.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

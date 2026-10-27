@@ -1,11 +1,12 @@
-# Data Types & Compression
+# Data Types
 
 `h5lite` is designed to seamlessly map R’s diverse data structures to
 HDF5’s portable format. This vignette explains the supported R data
 types, how `h5lite` writes them to HDF5, and how you can precisely
-control data types and compression when needed.
+control data types when needed.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -15,19 +16,19 @@ file <- tempfile(fileext = ".h5")
 `h5lite` supports reading and writing a wide range of R data types. The
 table below lists the default mapping when writing to HDF5.
 
-| R Data Type    | HDF5 Equivalent  | Description                                    |
-|:---------------|:-----------------|:-----------------------------------------------|
-| **Numeric**    | *variable*       | Selects optimal type: `uint8`, `float32`, etc. |
-| **Logical**    | `H5T_STD_U8LE`   | Stored as 0 (FALSE) or 1 (TRUE) (`uint8`).     |
-| **Character**  | `H5T_STRING`     | Variable or fixed-length UTF-8 strings.        |
-| **Complex**    | `H5T_COMPLEX`    | Native HDF5 2.0+ complex numbers.              |
-| **Raw**        | `H5T_OPAQUE`     | Raw bytes / binary data.                       |
-| **Factor**     | `H5T_ENUM`       | Integer indices with label mapping.            |
-| **integer64**  | `H5T_STD_I64LE`  | 64-bit signed integers via `bit64` package.    |
-| **POSIXt**     | `H5T_STRING`     | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`).      |
-| **List**       | `H5O_TYPE_GROUP` | Recursive container structure.                 |
-| **Data Frame** | `H5T_COMPOUND`   | Table of mixed types.                          |
-| **NULL**       | `H5S_NULL`       | Creates a placeholder.                         |
+| R Data Type | HDF5 Equivalent | Description |
+|:---|:---|:---|
+| **Numeric** | *variable* | Selects optimal type: `uint8`, `float32`, etc. |
+| **Logical** | `H5T_STD_U8LE` | Stored as 0 (FALSE) or 1 (TRUE) (`uint8`). |
+| **Character** | `H5T_STRING` | Variable or fixed-length UTF-8 strings. |
+| **Complex** | `H5T_COMPLEX` | Native HDF5 2.0+ complex numbers. |
+| **Raw** | `H5T_OPAQUE` | Raw bytes / binary data. |
+| **Factor** | `H5T_ENUM` | Integer indices with label mapping. |
+| **integer64** | `H5T_STD_I64LE` | 64-bit signed integers via `bit64` package. |
+| **POSIXt** | `H5T_STRING` | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`). |
+| **List** | `H5O_TYPE_GROUP` | Recursive container structure. |
+| **Data Frame** | `H5T_COMPOUND` | Table of mixed types. |
+| **NULL** | `H5S_NULL` | Creates a placeholder. |
 
 ## Dimensions: Scalars, Vectors, and Arrays
 
@@ -44,6 +45,7 @@ or N-dimensional arrays.
   N-dimensional datasets, preserving their shape.
 
 ``` r
+
 # 1. Scalar (0 dims)
 h5_write(I(42), file, "structure/scalar")
 
@@ -71,6 +73,7 @@ most compact HDF5 type.
   `uint[8|16|32|64]`, `float[16|32|64]`, or `bfloat16`.
 
 ``` r
+
 # Integers between 0 and 255 (uint8)
 h5_write(c(1L, 2L, 3L), file, "integers/small")
 
@@ -90,6 +93,7 @@ R does not natively support 64-bit integers, but `h5lite` supports
 reading and writing them via the `bit64` package.
 
 ``` r
+
 if (requireNamespace("bit64", quietly = TRUE)) {
   val <- bit64::as.integer64(c("9223372036854775807", "-9223372036854775807"))
   h5_write(val, file, "integers/int64")
@@ -105,6 +109,7 @@ R’s default numeric type is double-precision.
   `float[16|32|64]`, or `bfloat16`
 
 ``` r
+
 data <- rnorm(10)
 
 # Default (float64)
@@ -122,6 +127,7 @@ h5_write(data, file, "doubles/float32", as = "float32")
   `float[16|32|64]`, or `bfloat16`
 
 ``` r
+
 bools <- sample(c(TRUE, FALSE), 1000, replace = TRUE)
 
 h5_write(bools, file, "logicals/packed")
@@ -141,10 +147,11 @@ HDF5 supports two methods for storing strings. By default
 
 Explicitly requested with `as = "utf8"` or `as = "ascii"`.
 
-- Compressible: **NO**
+- Compressible: **NO** (the text is stored outside the dataset’s chunks)
 - Handles `NA`: **YES**
 
 ``` r
+
 # UTF-8 variable length
 h5_write(c("apple", "banana", NA), file, "strings/var_utf8")
 
@@ -161,6 +168,7 @@ Use `as = "ascii[10]"` / `as = "utf8[10]"` (explicit size=10) or
 - Handles `NA`: **NO**
 
 ``` r
+
 # UTF-8 auto-detected fixed length
 h5_write(c("apple", "banana"), file, "strings/fixed_utf8")
 
@@ -179,6 +187,7 @@ portability with other languages and HDF5 tools that do not share R’s
 specific epoch-based integer representation.
 
 ``` r
+
 now <- Sys.time()
 h5_write(now, file, "datetime/iso8601")
 ```
@@ -196,6 +205,7 @@ or libraries used to read these files are updated to support HDF5 2.0
 standards.
 
 ``` r
+
 comp <- c(1+2i, 3+4i)
 h5_write(comp, file, "complex_data")
 ```
@@ -207,6 +217,7 @@ storing binary blobs, images, or serialized objects where you need to
 preserve the exact byte sequence without interpretation.
 
 ``` r
+
 raw_vec <- as.raw(c(0x01, 0xFF, 0x1A))
 h5_write(raw_vec, file, "binary_blob")
 ```
@@ -219,6 +230,7 @@ ensuring the labels are preserved without duplicating string data for
 every element.
 
 ``` r
+
 fac <- factor(c("low", "high", "medium", "low"))
 h5_write(fac, file, "categorical")
 ```
@@ -231,6 +243,7 @@ for every element found. You can use `as = c("element_name" = "skip")`
 to exclude specific items.
 
 ``` r
+
 my_list <- list(data = 1:100, meta = list(valid = TRUE))
 h5_write(my_list, file, "types/list")
 ```
@@ -245,6 +258,7 @@ specify the type of individual columns.
 [`vignette('data-frames')`](https://cmmr.github.io/h5lite/articles/data-frames.md).*
 
 ``` r
+
 df <- data.frame(
   id = 1:5,
   score = c(10.5, 20.2, 15.0, 9.8, 30.1)
@@ -265,54 +279,31 @@ The `NULL` object in R is mapped to a dataset with a **NULL Dataspace**
 but contains no data elements and consumes no storage space.
 
 ``` r
+
 h5_write(NULL, file, "placeholders/empty_slot")
 ```
 
-## Compression
+## Data Types and Compression
 
-HDF5 supports transparent data compression using the zlib (gzip) and
-szip algorithms. You can control the compression behavior using the
-`compress` argument.
+Every dataset is compressed by default (gzip level 5 with byte
+shuffling), and the storage type you choose affects how well it
+compresses:
 
-- **`"gzip-5"`** (default): Standard zlib compression at level 5. Levels
-  `"gzip-1"` through `"gzip-9"` are also supported. Safe and universally
-  compatible.
-- **`"szip-nn"`**: Szip with Nearest Neighbor coding. Best for
-  continuous, correlated, or floating-point data (e.g., time series or
-  smooth gradients).
-- **`"szip-ec"`**: Szip with Entropy Coding. Best for uncorrelated,
-  discrete, or categorical integer data.
-- **`"none"`**: Disables compression entirely.
+- **Smaller types mean less data.** Storing doubles as `float32` halves
+  their size before compression even starts. The compact integer types
+  that `as = "auto"` picks save space the same way.
+- **Fixed-length strings compress. Variable-length strings don’t.** If
+  text makes up much of your data, use `as = "utf8[]"` when there are no
+  `NA` values.
+- **ZFP needs 32- or 64-bit numeric types.** If you use the ZFP codec on
+  whole numbers, set `as = "int32"`, `"int64"`, `"float32"`, or
+  `"float64"` explicitly. Otherwise `h5lite` falls back to gzip.
 
 ``` r
-# Maximum zlib compression
-h5_write(rnorm(1000), file, "data/max", compress = "gzip-9")
 
-# Szip Entropy Coding for discrete integer data
-h5_write(sample(1:5, 1000, replace = TRUE), file, "data/szip", compress = "szip-ec")
+h5_write(rnorm(1000), file, "compressed/zstd", as = "float32", compress = "zstd-5")
 ```
 
-### The Shuffle Filter
-
-When `gzip` compression is enabled, `h5lite` automatically applies the
-HDF5 **Byte Shuffle Filter** before the data is compressed. The Shuffle
-Filter does not compress data itself; rather, it rearranges the byte
-stream to make it more compressible by zlib.
-
-It works by separating the bytes of each value by their significance.
-For example, in a 4-byte integer array:
-
-1.  All the 1st bytes (least significant) are grouped together.
-2.  All the 2nd bytes are grouped together.
-3.  And so on.
-
-**Why this helps:**
-
-- **Integers:** Small integers often have many zero-padding bytes. The
-  shuffle filter groups these zeros into long runs, which zlib
-  compresses extremely efficiently. This allows `int32` data to compress
-  nearly as well as `int8` data if the values are small.
-- **Doubles:** Floating point numbers often share the same exponent
-  bytes if they are in a similar range. The shuffle filter groups these
-  identical exponent bytes, creating repetitive patterns that zlib can
-  compress.
+*For codec choices, lossy compression, chunk sizing, and inspecting the
+results, see
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md).*

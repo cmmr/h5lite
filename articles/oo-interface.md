@@ -15,6 +15,7 @@ returns an `h5` object (specifically, an environment) that maintains a
 reference to your file.
 
 ``` r
+
 library(h5lite)
 
 # Create a temporary file for this example
@@ -26,7 +27,7 @@ h5 <- h5_open(file)
 # The print method shows the file path and current internal working directory
 print(h5)
 #> <h5 handle>
-#>   File:  /tmp/RtmpY8L5sW/file2f6b37d5382b.h5 
+#>   File:  /tmp/RtmpOnqXAi/file30502ff789ef.h5 
 #>   WD:    / 
 #>   Size:  195 bytes 
 #>   Objects (root):  0
@@ -37,6 +38,7 @@ methods of this object. The primary benefit is that you no longer need
 to pass the `file` argument; it is handled implicitly.
 
 ``` r
+
 # Write data using the handle
 h5$write(1:10, "dataset1")
 h5$write(matrix(1:9, 3, 3), "matrix_data")
@@ -55,13 +57,13 @@ Almost all standard functions map directly to methods by dropping the
 `h5_` prefix:
 
 - [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
-  $\rightarrow$`h5$write()`
+  $`\rightarrow`$`h5$write()`
 - [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
-  $\rightarrow$`h5$read()`
+  $`\rightarrow`$`h5$read()`
 - [`h5_ls()`](https://cmmr.github.io/h5lite/reference/h5_ls.md)
-  $\rightarrow$`h5$ls()`
+  $`\rightarrow`$`h5$ls()`
 - [`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md)
-  $\rightarrow$`h5$attr_names()`
+  $`\rightarrow`$`h5$attr_names()`
 - And so on (see **Method Reference** below).
 
 ## Navigation and Working Directories
@@ -75,6 +77,7 @@ By default, the WD is the root (`/`). You can change it using `$cd()`
 and check it using `$pwd()`.
 
 ``` r
+
 # Create a group structure
 h5$create_group("simulations")
 
@@ -95,6 +98,7 @@ Absolute paths (paths starting with `/`) always override the current
 working directory:
 
 ``` r
+
 # Writes to the root, ignoring the fact that we are in /simulations
 h5$write(100, "/root_dataset")
 ```
@@ -102,6 +106,7 @@ h5$write(100, "/root_dataset")
 You can also use `..` to navigate up the hierarchy:
 
 ``` r
+
 h5$cd("..")
 h5$pwd() # Now back at "/"
 #> [1] "/"
@@ -117,6 +122,7 @@ If you assign the handle to a new variable, you are creating a new
 reference to the *same* handle. Modifying one will modify the other.
 
 ``` r
+
 h5_alias <- h5
 
 # Change directory in the alias
@@ -138,6 +144,7 @@ operation: it clears the internal file path and working directory from
 the handle, preventing further methods from being called on it.
 
 ``` r
+
 h5$close()
 
 # Further attempts to use the handle will result in an error:

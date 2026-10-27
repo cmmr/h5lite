@@ -1,23 +1,30 @@
 # Articles
 
-### All vignettes
+### Data Structures
+
+How R objects map to HDF5 datasets, groups, and attributes.
 
 - [Atomic
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.md):
-- [Attributes
-  In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
-- [Compression](https://cmmr.github.io/h5lite/articles/compression.md):
-- [Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.md):
-- [Data Types &
-  Compression](https://cmmr.github.io/h5lite/articles/data-types.md):
-- [Get Started with
-  h5lite](https://cmmr.github.io/h5lite/articles/h5lite.md):
 - [Matrices and
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.md):
-- [Object-Oriented
-  Interface](https://cmmr.github.io/h5lite/articles/oo-interface.md):
+- [Data Frames](https://cmmr.github.io/h5lite/articles/data-frames.md):
 - [Organization](https://cmmr.github.io/h5lite/articles/organization.md):
-- [Parallel
-  Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):
+- [Attributes
+  In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md):
+
+### Storage & Performance
+
+Controlling data types, compression, and efficient I/O.
+
+- [Data Types](https://cmmr.github.io/h5lite/articles/data-types.md):
+- [Compression](https://cmmr.github.io/h5lite/articles/compression.md):
 - [Partial
   Reading](https://cmmr.github.io/h5lite/articles/partial-reading.md):
+- [Parallel
+  Processing](https://cmmr.github.io/h5lite/articles/parallel-io.md):
+
+### Interface
+
+- [Object-Oriented
+  Interface](https://cmmr.github.io/h5lite/articles/oo-interface.md):

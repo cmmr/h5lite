@@ -10,6 +10,7 @@ using `h5lite`, as well as important limitations regarding their
 structure.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -27,6 +28,7 @@ You can write an attribute to any existing group or dataset using the
 This is useful for adding metadata after the data has been saved.
 
 ``` r
+
 # First, write a dataset
 h5_write(1:10, file, "measurements/temperature")
 
@@ -46,6 +48,7 @@ internal ones like `dim`, `names`, or `class`) are written as HDF5
 attributes.
 
 ``` r
+
 # Create a vector with custom R attributes
 data <- rnorm(5)
 attr(data, "description") <- I("Randomized control group")
@@ -79,6 +82,7 @@ If you only need a specific piece of metadata without reading the full
 dataset, you can use `h5_read(..., attr = "name")`.
 
 ``` r
+
 # Read just the 'units' attribute
 units <- h5_read(file, "measurements/temperature", attr = "units")
 print(units)
@@ -91,6 +95,7 @@ When you read a dataset, `h5lite` automatically reads all attached
 attributes and re-attaches them to the resulting R object.
 
 ``` r
+
 # Read the full dataset
 temps <- h5_read(file, "measurements/temperature")
 
@@ -121,6 +126,7 @@ Use
 to list the names of all attributes attached to a specific object.
 
 ``` r
+
 h5_attr_names(file, "measurements/temperature")
 #> [1] "units"     "date"      "precision"
 ```
@@ -131,6 +137,7 @@ You can remove a specific attribute using
 [`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md).
 
 ``` r
+
 # Delete the 'precision' attribute
 h5_delete(file, "measurements/temperature", attr = "precision")
 
@@ -156,6 +163,7 @@ This means if you write a named vector, matrix, or array as an
 attribute, **the names will be lost**.
 
 ``` r
+
 # A vector with names
 named_vec <- c(a = 1, b = 2, c = 3)
 
@@ -180,6 +188,7 @@ data frame as an attribute. However, `row.names` (which rely on
 dimension scales) will still be lost.
 
 ``` r
+
 # A data frame with metadata
 df <- data.frame(
   id = 1:3, 
@@ -219,6 +228,7 @@ To target an attribute specifically, prefix the name with `@` in the
 ### Customizing Storage Type
 
 ``` r
+
 # Write the temperature data again, but use a fixed length string for 'description'
 h5_write(data, file, "experiment/control", as = c("@description" = "ascii[]"))
 
@@ -231,6 +241,7 @@ h5_write(I(42), file, "measurements/temperature", "sensor_id", as = "uint8")
 You can also coerce attributes when reading them.
 
 ``` r
+
 # Force the 'valid' attribute to be read as logical, even if stored as integer
 meta <- h5_read(file, "experiment/control", attr = "valid", as = "logical")
 ```

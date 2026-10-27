@@ -9,6 +9,7 @@ This vignette covers writing matrices, preserving dimension names
 (`dimnames`), and understanding how `h5lite` manages dimension ordering.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -21,6 +22,7 @@ directly using
 `h5lite` preserves the dimensions exactly as they appear in R.
 
 ``` r
+
 # Create a 3x4 matrix
 mat <- matrix(1:12, nrow = 3, ncol = 4)
 
@@ -40,6 +42,7 @@ all.equal(mat, mat_in)
 The same logic applies to arrays with 3 or more dimensions.
 
 ``` r
+
 # Create a 3D array (e.g., spatial data over time: x, y, time)
 vol <- array(runif(24), dim = c(4, 3, 2))
 
@@ -61,6 +64,7 @@ This allows your row and column names to survive the round-trip to disk
 and back.
 
 ``` r
+
 # Create a matrix with row and column names
 data <- matrix(rnorm(6), nrow = 2)
 rownames(data) <- c("Sample_A", "Sample_B")
@@ -117,29 +121,65 @@ dimensions (writing a 3x4 matrix as 4x3) to avoid the cost of
 transposing data. `h5lite` prioritizes correctness and interoperability
 over raw write speed.*
 
-## Compression and Chunking
+## Chunking and Compression
 
-Matrices and arrays benefit significantly from compression. When you
-enable compression, `h5lite` automatically “chunks” the dataset (breaks
-it into smaller tiles).
+Matrices and arrays are compressed automatically. `h5lite` splits each
+one into **chunks** (tiles of about 1 MB) and compresses each chunk
+independently. By default, it uses gzip level 5. Use the `compress`
+argument to choose another codec, and
+[`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
+to see the chunk shape and the space saved:
 
 ``` r
-# Large matrix of zeros (highly compressible)
+
+# A large, mostly-zero matrix (highly compressible)
 sparse_mat <- matrix(0, nrow = 1000, ncol = 1000)
 sparse_mat[1:10, 1:10] <- 1
 
-# Write with default compression (zlib level 5)
+# Default compression (gzip level 5)
 h5_write(sparse_mat, file, "compressed/matrix")
 
-# Write with high compression (zlib level 9)
-h5_write(sparse_mat, file, "compressed/matrix_max", compress = "gzip-9")
+# Zstandard: faster than gzip, with a similar or better ratio
+h5_write(sparse_mat, file, "compressed/matrix_zstd", compress = "zstd-5")
+
+h5_inspect(file, "compressed/matrix_zstd")
+#> <HDF5 Dataset Properties>
+#>   Type:    uint8               Size:    976.56 KB
+#>   Layout:  chunked             Disk:    103.00 B
+#>   Chunks:  [1000 x 1000]       Ratio:   9708.74x
+#>   Pipeline: zstd
 ```
 
-## Partial I/O
+To pick chunk shapes, `h5lite` repeatedly halves a matrix’s largest
+dimension. For tall matrices, this keeps entire rows together in each
+chunk, which makes reading a block of rows efficient.
 
-`h5lite` is designed for simplicity and currently reads/writes full
-datasets at once. It does **not** support partial I/O (hyperslabs), such
-as reading only rows 1-10 of a 1,000,000 row matrix.
+*For codec choices, lossy compression of numeric arrays (such as ZFP),
+and chunk-size tuning, see
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md).*
 
-If you need to read specific subsets of data that are too large to fit
-in memory, you should consider using the `rhdf5` or `hdf5r` packages.
+## Partial Reading
+
+You don’t need to read a whole matrix to get part of it. The `start` and
+`count` arguments of
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md) read a
+block of rows directly from the file:
+
+``` r
+
+big <- matrix(1:50000, nrow = 10000, ncol = 5)
+h5_write(big, file, "big_matrix")
+
+# Read 3 rows, starting at row 5001
+h5_read(file, "big_matrix", start = 5001, count = 3)
+#>      [,1]  [,2]  [,3]  [,4]  [,5]
+#> [1,] 5001 15001 25001 35001 45001
+#> [2,] 5002 15002 25002 35002 45002
+#> [3,] 5003 15003 25003 35003 45003
+```
+
+For arrays with 3 or more dimensions, a single `start` value selects
+whole matrices along the last dimension. See
+[`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md)
+for the full rules, including how to target individual columns and
+elements.

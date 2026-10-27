@@ -11,12 +11,12 @@ If you are new to HDF5, the easiest way to understand it is through R
 analogues. HDF5 files function like a file system within a single file,
 containing “groups” (folders) and “datasets” (files).
 
-| R Concept           | HDF5 Concept         | Description                                                       |
-|:--------------------|:---------------------|:------------------------------------------------------------------|
-| **List**            | **Group**            | A container that holds other objects (datasets or other groups).  |
-| **Vector / Matrix** | **Dataset**          | A multidimensional array of data (numeric, character, etc.).      |
-| **Data Frame**      | **Compound Dataset** | A table where each column can have a different data type.         |
-| **Attribute**       | **Attribute**        | Metadata attached to a specific object (e.g., units, timestamps). |
+| R Concept | HDF5 Concept | Description |
+|:---|:---|:---|
+| **List** | **Group** | A container that holds other objects (datasets or other groups). |
+| **Vector / Matrix** | **Dataset** | A multidimensional array of data (numeric, character, etc.). |
+| **Data Frame** | **Compound Dataset** | A table where each column can have a different data type. |
+| **Attribute** | **Attribute** | Metadata attached to a specific object (e.g., units, timestamps). |
 
 ## Basic Usage
 
@@ -32,6 +32,7 @@ You can write standard R arrays and vectors directly to an HDF5 file.
 `h5lite` automatically handles dimensions.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 
@@ -64,6 +65,7 @@ for details on how dimension names are stored.*
 Data is read back into its native R format.
 
 ``` r
+
 x <- h5_read(file, "examples/matrix")
 print(x)
 #>      [,1] [,2] [,3]
@@ -77,19 +79,19 @@ print(x)
 `h5lite` automatically selects the appropriate HDF5 data type based on
 the content of your R objects.
 
-| R Data Type    | HDF5 Equivalent  | Description                                   |
-|:---------------|:-----------------|:----------------------------------------------|
-| **Numeric**    | *variable*       | Selects optimal type: `int8`, `float32`, etc. |
-| **Logical**    | `H5T_STD_U8LE`   | Stored as 0 (FALSE) or 1 (TRUE) (`uint8`).    |
-| **Character**  | `H5T_STRING`     | Variable or fixed-length UTF-8 strings.       |
-| **Complex**    | `H5T_COMPLEX`    | Native HDF5 2.0+ complex numbers.             |
-| **Raw**        | `H5T_OPAQUE`     | Raw bytes / binary data.                      |
-| **Factor**     | `H5T_ENUM`       | Integer indices with label mapping.           |
-| **integer64**  | `H5T_STD_I64LE`  | 64-bit signed integers via `bit64` package.   |
-| **POSIXt**     | `H5T_STRING`     | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`).     |
-| **List**       | `H5O_TYPE_GROUP` | Recursive container structure.                |
-| **Data Frame** | `H5T_COMPOUND`   | Table of mixed types.                         |
-| **NULL**       | `H5S_NULL`       | Creates a placeholder.                        |
+| R Data Type | HDF5 Equivalent | Description |
+|:---|:---|:---|
+| **Numeric** | *variable* | Selects optimal type: `int8`, `float32`, etc. |
+| **Logical** | `H5T_STD_U8LE` | Stored as 0 (FALSE) or 1 (TRUE) (`uint8`). |
+| **Character** | `H5T_STRING` | Variable or fixed-length UTF-8 strings. |
+| **Complex** | `H5T_COMPLEX` | Native HDF5 2.0+ complex numbers. |
+| **Raw** | `H5T_OPAQUE` | Raw bytes / binary data. |
+| **Factor** | `H5T_ENUM` | Integer indices with label mapping. |
+| **integer64** | `H5T_STD_I64LE` | 64-bit signed integers via `bit64` package. |
+| **POSIXt** | `H5T_STRING` | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`). |
+| **List** | `H5O_TYPE_GROUP` | Recursive container structure. |
+| **Data Frame** | `H5T_COMPOUND` | Table of mixed types. |
+| **NULL** | `H5S_NULL` | Creates a placeholder. |
 
 You can use the `as` argument to explicitly set the HDF5 data type for
 numeric, logical, and character vectors. See
@@ -104,6 +106,7 @@ R lists are naturally hierarchical, making them perfect for creating
 HDF5 groups.
 
 ``` r
+
 my_list <- list(
   config = list(id = 1L, status = "active"),
   data   = runif(10)
@@ -118,6 +121,7 @@ Data frames are written as native HDF5 compound datasets, allowing
 efficient storage of tabular data with mixed types.
 
 ``` r
+
 df <- data.frame(
   id = 1:5,
   val = c(1.1, 2.2, 3.3, 4.4, 5.5)
@@ -135,6 +139,7 @@ Attributes are small pieces of metadata attached to objects. `h5lite`
 writes R attributes (like `units` or `description`) as HDF5 attributes.
 
 ``` r
+
 # Write a dataset
 h5_write(1:10, file, "measurements")
 
@@ -155,6 +160,7 @@ into memory using
 [`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md).
 
 ``` r
+
 # List contents
 h5_ls(file)
 #>  [1] "examples"                 "examples/vector"         
@@ -187,3 +193,63 @@ h5_str(file)
 For advanced file operations, including moving, deleting, and verifying
 objects, refer to
 [`vignette('organization')`](https://cmmr.github.io/h5lite/articles/organization.md).
+
+## Compression
+
+Every dataset is compressed automatically with gzip, which any HDF5
+software can read. To use a faster, modern codec, set the `compress`
+argument.
+[`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
+shows how the data was stored:
+
+``` r
+
+readings <- round(rnorm(10000, mean = 20, sd = 2), 1)
+h5_write(readings, file, "compressed", compress = "zstd-5")
+h5_inspect(file, "compressed")
+#> <HDF5 Dataset Properties>
+#>   Type:    float64             Size:    78.12 KB
+#>   Layout:  chunked             Disk:    17.27 KB
+#>   Chunks:  [10000]             Ratio:   4.52x
+#>   Pipeline: shuffle -> zstd
+```
+
+`h5lite` bundles many codecs, including Zstandard, LZ4, Blosc2, and
+lossy ZFP. See
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md)
+to choose between them.
+
+## Reading Part of a Dataset
+
+For large datasets, `start` and `count` read just the part you need:
+
+``` r
+
+h5_read(file, "compressed", start = 101, count = 5)
+#> [1] 18.6 18.9 18.9 20.5 22.0
+```
+
+See
+[`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md)
+for how this works with matrices, arrays, and data frames.
+
+## Learn More
+
+- **Data structures:**
+  [`vignette('atomic-vectors')`](https://cmmr.github.io/h5lite/articles/atomic-vectors.md),
+  [`vignette('matrices')`](https://cmmr.github.io/h5lite/articles/matrices.md),
+  [`vignette('data-frames')`](https://cmmr.github.io/h5lite/articles/data-frames.md),
+  [`vignette('organization')`](https://cmmr.github.io/h5lite/articles/organization.md),
+  and
+  [`vignette('attributes-in-depth')`](https://cmmr.github.io/h5lite/articles/attributes-in-depth.md)
+- **Storage and performance:**
+  [`vignette('data-types')`](https://cmmr.github.io/h5lite/articles/data-types.md),
+  [`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md),
+  [`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md),
+  and
+  [`vignette('parallel-io')`](https://cmmr.github.io/h5lite/articles/parallel-io.md)
+- **Interface:**
+  [`vignette('oo-interface')`](https://cmmr.github.io/h5lite/articles/oo-interface.md)
+  for the
+  [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md) file
+  handle

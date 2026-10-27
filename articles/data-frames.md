@@ -9,6 +9,7 @@ This vignette explains how `h5lite` handles data frames, including row
 names, factors, and missing values.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -19,6 +20,7 @@ Writing a data frame is as simple as writing any other object. `h5lite`
 automatically maps each column to its appropriate HDF5 type.
 
 ``` r
+
 # Create a standard data frame
 df <- data.frame(
   id = 1:5,
@@ -57,6 +59,7 @@ This is particularly useful for optimizing storage (e.g., saving space
 by storing small integers as `int8` or single characters as `ascii[1]`).
 
 ``` r
+
 df_small <- data.frame(
   id   = 1:10,
   code = rep("A", 10)
@@ -78,6 +81,7 @@ reading, `h5lite` automatically restores these as the `row.names` of the
 data frame.
 
 ``` r
+
 mtcars_subset <- head(mtcars, 3)
 
 h5_write(mtcars_subset, file, "cars")
@@ -117,3 +121,47 @@ result <- h5_read(file, "cars")
 print(row.names(result))
 #> [1] "Mazda RX4"     "Mazda RX4 Wag" "Datsun 710"
 ```
+
+## Compression and Partial Reading
+
+Data frames are compressed automatically. Because a compound dataset
+stores each row as one record, all columns are compressed together, and
+the `compress` argument applies to the whole table. Choosing compact
+column types with `as` shrinks the data before compression even starts.
+
+``` r
+
+big_df <- data.frame(
+  id    = 1:10000,
+  group = sample(c("A", "B", "C"), 10000, replace = TRUE),
+  value = rnorm(10000)
+)
+
+h5_write(big_df, file, "big_df", compress = "zstd-5", as = c(value = "float32"))
+h5_inspect(file, "big_df")
+#> <HDF5 Dataset Properties>
+#>   Type:    compound[3]         Size:    68.36 KB
+#>   Layout:  chunked             Disk:    38.04 KB
+#>   Chunks:  [10000]             Ratio:   1.80x
+#>   Pipeline: shuffle -> zstd
+```
+
+Szip and ZFP work only on plain numeric datasets. If you request them
+for a data frame, `h5lite` uses gzip instead. See
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md)
+for details.
+
+You can also read a range of rows without loading the whole table:
+
+``` r
+
+h5_read(file, "big_df", start = 501, count = 3)
+#>    id group      value
+#> 1 501     A -0.7501841
+#> 2 502     B -0.3077862
+#> 3 503     A -0.6379241
+```
+
+See
+[`vignette('partial-reading')`](https://cmmr.github.io/h5lite/articles/partial-reading.md)
+for more.

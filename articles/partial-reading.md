@@ -55,6 +55,14 @@ seamlessly with datasets that are arranged optimally in this way,
 ensuring that the most efficient access patterns are also the easiest to
 type.
 
+Chunk size matters too. If you expect users to read small slices,
+smaller chunks mean less data is decompressed for each read.
+[`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
+shows a dataset’s chunk dimensions, and the `chunk_size` argument of
+[`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
+changes them. See the *Chunking* section of
+[`vignette('compression')`](https://cmmr.github.io/h5lite/articles/compression.md).
+
 ### Memory Efficiency of `start` and `count`
 
 Another massive benefit of partial reading is the memory footprint of
@@ -97,6 +105,7 @@ Here is how this intuitive behavior looks in practice across different
 shapes of data when fetching a block of units:
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 
@@ -161,6 +170,7 @@ will read 1 unit and **drop** the targeted dimension to simplify the
 resulting data structure.
 
 ``` r
+
 # Read exactly row 5 of the matrix. 
 # The row dimension is dropped, returning a 1D vector.
 row_vec <- h5_read(file, "my_matrix", start = 5)
@@ -179,6 +189,7 @@ matrix remains a matrix, even if your batch loop happens to fetch only a
 single row.
 
 ``` r
+
 # Read row 5, but signal a range request by setting count = 1.
 # The original geometry is preserved, returning a 1x5 matrix.
 row_mat <- h5_read(file, "my_matrix", start = 5, count = 1)
@@ -214,6 +225,7 @@ For a 3D array, this means the first value targets the matrix, the
 second targets the row, and the third targets the column.
 
 ``` r
+
 # Matrix: Start at row 5, column 2, and read 3 elements along that row.
 # The row is an exact point index (dropped). The columns are a range (preserved).
 # Returns a 1D vector of length 3.

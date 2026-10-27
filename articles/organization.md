@@ -10,6 +10,7 @@ This vignette explains how to create, manage, and modify this structure
 using `h5lite`.
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 ```
@@ -41,6 +42,7 @@ This function works like `mkdir -p`: it creates all necessary parent
 groups.
 
 ``` r
+
 # Create a deep hierarchy
 h5_create_group(file, "project_A/simulation/run_01")
 
@@ -68,6 +70,7 @@ This allows you to organize your entire data structure in R and save it
 to disk in one command.
 
 ``` r
+
 # Define a complex structure in R
 experiment_data <- list(
   metadata = list(
@@ -98,6 +101,7 @@ You can visualize the organization of your file using
   Prints a tree diagram. Useful for interactive exploration.
 
 ``` r
+
 # List all objects recursively
 h5_ls(file)
 #>  [1] "project_A"                        "project_A/simulation"            
@@ -134,6 +138,7 @@ This operation is metadata-only, meaning it is extremely fast even for
 large datasets, as the data itself is not rewritten.
 
 ``` r
+
 # Rename 'exp_101' to 'archive_101'
 h5_move(file, "exp_101", "archive_101")
 
@@ -166,6 +171,7 @@ You can remove groups or datasets using
 - The file size does not change, but the freed space can be reused.
 
 ``` r
+
 # Delete the entire archive group
 h5_delete(file, "archive_101")
 

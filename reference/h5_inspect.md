@@ -62,7 +62,7 @@ print(res)
 
 # Print the raw cd_values for blosc2
 dput(res$filters[[1]]$cd_values)
-#> c(2L, 0L, 8L, 8000L, 3L, 0L, 34L, 2L, 100L, 10L, 3L)
+#> c(2L, 0L, 8L, 8000L, 5L, 0L, 34L, 2L, 100L, 10L, 3L)
 
 unlink(file)
 ```

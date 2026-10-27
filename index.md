@@ -34,12 +34,14 @@ offers a fresh approach:
 Install the released version from CRAN:
 
 ``` r
+
 install.packages("h5lite")
 ```
 
 Or the development version from GitHub:
 
 ``` r
+
 # install.packages("pak")
 pak::pak("cmmr/h5lite")
 ```
@@ -51,6 +53,7 @@ The API consists primarily of two functions:
 [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md).
 
 ``` r
+
 library(h5lite)
 file <- tempfile(fileext = ".h5")
 
@@ -94,6 +97,7 @@ allows you to override automatic behavior and explicitly define on-disk
 types.
 
 ``` r
+
 # Force specific numeric types
 h5_write(1:10, file, "dataset_a", as = "int32")
 h5_write(rnorm(10), file, "dataset_b", as = "float32")
@@ -112,6 +116,7 @@ When writing Data Frames, you can map types for specific columns using a
 named vector.
 
 ``` r
+
 df <- data.frame(
   id    = 1:5, 
   score = c(1.1, 2.2, 3.3, 4.4, 5.5),
@@ -142,6 +147,7 @@ scaling—use the
 function.
 
 ``` r
+
 # Simple setup: High-performance Blosc2 with Zstandard
 h5_write(rnorm(1000), file, "data_blosc", compress = "blosc2-zstd")
 
@@ -157,20 +163,21 @@ reading via `start` and `count` parameters. It automatically targets the
 most logical dimension (e.g., rows in a matrix or elements in a vector).
 
 ``` r
+
 # Read a 100-row slice starting from row 500
 subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 ```
 
 ## Comparison
 
-| Feature               | h5lite                     | rhdf5 / hdf5r                                          |
-|:----------------------|:---------------------------|:-------------------------------------------------------|
-| **Philosophy**        | “Opinionated” & Simple     | Comprehensive Wrapper                                  |
-| **API Style**         | Native R (`read`/`write`)  | Low-level (Files, Dataspaces, Memspaces)               |
-| **HDF5 Installation** | **Bundled** (Zero-config)  | **System Requirement** (Manual install often required) |
-| **Data Typing**       | Automatic (safe defaults)  | Manual (user specified)                                |
-| **Partial I/O**       | **Supported** (Simplified) | Supported (Manual hyperslabs)                          |
-| **Learning Curve**    | Low (Minutes)              | High (Days)                                            |
+| Feature | h5lite | rhdf5 / hdf5r |
+|:---|:---|:---|
+| **Philosophy** | “Opinionated” & Simple | Comprehensive Wrapper |
+| **API Style** | Native R (`read`/`write`) | Low-level (Files, Dataspaces, Memspaces) |
+| **HDF5 Installation** | **Bundled** (Zero-config) | **System Requirement** (Manual install often required) |
+| **Data Typing** | Automatic (safe defaults) | Manual (user specified) |
+| **Partial I/O** | **Supported** (Simplified) | Supported (Manual hyperslabs) |
+| **Learning Curve** | Low (Minutes) | High (Days) |
 
 **Use `rhdf5` or `hdf5r` if you need to:**
 
@@ -192,17 +199,12 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 
 - **[Get Started](https://cmmr.github.io/h5lite/articles/h5lite.html)**:
   A general introduction.
+
+**Data Structures**
+
 - **[Atomic
   Vectors](https://cmmr.github.io/h5lite/articles/atomic-vectors.html)**:
   Details on vectors and scalars.
-- **[Data
-  Types](https://cmmr.github.io/h5lite/articles/data-types.html)**:
-  Controlling storage types.
-- **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**:
-  Configuring modern codecs and tuning chunk size.
-- **[Partial
-  Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**:
-  Efficiently reading data subsets with `start` and `count`.
 - **[Matrices and
   Arrays](https://cmmr.github.io/h5lite/articles/matrices.html)**:
   Handling multi-dimensional data.
@@ -214,13 +216,28 @@ subset <- h5_read(file, "large_matrix", start = 500, count = 100)
 - **[Attributes
   In-Depth](https://cmmr.github.io/h5lite/articles/attributes-in-depth.html)**:
   A deep dive into metadata handling.
+
+**Storage & Performance**
+
+- **[Data
+  Types](https://cmmr.github.io/h5lite/articles/data-types.html)**:
+  Controlling storage types.
+- **[Compression](https://cmmr.github.io/h5lite/articles/compression.html)**:
+  Choosing codecs, lossy compression, sharing files with other tools,
+  and tuning chunk size.
+- **[Partial
+  Reading](https://cmmr.github.io/h5lite/articles/partial-reading.html)**:
+  Efficiently reading data subsets with `start` and `count`.
+- **[Parallel
+  Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**:
+  Guide for multi-threaded and multi-process access.
+
+**Interface**
+
 - **[Object-Oriented
   Interface](https://cmmr.github.io/h5lite/articles/oo-interface.html)**:
   A guide to the
   [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md)
   handle for a streamlined workflow.
-- **[Parallel
-  Processing](https://cmmr.github.io/h5lite/articles/parallel-io.html)**:
-  Guide for multi-threaded and multi-process access.
 
 ![](https://cmmr-repos.goatcounter.com/count?p=/h5lite)

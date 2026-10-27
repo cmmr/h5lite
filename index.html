@@ -12,8 +12,8 @@
 <link rel="icon" sizes="any" href="favicon.ico">
 <link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/Noto_Sans-0.4.10/font.css" rel="stylesheet">
+<link href="deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/Noto_Sans-0.4.10/font.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><link href="extra.css" rel="stylesheet">
@@ -30,7 +30,7 @@
 
     <a class="navbar-brand me-2" href="index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.1.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,16 +44,22 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/atomic-vectors.html">Atomic Vectors</a></li>
-    <li><a class="dropdown-item" href="articles/attributes-in-depth.html">Attributes In-Depth</a></li>
-    <li><a class="dropdown-item" href="articles/compression.html">Compression</a></li>
-    <li><a class="dropdown-item" href="articles/data-frames.html">Data Frames</a></li>
-    <li><a class="dropdown-item" href="articles/data-types.html">Data Types &amp; Compression</a></li>
+<li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Data Structures</h6></li>
+    <li><a class="dropdown-item" href="articles/atomic-vectors.html">Atomic Vectors</a></li>
     <li><a class="dropdown-item" href="articles/matrices.html">Matrices and Arrays</a></li>
-    <li><a class="dropdown-item" href="articles/oo-interface.html">Object-Oriented Interface</a></li>
+    <li><a class="dropdown-item" href="articles/data-frames.html">Data Frames</a></li>
     <li><a class="dropdown-item" href="articles/organization.html">Organization</a></li>
-    <li><a class="dropdown-item" href="articles/parallel-io.html">Parallel Processing</a></li>
+    <li><a class="dropdown-item" href="articles/attributes-in-depth.html">Attributes In-Depth</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Storage &amp; Performance</h6></li>
+    <li><a class="dropdown-item" href="articles/data-types.html">Data Types</a></li>
+    <li><a class="dropdown-item" href="articles/compression.html">Compression</a></li>
     <li><a class="dropdown-item" href="articles/partial-reading.html">Partial Reading</a></li>
+    <li><a class="dropdown-item" href="articles/parallel-io.html">Parallel Processing</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Interface</h6></li>
+    <li><a class="dropdown-item" href="articles/oo-interface.html">Object-Oriented Interface</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -206,41 +212,41 @@
 <col width="25%">
 <col width="54%">
 </colgroup>
-<thead><tr class="header">
+<thead><tr>
 <th align="left">Feature</th>
 <th align="left">h5lite</th>
 <th align="left">rhdf5 / hdf5r</th>
 </tr></thead>
 <tbody>
-<tr class="odd">
+<tr>
 <td align="left"><strong>Philosophy</strong></td>
 <td align="left">“Opinionated” &amp; Simple</td>
 <td align="left">Comprehensive Wrapper</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left"><strong>API Style</strong></td>
 <td align="left">Native R (<code>read</code>/<code>write</code>)</td>
 <td align="left">Low-level (Files, Dataspaces, Memspaces)</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left"><strong>HDF5 Installation</strong></td>
 <td align="left">
 <strong>Bundled</strong> (Zero-config)</td>
 <td align="left">
 <strong>System Requirement</strong> (Manual install often required)</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left"><strong>Data Typing</strong></td>
 <td align="left">Automatic (safe defaults)</td>
 <td align="left">Manual (user specified)</td>
 </tr>
-<tr class="odd">
+<tr>
 <td align="left"><strong>Partial I/O</strong></td>
 <td align="left">
 <strong>Supported</strong> (Simplified)</td>
 <td align="left">Supported (Manual hyperslabs)</td>
 </tr>
-<tr class="even">
+<tr>
 <td align="left"><strong>Learning Curve</strong></td>
 <td align="left">Low (Minutes)</td>
 <td align="left">High (Days)</td>
@@ -266,14 +272,11 @@
 <ul>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/h5lite.html">Get Started</a></strong>: A general introduction.</li>
+</ul>
+<p><strong>Data Structures</strong></p>
+<ul>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/atomic-vectors.html">Atomic Vectors</a></strong>: Details on vectors and scalars.</li>
-<li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/data-types.html">Data Types</a></strong>: Controlling storage types.</li>
-<li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/compression.html">Compression</a></strong>: Configuring modern codecs and tuning chunk size.</li>
-<li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/partial-reading.html">Partial Reading</a></strong>: Efficiently reading data subsets with <code>start</code> and <code>count</code>.</li>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/matrices.html">Matrices and Arrays</a></strong>: Handling multi-dimensional data.</li>
 <li>
@@ -282,10 +285,22 @@
 <strong><a href="https://cmmr.github.io/h5lite/articles/organization.html">Organization</a></strong>: Using groups and lists to structure files.</li>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/attributes-in-depth.html">Attributes In-Depth</a></strong>: A deep dive into metadata handling.</li>
+</ul>
+<p><strong>Storage &amp; Performance</strong></p>
+<ul>
 <li>
-<strong><a href="https://cmmr.github.io/h5lite/articles/oo-interface.html">Object-Oriented Interface</a></strong>: A guide to the <code><a href="reference/h5_open.html">h5_open()</a></code> handle for a streamlined workflow.</li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/data-types.html">Data Types</a></strong>: Controlling storage types.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/compression.html">Compression</a></strong>: Choosing codecs, lossy compression, sharing files with other tools, and tuning chunk size.</li>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/partial-reading.html">Partial Reading</a></strong>: Efficiently reading data subsets with <code>start</code> and <code>count</code>.</li>
 <li>
 <strong><a href="https://cmmr.github.io/h5lite/articles/parallel-io.html">Parallel Processing</a></strong>: Guide for multi-threaded and multi-process access.</li>
+</ul>
+<p><strong>Interface</strong></p>
+<ul>
+<li>
+<strong><a href="https://cmmr.github.io/h5lite/articles/oo-interface.html">Object-Oriented Interface</a></strong>: A guide to the <code><a href="reference/h5_open.html">h5_open()</a></code> handle for a streamlined workflow.</li>
 </ul>
 <p><img src="https://cmmr-repos.goatcounter.com/count?p=/h5lite"></p>
 </div>
@@ -334,7 +349,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
