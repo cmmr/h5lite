@@ -125,6 +125,7 @@
 <li>
 <code>compress = "none"</code> no longer chunks or shuffles the data, and <code>compress = TRUE</code> now selects gzip instead of no compression.</li>
 <li>Unsupported data with <code>"blosc2-zfp-*"</code> now falls back to the default shuffle + gzip pipeline.</li>
+<li>Standalone ZFP (<code>"zfp-..."</code>) now falls back to the default shuffle + gzip pipeline for data whose chunks have no dimension longer than one (e.g. a single value) or more than four, which ZFP can’t compress. The write used to fail.</li>
 <li>
 <code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> no longer prints large chunk dimensions in scientific notation.</li>
 <li>Reorganized the vignettes; <code><a href="../articles/compression.html">vignette('compression')</a></code> now covers every bundled codec, lossy compression, sharing files with other software, and chunk tuning.</li>
@@ -137,7 +138,6 @@
 <li>
 <code>"blosc2-zfp-..."</code> now compresses arrays of more than four dimensions, and chunks with a dimension shorter than 4, which it used to store uncompressed. Data of fewer than four values is stored uncompressed, and <code>print(h5_inspect())</code> shows e.g. <code>blosc2 [zfp-acc] (declined: stored uncompressed)</code>.</li>
 <li>Blosc2 now compresses matrices and arrays after <code>int_packing</code> or <code>float_rounding</code>. It used to refuse every chunk with two or more dimensions after Scale-Offset, leaving them packed but otherwise uncompressed.</li>
-<li>Standalone ZFP (<code>"zfp-..."</code>) can’t compress chunks with no dimension longer than one (e.g. a single value) or more than four. It now stores them uncompressed under parameters that say so, which <code>h5py</code> with <code>hdf5plugin</code> can read, and <code>print(h5_inspect())</code> shows the filter as <code>zfp (declined: stored uncompressed)</code>; it used to record no parameters for them and read past them.</li>
 <li>
 <code>"snappy"</code> datasets are written in the block layout of snappy-cuda, the filter registered for Snappy’s HDF5 filter ID. h5lite built with hdf5lib 2.2.0.0 or earlier can’t read them; older ones can still be read.</li>
 <li>Datasets compressed with SZ3 (filter 32024) can be read when an SZ3 plugin is on <code>HDF5_PLUGIN_PATH</code>. hdf5lib’s read-only BitRound shim claimed SZ3’s ID, which made them unreadable; it now uses BitRound’s own, 32032, which <code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> names <code>bitround</code>.</li>

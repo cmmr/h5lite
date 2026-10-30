@@ -358,12 +358,10 @@ ZFP has requirements that are easy to miss:
   default pipeline (shuffle + gzip) instead. Those values come back
   exactly.
 
-- **Standalone ZFP compresses blocks of one to four dimensions.** A
-  chunk with no dimension longer than one (a single value, say) or with
-  more than four is stored uncompressed, and
-  [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
-  shows the filter as `zfp (declined: stored uncompressed)`. The values
-  come back exactly. With `hdf5lib` 2.2.0.1 or later, ZFP inside Blosc2
+- **Standalone ZFP compresses blocks of one to four dimensions.** Data
+  whose chunks have no dimension longer than one (a single value, say)
+  or more than four is written with the default pipeline (shuffle +
+  gzip) instead. With `hdf5lib` 2.2.0.1 or later, ZFP inside Blosc2
   compresses chunks of any shape, but stores data of fewer than four
   values uncompressed in the same way.
 
@@ -548,7 +546,8 @@ Other settings depend on the data being written, so
   level 5) when the data type isn’t supported (see [ZFP](#zfp)), or when
   the data is non-numeric, such as strings, data frames, or factors.
   Szip also falls back when the chunk’s fastest-changing dimension has
-  fewer than 2 elements.
+  fewer than 2 elements, and standalone ZFP when the chunks have no
+  dimension longer than one, or more than four.
 - **Missing and non-finite values:** ZFP falls back to the default
   pipeline, and `float_rounding` is skipped, for data that contains
   `NA`, `NaN`, or `Inf`, because those filters can’t store them.

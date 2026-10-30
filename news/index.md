@@ -155,6 +155,10 @@
   `compress = TRUE` now selects gzip instead of no compression.
 - Unsupported data with `"blosc2-zfp-*"` now falls back to the default
   shuffle + gzip pipeline.
+- Standalone ZFP (`"zfp-..."`) now falls back to the default shuffle +
+  gzip pipeline for data whose chunks have no dimension longer than one
+  (e.g. a single value) or more than four, which ZFP can’t compress. The
+  write used to fail.
 - [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
   no longer prints large chunk dimensions in scientific notation.
 - Reorganized the vignettes;
@@ -186,12 +190,6 @@ These take effect when h5lite is built with hdf5lib 2.2.0.1 or later.
   `float_rounding`. It used to refuse every chunk with two or more
   dimensions after Scale-Offset, leaving them packed but otherwise
   uncompressed.
-- Standalone ZFP (`"zfp-..."`) can’t compress chunks with no dimension
-  longer than one (e.g. a single value) or more than four. It now stores
-  them uncompressed under parameters that say so, which `h5py` with
-  `hdf5plugin` can read, and `print(h5_inspect())` shows the filter as
-  `zfp (declined: stored uncompressed)`; it used to record no parameters
-  for them and read past them.
 - `"snappy"` datasets are written in the block layout of snappy-cuda,
   the filter registered for Snappy’s HDF5 filter ID. h5lite built with
   hdf5lib 2.2.0.0 or earlier can’t read them; older ones can still be
