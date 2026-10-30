@@ -3,7 +3,8 @@
 Returns the names of the object.
 
 - For **Groups**, it returns the names of the objects contained in the
-  group (similar to [`ls()`](https://rdrr.io/r/base/ls.html)).
+  group (similar to [`ls()`](https://rdrr.io/r/base/ls.html)), in the
+  order [`sort()`](https://rdrr.io/r/base/sort.html) puts them.
 
 - For **Compound Datasets** (data.frames), it returns the column names.
 

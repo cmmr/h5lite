@@ -57,7 +57,7 @@ h5_compression(
 
   Control the HDF5 Scale-Offset filter for floating-point
   datasets.*(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2
-  pre-filters).*
+  pre-filters. Not applied to `float16`/`bfloat16` data.)*
 
   - `NULL` (Default): Disabled.
 
@@ -69,14 +69,18 @@ h5_compression(
 
   A logical value. If `TRUE` and a `blosc2` compressor is selected,
   applies the Blosc2 Delta pre-filter before compression. Default is
-  `FALSE`.
+  `FALSE`. `"blosc2-ndlz"` and `"blosc2-zfp-..."` run no pre-filters.
 
 - blosc2_truncate:
 
   An integer. If provided and a `blosc2` compressor is selected, applies
   the Blosc2 Truncate Precision pre-filter to floating-point data,
-  preserving exactly the specified number of uncompressed bits. Default
-  is `NULL`.
+  keeping that many bits of each value's mantissa (`1` to `52`), or with
+  a negative number dropping that many (`-1` to `-51`). Default is
+  `NULL`. It is not applied to integers, data frames,
+  `float16`/`bfloat16` data, data containing `NA` or `NaN`, or `float32`
+  data when it would drop 23 bits or more (a `float32`'s whole
+  mantissa). `"blosc2-ndlz"` and `"blosc2-zfp-..."` run no pre-filters.
 
 ## Value
 

@@ -39,6 +39,10 @@ group (e.g., `"data/old"` to `"data/new"`) or to move an object to a
 different group (e.g., `"data/old"` to `"archive/old"`). The destination
 parent group will be automatically created if it does not exist.
 
+A dataset's dimension scales (its `names`, `dimnames`, or `row.names`,
+stored as `"<from>_names"` etc.) are moved and renamed along with it.
+Moving a group into itself (e.g., `"g"` to `"g/sub"`) is an error.
+
 ## See also
 
 [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md),

@@ -25,7 +25,7 @@ table below lists the default mapping when writing to HDF5.
 | **Raw** | `H5T_OPAQUE` | Raw bytes / binary data. |
 | **Factor** | `H5T_ENUM` | Integer indices with label mapping. |
 | **integer64** | `H5T_STD_I64LE` | 64-bit signed integers via `bit64` package. |
-| **POSIXt** | `H5T_STRING` | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`). |
+| **POSIXt** | `H5T_STRING` | ISO 8601 string in UTC (`YYYY-MM-DDTHH:MM:SSZ`). |
 | **List** | `H5O_TYPE_GROUP` | Recursive container structure. |
 | **Data Frame** | `H5T_COMPOUND` | Table of mixed types. |
 | **NULL** | `H5S_NULL` | Creates a placeholder. |
@@ -182,9 +182,11 @@ h5_write(c("A", "B", "C"), file, "strings/fixed_ascii", as = "ascii[1]")
 ## Dates and Times (`POSIXt`)
 
 R date-time objects (`POSIXct` / `POSIXlt`) are stored as **Strings** in
-ISO 8601 format (`YYYY-MM-DDTHH:MM:SSZ`). This ensures maximum
-portability with other languages and HDF5 tools that do not share R’s
-specific epoch-based integer representation.
+ISO 8601 format, converted to UTC (`YYYY-MM-DDTHH:MM:SSZ`). Fractional
+seconds are kept, to the microsecond, when present (for example
+`2024-01-01T12:00:00.75Z`). This ensures maximum portability with other
+languages and HDF5 tools that do not share R’s specific epoch-based
+integer representation.
 
 ``` r
 

@@ -88,7 +88,7 @@ the content of your R objects.
 | **Raw** | `H5T_OPAQUE` | Raw bytes / binary data. |
 | **Factor** | `H5T_ENUM` | Integer indices with label mapping. |
 | **integer64** | `H5T_STD_I64LE` | 64-bit signed integers via `bit64` package. |
-| **POSIXt** | `H5T_STRING` | ISO 8601 string (`YYYY-MM-DDTHH:MM:SSZ`). |
+| **POSIXt** | `H5T_STRING` | ISO 8601 string in UTC (`YYYY-MM-DDTHH:MM:SSZ`). |
 | **List** | `H5O_TYPE_GROUP` | Recursive container structure. |
 | **Data Frame** | `H5T_COMPOUND` | Table of mixed types. |
 | **NULL** | `H5S_NULL` | Creates a placeholder. |
@@ -163,12 +163,12 @@ into memory using
 
 # List contents
 h5_ls(file)
-#>  [1] "examples"                 "examples/vector"         
-#>  [3] "examples/matrix"          "examples/array_3d"       
-#>  [5] "examples/scalar"          "experiment"              
+#>  [1] "examples"                 "examples/array_3d"       
+#>  [3] "examples/matrix"          "examples/scalar"         
+#>  [5] "examples/vector"          "experiment"              
 #>  [7] "experiment/config"        "experiment/config/id"    
 #>  [9] "experiment/config/status" "experiment/data"         
-#> [11] "study_data"               "measurements"
+#> [11] "measurements"             "study_data"
 
 # Print structure tree (like R's str())
 h5_str(file)

@@ -92,8 +92,11 @@ following storage types for it:
 
 - **Unsigned Integer:** `"uint8"`, `"uint16"`, `"uint32"`, `"uint64"`
 
-**NOTE:** `NA` values must be stored as `float64`. `NaN`, `Inf`, and
-`-Inf` must be stored as a floating point type.
+**NOTE:** `NA`, `NaN`, `Inf`, and `-Inf` must be stored as a floating
+point type. Only `float64` keeps `NA` distinct from `NaN`; other
+floating point types store `NA` as `NaN` (both are `NA` to
+[`is.na()`](https://rdrr.io/r/base/NA.html)). Values outside the type's
+range are an error.
 
 #### Examples
 
@@ -156,11 +159,14 @@ HDF5 dimension scales. Named vectors will generate an `<name>_names`
 dataset. A data.frame with row names will generate an `<name>_rownames`
 dataset (column names are saved internally in the original dataset).
 Matrices will generate `<name>_rownames` and `<name>_colnames` datasets.
-Arrays will generate `<name>_dimscale_1`, `<name>_dimscale_2`, etc.
-Special HDF5 metadata attributes link the dimension scales to the
-dataset. The dimension scales can be relocated with
-[`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md)
-without breaking the link.
+Arrays will generate `<name>_dimnames_1`, `<name>_dimnames_2`, etc. If
+one of these names is already taken by something else, a free name (e.g.
+`<name>_names_2`) is used instead. Special HDF5 metadata attributes link
+the dimension scales to the dataset.
+[`h5_move()`](https://cmmr.github.io/h5lite/reference/h5_move.md) moves
+a dataset's scales along with it, and
+[`h5_delete()`](https://cmmr.github.io/h5lite/reference/h5_delete.md)
+deletes them with it.
 
 ## See also
 
@@ -229,7 +235,7 @@ h5_str(file)
 #> │   └── scores <compound[3] × 5>
 #> │       ├── $id <uint8>
 #> │       ├── $score <float64>
-#> │       └── $grade <enum>
+#> │       └── $grade <ascii[1]>
 #> └── fixed_str <ascii[10] × 2>
 
 # 8. Clean up

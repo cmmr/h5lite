@@ -195,12 +195,12 @@ exploration.</li>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List all objects recursively</span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "project_A"                        "project_A/simulation"            </span></span>
-<span><span class="co">#&gt;  [3] "project_A/simulation/run_01"      "exp_101"                         </span></span>
+<span><span class="co">#&gt;  [1] "exp_101"                          "exp_101/measurements"            </span></span>
+<span><span class="co">#&gt;  [3] "exp_101/measurements/calibration" "exp_101/measurements/raw"        </span></span>
 <span><span class="co">#&gt;  [5] "exp_101/metadata"                 "exp_101/metadata/id"             </span></span>
 <span><span class="co">#&gt;  [7] "exp_101/metadata/technician"      "exp_101/metadata/timestamp"      </span></span>
-<span><span class="co">#&gt;  [9] "exp_101/measurements"             "exp_101/measurements/raw"        </span></span>
-<span><span class="co">#&gt; [11] "exp_101/measurements/calibration" "exp_101/status"</span></span>
+<span><span class="co">#&gt;  [9] "exp_101/status"                   "project_A"                       </span></span>
+<span><span class="co">#&gt; [11] "project_A/simulation"             "project_A/simulation/run_01"</span></span>
 <span></span>
 <span><span class="co"># Visualize the tree</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
@@ -234,17 +234,17 @@ for large datasets, as the data itself is not rewritten.</p>
 <span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "archive_101"                            </span></span>
-<span><span class="co">#&gt;  [2] "archive_101/metadata"                   </span></span>
-<span><span class="co">#&gt;  [3] "archive_101/metadata/id"                </span></span>
-<span><span class="co">#&gt;  [4] "archive_101/metadata/technician"        </span></span>
-<span><span class="co">#&gt;  [5] "archive_101/metadata/timestamp"         </span></span>
-<span><span class="co">#&gt;  [6] "archive_101/measurements"               </span></span>
-<span><span class="co">#&gt;  [7] "archive_101/measurements/raw"           </span></span>
-<span><span class="co">#&gt;  [8] "archive_101/measurements/calibration"   </span></span>
-<span><span class="co">#&gt;  [9] "archive_101/status"                     </span></span>
-<span><span class="co">#&gt; [10] "archive_101/project_A"                  </span></span>
-<span><span class="co">#&gt; [11] "archive_101/project_A/simulation"       </span></span>
-<span><span class="co">#&gt; [12] "archive_101/project_A/simulation/run_01"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [2] "archive_101/measurements"               </span></span>
+<span><span class="co">#&gt;  [3] "archive_101/measurements/calibration"   </span></span>
+<span><span class="co">#&gt;  [4] "archive_101/measurements/raw"           </span></span>
+<span><span class="co">#&gt;  [5] "archive_101/metadata"                   </span></span>
+<span><span class="co">#&gt;  [6] "archive_101/metadata/id"                </span></span>
+<span><span class="co">#&gt;  [7] "archive_101/metadata/technician"        </span></span>
+<span><span class="co">#&gt;  [8] "archive_101/metadata/timestamp"         </span></span>
+<span><span class="co">#&gt;  [9] "archive_101/project_A"                  </span></span>
+<span><span class="co">#&gt; [10] "archive_101/project_A/simulation"       </span></span>
+<span><span class="co">#&gt; [11] "archive_101/project_A/simulation/run_01"</span></span>
+<span><span class="co">#&gt; [12] "archive_101/status"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="deleting-objects">Deleting Objects<a class="anchor" aria-label="anchor" href="#deleting-objects"></a>

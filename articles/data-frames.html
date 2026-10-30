@@ -177,7 +177,6 @@ frame.</p>
 <span><span class="co">#&gt; │   ├── $id &lt;uint16&gt;</span></span>
 <span><span class="co">#&gt; │   └── $code &lt;ascii[1]&gt;</span></span>
 <span><span class="co">#&gt; ├── cars &lt;compound[11] × 3&gt;</span></span>
-<span><span class="co">#&gt; │   ├── @DIMENSION_LIST &lt;vlen × 1&gt;</span></span>
 <span><span class="co">#&gt; │   ├── $mpg &lt;float64&gt;</span></span>
 <span><span class="co">#&gt; │   ├── $cyl &lt;uint8&gt;</span></span>
 <span><span class="co">#&gt; │   ├── $disp &lt;uint8&gt;</span></span>
@@ -190,10 +189,7 @@ frame.</p>
 <span><span class="co">#&gt; │   ├── $gear &lt;uint8&gt;</span></span>
 <span><span class="co">#&gt; │   └── $carb &lt;uint8&gt;</span></span>
 <span><span class="co">#&gt; └── cars_rownames &lt;utf8 × 3&gt;</span></span>
-<span><span class="co">#&gt;     ├── @CLASS &lt;ascii[16] scalar&gt;</span></span>
-<span><span class="co">#&gt;     └── @REFERENCE_LIST &lt;compound[2] × 1&gt;</span></span>
-<span><span class="co">#&gt;         ├── $dataset &lt;reference&gt;</span></span>
-<span><span class="co">#&gt;         └── $dimension &lt;uint32&gt;</span></span>
+<span><span class="co">#&gt;     └── @CLASS &lt;ascii[16] scalar&gt;</span></span>
 <span></span>
 <span><span class="co"># Read back</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/h5_read.html">h5_read</a></span><span class="op">(</span><span class="va">file</span>, <span class="st">"cars"</span><span class="op">)</span></span>

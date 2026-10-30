@@ -142,8 +142,10 @@ data types.</p><div class="section">
 following storage types for it:</p><ul><li><p><strong>Floating Point:</strong> <code>"float16"</code>, <code>"float32"</code>, <code>"float64"</code>, <code>"bfloat16"</code></p></li>
 <li><p><strong>Signed Integer:</strong> <code>"int8"</code>, <code>"int16"</code>, <code>"int32"</code>, <code>"int64"</code></p></li>
 <li><p><strong>Unsigned Integer:</strong> <code>"uint8"</code>, <code>"uint16"</code>, <code>"uint32"</code>, <code>"uint64"</code></p></li>
-</ul><p><strong>NOTE:</strong> <code>NA</code> values must be stored as <code>float64</code>. <code>NaN</code>, <code>Inf</code>, and <code>-Inf</code>
-must be stored as a floating point type.</p><div class="section">
+</ul><p><strong>NOTE:</strong> <code>NA</code>, <code>NaN</code>, <code>Inf</code>, and <code>-Inf</code> must be stored as a floating point
+type. Only <code>float64</code> keeps <code>NA</code> distinct from <code>NaN</code>; other floating point
+types store <code>NA</code> as <code>NaN</code> (both are <code>NA</code> to <code><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na()</a></code>). Values outside the
+type's range are an error.</p><div class="section">
 <h4 id="examples-1">Examples<a class="anchor" aria-label="anchor" href="#examples-1"></a></h4>
 
 
@@ -211,10 +213,11 @@ HDF5 dimension scales. Named vectors will generate an <code>&lt;name&gt;_names</
 dataset. A data.frame with row names will generate an <code>&lt;name&gt;_rownames</code>
 dataset (column names are saved internally in the original dataset).
 Matrices will generate <code>&lt;name&gt;_rownames</code> and <code>&lt;name&gt;_colnames</code> datasets.
-Arrays will generate <code>&lt;name&gt;_dimscale_1</code>, <code>&lt;name&gt;_dimscale_2</code>, etc.
-Special HDF5 metadata attributes link the dimension scales to the dataset.
-The dimension scales can be relocated with <code><a href="h5_move.html">h5_move()</a></code> without breaking the
-link.</p>
+Arrays will generate <code>&lt;name&gt;_dimnames_1</code>, <code>&lt;name&gt;_dimnames_2</code>, etc.
+If one of these names is already taken by something else, a free name
+(e.g. <code>&lt;name&gt;_names_2</code>) is used instead. Special HDF5 metadata attributes
+link the dimension scales to the dataset. <code><a href="h5_move.html">h5_move()</a></code> moves a dataset's
+scales along with it, and <code><a href="h5_delete.html">h5_delete()</a></code> deletes them with it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -281,7 +284,7 @@ link.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │   └── scores &lt;compound[3] × 5&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── $id &lt;uint8&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> │       ├── $score &lt;float64&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── $grade &lt;enum&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> │       └── $grade &lt;ascii[1]&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> └── fixed_str &lt;ascii[10] × 2&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># 8. Clean up</span></span></span>

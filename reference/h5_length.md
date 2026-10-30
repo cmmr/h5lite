@@ -14,6 +14,10 @@ objects.
 
 - Scalar datasets or attributes return 1.
 
+- `NULL` datasets or attributes return 0.
+
+- Objects or attributes that don't exist return `NA`.
+
 ## Usage
 
 ``` r

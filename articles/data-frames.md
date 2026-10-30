@@ -98,7 +98,6 @@ h5_str(file)
 #> │   ├── $id <uint16>
 #> │   └── $code <ascii[1]>
 #> ├── cars <compound[11] × 3>
-#> │   ├── @DIMENSION_LIST <vlen × 1>
 #> │   ├── $mpg <float64>
 #> │   ├── $cyl <uint8>
 #> │   ├── $disp <uint8>
@@ -111,10 +110,7 @@ h5_str(file)
 #> │   ├── $gear <uint8>
 #> │   └── $carb <uint8>
 #> └── cars_rownames <utf8 × 3>
-#>     ├── @CLASS <ascii[16] scalar>
-#>     └── @REFERENCE_LIST <compound[2] × 1>
-#>         ├── $dataset <reference>
-#>         └── $dimension <uint32>
+#>     └── @CLASS <ascii[16] scalar>
 
 # Read back
 result <- h5_read(file, "cars")

@@ -94,6 +94,14 @@ successfully (no error is raised).</p>
     <p>Invisibly returns <code>NULL</code>. This function is called for its side effects.</p>
     </div>
     <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Deleting a dataset also deletes its dimension scales (the datasets holding its
+<code>names</code>, <code>dimnames</code>, or <code>row.names</code>), unless another dataset uses them too.
+Scales named other than <code>"&lt;name&gt;_..."</code> (such as those other software makes)
+are detached but kept. Deleting a dimension scale removes it from the
+datasets it labels.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="h5_create_group.html">h5_create_group()</a></code>, <code><a href="h5_move.html">h5_move()</a></code></p></div>
     </div>

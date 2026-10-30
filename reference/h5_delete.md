@@ -38,6 +38,14 @@ h5_delete(file, name, attr = NULL, warn = TRUE)
 
 Invisibly returns `NULL`. This function is called for its side effects.
 
+## Details
+
+Deleting a dataset also deletes its dimension scales (the datasets
+holding its `names`, `dimnames`, or `row.names`), unless another dataset
+uses them too. Scales named other than `"<name>_..."` (such as those
+other software makes) are detached but kept. Deleting a dimension scale
+removes it from the datasets it labels.
+
 ## See also
 
 [`h5_create_group()`](https://cmmr.github.io/h5lite/reference/h5_create_group.md),

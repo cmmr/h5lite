@@ -153,7 +153,7 @@ package.</td>
 <tr class="even">
 <td align="left"><strong>POSIXt</strong></td>
 <td align="left"><code>H5T_STRING</code></td>
-<td align="left">ISO 8601 string
+<td align="left">ISO 8601 string in UTC
 (<code>YYYY-MM-DDTHH:MM:SSZ</code>).</td>
 </tr>
 <tr class="odd">
@@ -361,8 +361,10 @@ for all fixed length strings.</p>
 <h2 id="dates-and-times-posixt">Dates and Times (<code>POSIXt</code>)<a class="anchor" aria-label="anchor" href="#dates-and-times-posixt"></a>
 </h2>
 <p>R date-time objects (<code>POSIXct</code> / <code>POSIXlt</code>) are
-stored as <strong>Strings</strong> in ISO 8601 format
-(<code>YYYY-MM-DDTHH:MM:SSZ</code>). This ensures maximum portability
+stored as <strong>Strings</strong> in ISO 8601 format, converted to UTC
+(<code>YYYY-MM-DDTHH:MM:SSZ</code>). Fractional seconds are kept, to the
+microsecond, when present (for example
+<code>2024-01-01T12:00:00.75Z</code>). This ensures maximum portability
 with other languages and HDF5 tools that do not share R’s specific
 epoch-based integer representation.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">

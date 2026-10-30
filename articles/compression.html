@@ -349,14 +349,17 @@ sub-codec: <code>"blosc2-zstd-5"</code> or <code>"blosc2-lz4-5"</code>,
 for example. Blosc2 also offers the optional <a href="#blosc2-delta">delta</a> and <a href="#blosc2-truncate-precision">truncate-precision</a> pre-filters,
 and it can run ZFP (<code>"blosc2-zfp-..."</code>).</p></li>
 </ul>
-<p>Blosc2 can compress the blocks of a chunk in parallel. It uses one
-thread unless you set the <code>BLOSC_NTHREADS</code> environment
-variable, for example with <code>Sys.setenv(BLOSC_NTHREADS = 4)</code>.
-Threads only pay off when chunks are large (say,
-<code>chunk_size = 16 * 1024^2</code> or more) and compression is slow,
-as with high Zstandard levels. With the default 1 MB chunks, the cost of
-starting threads for each chunk can make I/O <em>slower</em>. Blosc (v1)
-always uses one thread.</p>
+<p>Blosc and Blosc2 can compress and decompress the blocks of each chunk
+in parallel. They use one thread unless you ask for more with
+<code><a href="../reference/h5_threads.html">h5_threads()</a></code>, for example <code>h5_threads(4)</code>, which
+sets the thread count for everything in <code>h5lite</code> that runs in
+parallel. Threads help most when compression is slow, as with high
+Zstandard levels, and with large chunks, but they speed up reading at
+the default 1 MB chunk size too. To change the default of one thread
+without calling <code><a href="../reference/h5_threads.html">h5_threads()</a></code>, set the
+<code>H5LITE_NTHREADS</code> environment variable. Threads need
+<code>hdf5lib</code> 2.2.0.1 or later: when <code>h5lite</code> is built
+with <code>hdf5lib</code> 2.2.0.0, Blosc always uses one thread.</p>
 </div>
 <div class="section level3">
 <h3 id="szip">Szip<a class="anchor" aria-label="anchor" href="#szip"></a>
@@ -446,7 +449,9 @@ but that reader can’t decompress the data.</p></li>
 <li><p><strong>Python (<code>h5py</code>):</strong> Install the <a href="https://pypi.org/project/hdf5plugin/" class="external-link"><code>hdf5plugin</code></a>
 package and run <code>import hdf5plugin</code> before opening the file.
 This registers Blosc, Blosc2, Bitshuffle, bzip2, LZ4, ZFP, and
-Zstandard. LZF is already built into <code>h5py</code>.</p></li>
+Zstandard. LZF is already built into <code>h5py</code>. There is no
+Python plugin for <code>"snappy"</code>; use
+<code>"blosc1-snappy"</code> to share Snappy-compressed data.</p></li>
 <li><p><strong>Command-line tools, HDFView, and other
 languages:</strong> Install the filter plugin libraries and point the
 <code>HDF5_PLUGIN_PATH</code> environment variable at the directory that
@@ -531,8 +536,17 @@ the result with <code><a href="../reference/h5_inspect.html">h5_inspect()</a></c
 </li>
 <li><p><strong>It can’t store <code>NA</code>, <code>NaN</code>, or
 <code>Inf</code>.</strong> ZFP would turn them into arbitrary numbers,
-so <code>h5lite</code> uses gzip instead for any dataset that contains
-them.</p></li>
+so <code>h5lite</code> writes data that contains them with the default
+pipeline (shuffle + gzip) instead. Those values come back
+exactly.</p></li>
+<li><p><strong>Standalone ZFP compresses blocks of one to four
+dimensions.</strong> A chunk with no dimension longer than one (a single
+value, say) or with more than four is stored uncompressed, and
+<code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> shows the filter as
+<code>zfp (declined: stored uncompressed)</code>. The values come back
+exactly. With <code>hdf5lib</code> 2.2.0.1 or later, ZFP inside Blosc2
+compresses chunks of any shape, but stores data of fewer than four
+values uncompressed in the same way.</p></li>
 <li><p><strong>In Blosc2, accuracy mode supports only powers of
 ten.</strong> For <code>"blosc2-zfp-acc-[tolerance]"</code>, the
 tolerance is rounded down to a power of ten (for example,
@@ -604,14 +618,23 @@ szip, ZFP, Bitshuffle, or the Blosc2 pre-filters.</li>
 <div class="section level3">
 <h3 id="blosc2-truncate-precision">Blosc2 Truncate Precision<a class="anchor" aria-label="anchor" href="#blosc2-truncate-precision"></a>
 </h3>
-<p>With any Blosc2 codec, <code>blosc2_truncate = n</code> keeps
-<code>n</code> bits of each floating-point value’s mantissa and zeroes
-the rest, which makes the data much more compressible. The relative
-error is about 2<sup>-n</sup>. A <code>float64</code> has 52 mantissa
-bits and a <code>float32</code> has 23, so
-<code>blosc2_truncate = 23</code> gives <code>float64</code> data
-roughly single-precision accuracy while keeping the <code>float64</code>
-type.</p>
+<p>With any Blosc2 codec except NDLZ and ZFP,
+<code>blosc2_truncate = n</code> keeps <code>n</code> bits of each
+floating-point value’s mantissa and zeroes the rest, which makes the
+data much more compressible. The relative error is about 2<sup>-n</sup>.
+A <code>float64</code> has 52 mantissa bits and a <code>float32</code>
+has 23, so <code>blosc2_truncate = 23</code> gives <code>float64</code>
+data roughly single-precision accuracy while keeping the
+<code>float64</code> type. A negative <code>n</code> drops that many
+bits instead: <code>blosc2_truncate = -29</code> also keeps 23 bits of a
+<code>float64</code>.</p>
+<p>Truncation only applies to <code>float32</code> and
+<code>float64</code> data. Integers, data frames, and
+<code>float16</code>/<code>bfloat16</code> data are written without it,
+and so is data containing <code>NA</code> or <code>NaN</code>, since
+zeroing those bits would turn <code>NA</code> into <code>NaN</code> or
+<code>Inf</code>. So is <code>float32</code> data when a negative
+<code>n</code> would drop all 23 of its mantissa bits.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">1e5</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/h5_write.html">h5_write</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">file</span>, <span class="st">"lossy/truncated"</span>,</span>
@@ -626,7 +649,7 @@ type.</p>
 <span><span class="co">#&gt;   Type:    float64             Size:    781.25 KB</span></span>
 <span><span class="co">#&gt;   Layout:  chunked             Disk:    261.72 KB</span></span>
 <span><span class="co">#&gt;   Chunks:  [100000]            Ratio:   2.99x</span></span>
-<span><span class="co">#&gt;   Pipeline: blosc2 [bitshuffle -&gt; trunc(bits=16) -&gt; zstd]</span></span></code></pre></div>
+<span><span class="co">#&gt;   Pipeline: blosc2 [trunc(bits=16) -&gt; bitshuffle -&gt; zstd]</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -685,21 +708,25 @@ which exposes even more redundancy in numeric data.</p>
 <td align="left">Blosc’s internal bitshuffle</td>
 </tr>
 <tr class="even">
+<td align="left"><code>"blosc2-ndlz"</code></td>
+<td align="left">None. NDLZ works on the raw bytes.</td>
+</tr>
+<tr class="odd">
 <td align="left">
 <code>"bshuf-lz4"</code> or
 <code>"bshuf-zstd"</code>
 </td>
 <td align="left">Bitshuffle (built into the codec)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">Any other codec (gzip, zstd, lz4, …)</td>
 <td align="left">HDF5’s byte shuffle</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Scale-Offset, szip, or ZFP</td>
 <td align="left">None. Shuffling would break these filters.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">1-byte data (logicals, <code>uint8</code>,
 <code>int8</code>, small factors)</td>
 <td align="left">None. There is nothing to shuffle.</td>
@@ -710,10 +737,11 @@ which exposes even more redundancy in numeric data.</p>
 <div class="section level3">
 <h3 id="blosc2-delta">Blosc2 Delta<a class="anchor" aria-label="anchor" href="#blosc2-delta"></a>
 </h3>
-<p>With any Blosc2 codec, <code>blosc2_delta = TRUE</code> adds Blosc2’s
-delta pre-filter, which encodes values relative to a reference block
-before compression. It can help with slowly varying data, but it can
-also make things worse. Test it on your data with the helper from <a href="#comparing-codecs-on-your-own-data">Comparing Codecs</a>:</p>
+<p>With any Blosc2 codec except NDLZ and ZFP,
+<code>blosc2_delta = TRUE</code> adds Blosc2’s delta pre-filter, which
+encodes values relative to a reference block before compression. It can
+help with slowly varying data, but it can also make things worse. Test
+it on your data with the helper from <a href="#comparing-codecs-on-your-own-data">Comparing Codecs</a>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">blosc2_codecs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"blosc2-zstd-5"</span>, <span class="st">"blosc2-lz4-5"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
@@ -743,6 +771,8 @@ range.</li>
 <code>int_packing</code> or <code>float_rounding</code> combined
 with an szip, ZFP, or <code>bshuf-</code> codec, or with
 <code>blosc2_delta</code> or <code>blosc2_truncate</code>.</li>
+<li>A <code>blosc2_truncate</code> of <code>0</code>, or outside
+<code>-51</code> to <code>52</code>.</li>
 </ul>
 <p>Other settings depend on the data being written, so
 <code><a href="../reference/h5_write.html">h5_write()</a></code> <strong>quietly adjusts</strong> them
@@ -755,17 +785,22 @@ data frames, or factors. Szip also falls back when the chunk’s
 fastest-changing dimension has fewer than 2 elements.</li>
 <li>
 <strong>Missing and non-finite values:</strong> ZFP falls back to
-gzip, and <code>float_rounding</code> is skipped, for data that contains
-<code>NA</code>, <code>NaN</code>, or <code>Inf</code>, because those
-filters can’t store them.</li>
+the default pipeline, and <code>float_rounding</code> is skipped, for
+data that contains <code>NA</code>, <code>NaN</code>, or
+<code>Inf</code>, because those filters can’t store them.
+<code>blosc2_truncate</code> is skipped for data containing
+<code>NA</code> or <code>NaN</code>.</li>
 <li>
 <strong>Shuffling</strong> is skipped where it would be useless or
 harmful (see <a href="#shuffling">Shuffling</a>).</li>
 <li>
 <strong><code>blosc2_delta</code> and
 <code>blosc2_truncate</code></strong> apply only to
-<code>"blosc2-..."</code> codecs. With any other codec, they are
-ignored.</li>
+<code>"blosc2-..."</code> codecs other than <code>"blosc2-ndlz"</code>
+and <code>"blosc2-zfp-..."</code>. With any other codec, they are
+ignored. <code>blosc2_truncate</code> also applies only to
+<code>float32</code> and <code>float64</code> data, and not to
+<code>float32</code> data when it would drop all 23 mantissa bits.</li>
 <li>
 <strong>Scalars</strong> are never compressed.</li>
 </ul>

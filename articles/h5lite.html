@@ -244,7 +244,7 @@ package.</td>
 <tr class="even">
 <td align="left"><strong>POSIXt</strong></td>
 <td align="left"><code>H5T_STRING</code></td>
-<td align="left">ISO 8601 string
+<td align="left">ISO 8601 string in UTC
 (<code>YYYY-MM-DDTHH:MM:SSZ</code>).</td>
 </tr>
 <tr class="odd">
@@ -323,12 +323,12 @@ into memory using <code><a href="../reference/h5_ls.html">h5_ls()</a></code> and
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># List contents</span></span>
 <span><span class="fu"><a href="../reference/h5_ls.html">h5_ls</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "examples"                 "examples/vector"         </span></span>
-<span><span class="co">#&gt;  [3] "examples/matrix"          "examples/array_3d"       </span></span>
-<span><span class="co">#&gt;  [5] "examples/scalar"          "experiment"              </span></span>
+<span><span class="co">#&gt;  [1] "examples"                 "examples/array_3d"       </span></span>
+<span><span class="co">#&gt;  [3] "examples/matrix"          "examples/scalar"         </span></span>
+<span><span class="co">#&gt;  [5] "examples/vector"          "experiment"              </span></span>
 <span><span class="co">#&gt;  [7] "experiment/config"        "experiment/config/id"    </span></span>
 <span><span class="co">#&gt;  [9] "experiment/config/status" "experiment/data"         </span></span>
-<span><span class="co">#&gt; [11] "study_data"               "measurements"</span></span>
+<span><span class="co">#&gt; [11] "measurements"             "study_data"</span></span>
 <span></span>
 <span><span class="co"># Print structure tree (like R's str())</span></span>
 <span><span class="fu"><a href="../reference/h5_str.html">h5_str</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span>

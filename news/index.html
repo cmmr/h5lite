@@ -53,12 +53,75 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.2.0.0" id="h5lite-2200">h5lite 2.2.0.0<a class="anchor" aria-label="anchor" href="#h5lite-2200"></a></h2>
+<ul><li>Works with hdf5lib 2.2.0.0 and 2.2.0.1. Some fixes take effect only when h5lite is built with hdf5lib 2.2.0.1 or later; they are listed under “With hdf5lib 2.2.0.1” below.</li>
+<li>New <code><a href="../reference/h5_threads.html">h5_threads()</a></code> sets how many threads <code>h5lite</code> uses for parallel work, currently the Blosc and Blosc2 codecs. The <code>H5LITE_NTHREADS</code> environment variable sets the default. Threads need hdf5lib 2.2.0.1 or later.</li>
+</ul><div class="section level3">
+<h3 id="crashes-and-data-loss-2-2-0-0">Crashes and data loss<a class="anchor" aria-label="anchor" href="#crashes-and-data-loss-2-2-0-0"></a></h3>
+<ul><li>Fixed an R crash when a partial read of variable-length strings failed (e.g. a fractional <code>start</code>). <code>start</code> and <code>count</code> must now be whole numbers.</li>
+<li>Fixed writing a data frame with a matrix column reading past the end of its other columns. Matrix columns, columns of the wrong length, and duplicate or empty column names are now errors.</li>
+<li>An R error raised mid-call no longer leaves the HDF5 file open (and, on Windows, locked) for the rest of the session. Strings marked with <code>"bytes"</code> encoding are now rejected before writing starts.</li>
+<li>A compression filter that rejects data when a dataset is closed (as HDF5 flushes its chunk cache) is now an error, and the incomplete dataset is removed. Previously HDF5 dropped the chunk silently.</li>
+<li>
+<code><a href="../reference/h5_move.html">h5_move()</a></code> no longer deletes a group moved into itself (e.g. <code>"g"</code> to <code>"g/sub"</code>); this is now an error.</li>
+<li>Dimension scales (the datasets holding <code>names</code>, <code>dimnames</code>, and <code>row.names</code>) are now kept consistent: <code><a href="../reference/h5_move.html">h5_move()</a></code> moves a dataset’s scales with it, <code><a href="../reference/h5_delete.html">h5_delete()</a></code> and overwriting delete them with it (scales not named after the dataset, such as netCDF coordinate variables, are detached but kept), deleting a scale detaches it, and writing a scale never overwrites an unrelated object (previously, writing <code>x</code> replaced anything named <code>x_names</code>, and could rewrite the names of a moved dataset).</li>
+<li>
+<code>h5_write(list, file, name, attr = ...)</code> no longer replaces the dataset <code>name</code> with a group; lists can’t be written as attributes.</li>
+<li>List elements without unique, non-empty names are now an error instead of being dropped (or, for <code>list(a = 1, 2)</code>, deleting the group).</li>
+<li>Overwriting a group with a list now writes the new group in full before removing the old one, so a failure leaves the original intact.</li>
+<li>
+<code>POSIXct</code> times are now stored in UTC (previously local times were labelled <code>Z</code>), with fractional seconds. <code>POSIXlt</code> is now written like <code>POSIXct</code> instead of as an empty group.</li>
+<li>Fixed-length strings that fill their full width now keep their last character when read from files that pad with nulls or spaces (as h5py does).</li>
+<li>
+<code>utf8[n]</code> and fixed-length strings are no longer truncated in the middle of a multibyte character, and their width is measured in UTF-8 bytes.</li>
+<li>
+<code>as = "ascii"</code> now transliterates every string, not just the first.</li>
+<li>Values outside the range of the requested type (e.g. <code>70000</code> as <code>float16</code>, <code>2^63</code> as <code>int64</code>) are now an error instead of becoming <code>Inf</code> or wrapping around.</li>
+<li>
+<code>blosc2_truncate</code> no longer corrupts 32- and 64-bit integers, including those in data frames (it zeroed their low bits: with <code>blosc2_truncate = 10</code>, every <code>int32</code> below 8192 read back as 0), or turns <code>NA</code> into <code>NaN</code> or <code>Inf</code>. It now applies only to <code>float32</code> and <code>float64</code> data without <code>NA</code> or <code>NaN</code>.</li>
+<li>
+<code>int64</code> <code>NA</code> values now read back as <code>NA</code> instead of <code>-9.22e18</code>, and <code>uint64</code> values above the <code>int64</code> range read with <code>as = "bit64"</code> become <code>NA</code> (with a warning) instead of being clamped.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="other-fixes-2-2-0-0">Other fixes<a class="anchor" aria-label="anchor" href="#other-fixes-2-2-0-0"></a></h3>
+<ul><li>Enum values with no matching member, and attributes named like R’s structural attributes (<code>dim</code>, <code>class</code>, …), no longer produce malformed or reshaped results. Factors with empty-string levels can no longer be written.</li>
+<li>Reading a NULL dataset that has attributes no longer errors.</li>
+<li>Lists can be written to the root group (<code>h5_write(list, file, "/")</code>, <code>h5$write(list)</code>).</li>
+<li>
+<code><a href="../reference/h5_create_file.html">h5_create_file()</a></code> and <code><a href="../reference/h5_open.html">h5_open()</a></code> now work on read-only files.</li>
+<li>
+<code>as</code> fixes: an unnamed <code>as</code> (or non-<code>@</code> key) no longer applies to attributes when writing; <code>as</code> is now honored for factors (which can be stored as strings, e.g. <code>as = c(grade = "ascii[1]")</code>), raw, complex, <code>integer64</code>, NULL, and nested lists; <code>"skip"</code> and <code>"null"</code> must be spelled out rather than abbreviated; type-class keys like <code>.int</code> only match numeric data when reading; <code>"auto"</code> keeps the automatic type; attributes read or written directly accept plain or <code>@</code> keys; and <code>"null"</code> drops data frame columns when reading.</li>
+<li>A multi-value <code>start</code> on a data frame is now an error, and <code>start</code>/<code>count</code> on a group apply to each of its datasets.</li>
+<li>
+<code><a href="../reference/h5_length.html">h5_length()</a></code> returns 0 for NULL datasets and attributes.</li>
+<li>
+<code><a href="../reference/h5_ls.html">h5_ls()</a></code> and <code><a href="../reference/h5_names.html">h5_names()</a></code> (for groups) now return names in the order <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> puts them, instead of an arbitrary order, and <code>full.names = TRUE</code> returns absolute paths. <code><a href="../reference/h5_read.html">h5_read()</a></code> on a group and <code><a href="../reference/h5_str.html">h5_str()</a></code> now follow the order objects were created (in files written by this version; name order otherwise), so lists read back in the order they were written.</li>
+<li>
+<code><a href="../reference/h5_str.html">h5_str()</a></code> shows names longer than 255 bytes, and <code><a href="../reference/h5_str.html">h5_str()</a></code> and <code><a href="../reference/h5_attr_names.html">h5_attr_names()</a></code> no longer show HDF5’s <code>DIMENSION_LIST</code>/<code>REFERENCE_LIST</code> attributes.</li>
+<li>HDF5’s internal error stack is no longer printed before h5lite’s error messages.</li>
+<li>
+<code><a href="../reference/h5_open.html">h5_open()</a></code> handle methods now accept the same arguments as the corresponding functions (e.g. <code>h5$read(name, start, count)</code>), <code>".."</code> works in absolute paths, and a relative file path keeps working after <code><a href="https://rdrr.io/r/base/getwd.html" class="external-link">setwd()</a></code>.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I()</a></code> around a length-one <code>POSIXct</code> now writes a scalar, and its warning for longer objects appears once.</li>
+<li>
+<code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> reports filter parameters as non-negative numbers.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="compression-2-2-0-0">Compression<a class="anchor" aria-label="anchor" href="#compression-2-2-0-0"></a></h3>
 <ul><li>Fixed Blosc codecs without a level of their own (<code>"blosc1"</code>, <code>"blosc2"</code>, <code>"blosc2-ndlz"</code>, <code>"blosc1-snappy"</code>, standard <code>"blosc*-lz4"</code>) and <code>"blosc2-zfp-acc-*"</code> storing data uncompressed.</li>
 <li>
 <code>"blosc1-gzip"</code> and <code>"blosc2-gzip"</code> now use Blosc instead of plain gzip.</li>
 <li>ZFP and <code>float_rounding</code> no longer corrupt <code>NA</code>, <code>NaN</code>, or <code>Inf</code>: ZFP falls back to gzip and <code>float_rounding</code> is skipped for data containing them.</li>
 <li>
+<code>print(h5_inspect())</code> reads Blosc2’s settings in the new layout as well as those written by earlier versions (including the <code>blosc2_truncate</code> bits of 1-D datasets and of negative settings) and by other software, lists the pre-filters in the order they run (truncation, delta, shuffle), and shows when Blosc2’s ZFP codecs declined a dataset.</li>
+<li>
+<code>blosc2_delta</code> and <code>blosc2_truncate</code> are no longer passed to <code>"blosc2-ndlz"</code> and <code>"blosc2-zfp-..."</code>, which never ran them. <code>print(h5_inspect())</code> listed them anyway, and <code>blosc2_truncate = 8</code> made NDLZ use 8x8 cells. <code>print(h5_compression("blosc2-ndlz"))</code> no longer claims a bitshuffle.</li>
+<li>
+<code>blosc2_truncate</code> must be between -51 and 52, and not 0. A setting that keeps no bits or drops a whole mantissa used to leave the data uncompressed. For <code>float32</code> data, settings that would drop 23 bits or more are skipped.</li>
+<li>
 <code>"lz4-[level]"</code> now passes the requested LZ4-HC level instead of always using level 9.</li>
+<li>A ZFP tolerance or rate of 0 (e.g. <code>"blosc2-zfp-acc-0"</code>, which silently used a tolerance of 1) is now an error.</li>
+<li>
+<code>float_rounding</code> on <code>float16</code> or <code>bfloat16</code> data no longer makes the write fail; HDF5’s Scale-Offset filter can’t handle them, so it is skipped.</li>
 <li>
 <code>compress = "none"</code> no longer chunks or shuffles the data, and <code>compress = TRUE</code> now selects gzip instead of no compression.</li>
 <li>Unsupported data with <code>"blosc2-zfp-*"</code> now falls back to the default shuffle + gzip pipeline.</li>
@@ -66,6 +129,20 @@
 <code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> no longer prints large chunk dimensions in scientific notation.</li>
 <li>Reorganized the vignettes; <code><a href="../articles/compression.html">vignette('compression')</a></code> now covers every bundled codec, lossy compression, sharing files with other software, and chunk tuning.</li>
 </ul></div>
+<div class="section level3">
+<h3 id="with-hdf5lib-2-2-0-0">With hdf5lib 2.2.0.1<a class="anchor" aria-label="anchor" href="#with-hdf5lib-2-2-0-0"></a></h3>
+<p>These take effect when h5lite is built with hdf5lib 2.2.0.1 or later.</p>
+<ul><li>Blosc and Blosc2 use the threads set by <code><a href="../reference/h5_threads.html">h5_threads()</a></code>.</li>
+<li>Blosc2 datasets are stored in hdf5lib’s new parameter layout, which keeps the reference HDF5-Blosc2 filter’s values in its slots and packs the pre-filters and <code>blosc2_truncate</code> bits into the first. So <code>hdf5plugin</code> describes them by their last pre-filter, <code>h5py</code> can append to them, and <code>h5py</code> can read 1-D Blosc2 datasets. <code>hdf5plugin</code> used to read the pre-filter bitmask h5lite recorded as a single filter code, which isn’t a valid one with <code>blosc2_delta</code> or <code>blosc2_truncate</code>. 1-D Blosc2 datasets written earlier can’t be read by <code>h5py</code> until they are rewritten.</li>
+<li>
+<code>"blosc2-zfp-..."</code> now compresses arrays of more than four dimensions, and chunks with a dimension shorter than 4, which it used to store uncompressed. Data of fewer than four values is stored uncompressed, and <code>print(h5_inspect())</code> shows e.g. <code>blosc2 [zfp-acc] (declined: stored uncompressed)</code>.</li>
+<li>Blosc2 now compresses matrices and arrays after <code>int_packing</code> or <code>float_rounding</code>. It used to refuse every chunk with two or more dimensions after Scale-Offset, leaving them packed but otherwise uncompressed.</li>
+<li>Standalone ZFP (<code>"zfp-..."</code>) can’t compress chunks with no dimension longer than one (e.g. a single value) or more than four. It now stores them uncompressed under parameters that say so, which <code>h5py</code> with <code>hdf5plugin</code> can read, and <code>print(h5_inspect())</code> shows the filter as <code>zfp (declined: stored uncompressed)</code>; it used to record no parameters for them and read past them.</li>
+<li>
+<code>"snappy"</code> datasets are written in the block layout of snappy-cuda, the filter registered for Snappy’s HDF5 filter ID. h5lite built with hdf5lib 2.2.0.0 or earlier can’t read them; older ones can still be read.</li>
+<li>Datasets compressed with SZ3 (filter 32024) can be read when an SZ3 plugin is on <code>HDF5_PLUGIN_PATH</code>. hdf5lib’s read-only BitRound shim claimed SZ3’s ID, which made them unreadable; it now uses BitRound’s own, 32032, which <code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> names <code>bitround</code>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.1.1.1" id="h5lite-2111">h5lite 2.1.1.1<a class="anchor" aria-label="anchor" href="#h5lite-2111"></a></h2><p class="text-muted">CRAN release: 2026-05-18</p>
 <ul><li>Fixed warnings introduced by GCC 16: <code>‘%d’ directive output may be truncated</code> in <code>utils.c</code>.</li>

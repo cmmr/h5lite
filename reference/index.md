@@ -65,3 +65,5 @@ Functions for configuring HDF5 filter pipelines and compression.
 
 - [`h5_compression()`](https://cmmr.github.io/h5lite/reference/h5_compression.md)
   : Define HDF5 Compression and Filter Settings
+- [`h5_threads()`](https://cmmr.github.io/h5lite/reference/h5_threads.md)
+  : Set the Number of Threads

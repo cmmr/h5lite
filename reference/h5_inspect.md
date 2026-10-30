@@ -36,6 +36,16 @@ An object of class `inspect` (a named list) containing:
 
   A list describing each filter applied.
 
+## Details
+
+ZFP can't compress chunks with no dimension longer than one (such as a
+single value) or more than four. It then declines the whole dataset:
+every chunk is stored uncompressed, and
+[`print()`](https://rdrr.io/r/base/print.html) shows the filter as
+`zfp (declined: stored uncompressed)`. With `hdf5lib` 2.2.0.1 or later,
+Blosc2's ZFP codecs likewise decline chunks of fewer than four values,
+shown as, e.g., `blosc2 [zfp-acc] (declined: stored uncompressed)`.
+
 ## Examples
 
 ``` r
@@ -62,7 +72,7 @@ print(res)
 
 # Print the raw cd_values for blosc2
 dput(res$filters[[1]]$cd_values)
-#> c(2L, 0L, 8L, 8000L, 5L, 0L, 34L, 2L, 100L, 10L, 3L)
+#> c(2987393793, 0, 8, 8000, 5, 0, 34, 2, 100, 10)
 
 unlink(file)
 ```

@@ -89,6 +89,15 @@ layout, chunk dimensions, and a detailed list of all applied filters.</p>
 <dd><p>A list describing each filter applied.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>ZFP can't compress chunks with no dimension longer than one (such as a
+single value) or more than four. It then declines the whole dataset: every
+chunk is stored uncompressed, and <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows the filter as
+<code>zfp (declined: stored uncompressed)</code>. With <code>hdf5lib</code> 2.2.0.1 or later,
+Blosc2's ZFP codecs likewise decline chunks of fewer than four values, shown
+as, e.g., <code>blosc2 [zfp-acc] (declined: stored uncompressed)</code>.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -115,7 +124,7 @@ layout, chunk dimensions, and a detailed list of all applied filters.</p>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Print the raw cd_values for blosc2</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/dput.html" class="external-link">dput</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">filters</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">cd_values</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> c(2L, 0L, 8L, 8000L, 5L, 0L, 34L, 2L, 100L, 10L, 3L)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> c(2987393793, 0, 8, 8000, 5, 0, 34, 2, 100, 10)</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="va">file</span><span class="op">)</span></span></span>
 </code></pre></div>

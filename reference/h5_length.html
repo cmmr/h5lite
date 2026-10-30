@@ -4,12 +4,16 @@ For Compound Datasets (data.frames), this is the number of columns.
 For Datasets and Attributes, this is the product of all dimensions (total number of elements).
 For Groups, this is the number of objects directly contained in the group.
 Scalar datasets or attributes return 1.
+NULL datasets or attributes return 0.
+Objects or attributes that don't exist return NA.
 
 "><meta property="og:description" content="Behaves like length() for R objects.
 For Compound Datasets (data.frames), this is the number of columns.
 For Datasets and Attributes, this is the product of all dimensions (total number of elements).
 For Groups, this is the number of objects directly contained in the group.
 Scalar datasets or attributes return 1.
+NULL datasets or attributes return 0.
+Objects or attributes that don't exist return NA.
 
 "><meta property="og:image" content="https://cmmr.github.io/h5lite/logo.png"></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -69,6 +73,8 @@ Scalar datasets or attributes return 1.
 <li><p>For <strong>Datasets</strong> and <strong>Attributes</strong>, this is the product of all dimensions (total number of elements).</p></li>
 <li><p>For <strong>Groups</strong>, this is the number of objects directly contained in the group.</p></li>
 <li><p>Scalar datasets or attributes return 1.</p></li>
+<li><p><code>NULL</code> datasets or attributes return 0.</p></li>
+<li><p>Objects or attributes that don't exist return <code>NA</code>.</p></li>
 </ul></div>
 
     <div class="section level2">

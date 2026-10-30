@@ -107,7 +107,8 @@ bit-width for each individual chunk.</p></li>
 
 <dt id="arg-float-rounding">float_rounding<a class="anchor" aria-label="anchor" href="#arg-float-rounding"></a></dt>
 <dd><p>Control the HDF5 Scale-Offset filter for floating-point
-datasets.<em>(Note: Incompatible with <code>szip</code>, <code>zfp</code>, <code>bshuf</code>, and Blosc2 pre-filters).</em></p><ul><li><p><code>NULL</code> (Default): Disabled.</p></li>
+datasets.<em>(Note: Incompatible with <code>szip</code>, <code>zfp</code>, <code>bshuf</code>, and Blosc2 pre-filters.
+Not applied to <code>float16</code>/<code>bfloat16</code> data.)</em></p><ul><li><p><code>NULL</code> (Default): Disabled.</p></li>
 <li><p>Integer (e.g., <code>3</code>): The number of base-10 decimal places of detail to preserve
 before truncating and packing the values (e.g., <code>3.141</code>). Negative numbers
 round to powers of 10.</p></li>
@@ -116,13 +117,19 @@ round to powers of 10.</p></li>
 
 <dt id="arg-blosc-delta">blosc2_delta<a class="anchor" aria-label="anchor" href="#arg-blosc-delta"></a></dt>
 <dd><p>A logical value. If <code>TRUE</code> and a <code>blosc2</code> compressor is selected,
-applies the Blosc2 Delta pre-filter before compression. Default is <code>FALSE</code>.</p></dd>
+applies the Blosc2 Delta pre-filter before compression. Default is <code>FALSE</code>.
+<code>"blosc2-ndlz"</code> and <code>"blosc2-zfp-..."</code> run no pre-filters.</p></dd>
 
 
 <dt id="arg-blosc-truncate">blosc2_truncate<a class="anchor" aria-label="anchor" href="#arg-blosc-truncate"></a></dt>
 <dd><p>An integer. If provided and a <code>blosc2</code> compressor is selected,
-applies the Blosc2 Truncate Precision pre-filter to floating-point data, preserving
-exactly the specified number of uncompressed bits. Default is <code>NULL</code>.</p></dd>
+applies the Blosc2 Truncate Precision pre-filter to floating-point data, keeping
+that many bits of each value's mantissa (<code>1</code> to <code>52</code>), or with a negative
+number dropping that many (<code>-1</code> to <code>-51</code>). Default is <code>NULL</code>. It is
+not applied to integers, data frames, <code>float16</code>/<code>bfloat16</code> data, data
+containing <code>NA</code> or <code>NaN</code>, or <code>float32</code> data when it would drop 23 bits or
+more (a <code>float32</code>'s whole mantissa). <code>"blosc2-ndlz"</code> and <code>"blosc2-zfp-..."</code>
+run no pre-filters.</p></dd>
 
 </dl></div>
     <div class="section level2">

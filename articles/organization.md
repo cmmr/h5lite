@@ -104,12 +104,12 @@ You can visualize the organization of your file using
 
 # List all objects recursively
 h5_ls(file)
-#>  [1] "project_A"                        "project_A/simulation"            
-#>  [3] "project_A/simulation/run_01"      "exp_101"                         
+#>  [1] "exp_101"                          "exp_101/measurements"            
+#>  [3] "exp_101/measurements/calibration" "exp_101/measurements/raw"        
 #>  [5] "exp_101/metadata"                 "exp_101/metadata/id"             
 #>  [7] "exp_101/metadata/technician"      "exp_101/metadata/timestamp"      
-#>  [9] "exp_101/measurements"             "exp_101/measurements/raw"        
-#> [11] "exp_101/measurements/calibration" "exp_101/status"
+#>  [9] "exp_101/status"                   "project_A"                       
+#> [11] "project_A/simulation"             "project_A/simulation/run_01"
 
 # Visualize the tree
 h5_str(file)
@@ -147,17 +147,17 @@ h5_move(file, "project_A", "archive_101/project_A")
 
 h5_ls(file)
 #>  [1] "archive_101"                            
-#>  [2] "archive_101/metadata"                   
-#>  [3] "archive_101/metadata/id"                
-#>  [4] "archive_101/metadata/technician"        
-#>  [5] "archive_101/metadata/timestamp"         
-#>  [6] "archive_101/measurements"               
-#>  [7] "archive_101/measurements/raw"           
-#>  [8] "archive_101/measurements/calibration"   
-#>  [9] "archive_101/status"                     
-#> [10] "archive_101/project_A"                  
-#> [11] "archive_101/project_A/simulation"       
-#> [12] "archive_101/project_A/simulation/run_01"
+#>  [2] "archive_101/measurements"               
+#>  [3] "archive_101/measurements/calibration"   
+#>  [4] "archive_101/measurements/raw"           
+#>  [5] "archive_101/metadata"                   
+#>  [6] "archive_101/metadata/id"                
+#>  [7] "archive_101/metadata/technician"        
+#>  [8] "archive_101/metadata/timestamp"         
+#>  [9] "archive_101/project_A"                  
+#> [10] "archive_101/project_A/simulation"       
+#> [11] "archive_101/project_A/simulation/run_01"
+#> [12] "archive_101/status"
 ```
 
 ## Deleting Objects

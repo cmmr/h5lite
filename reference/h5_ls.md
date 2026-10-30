@@ -39,7 +39,14 @@ h5_ls(file, name = "/", recursive = TRUE, full.names = FALSE, scales = FALSE)
 
 A character vector of object names. If `name` is `/` (the default), the
 paths are relative to the root of the file. If `name` is another group,
-the paths are relative to that group (unless `full.names = TRUE`).
+the paths are relative to that group (unless `full.names = TRUE`, which
+returns absolute paths such as `"/group/dataset"`).
+
+Names are in the order [`sort()`](https://rdrr.io/r/base/sort.html) puts
+them, which depends on the locale.
+[`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+instead returns a group's contents in the order they were written, where
+the file records it.
 
 ## See also
 

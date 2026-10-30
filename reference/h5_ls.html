@@ -92,7 +92,11 @@ other datasets.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A character vector of object names. If <code>name</code> is <code>/</code> (the default),
 the paths are relative to the root of the file. If <code>name</code> is another group,
-the paths are relative to that group (unless <code>full.names = TRUE</code>).</p>
+the paths are relative to that group (unless <code>full.names = TRUE</code>, which
+returns absolute paths such as <code>"/group/dataset"</code>).</p>
+<p>Names are in the order <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code> puts them, which depends on the locale.
+<code><a href="h5_read.html">h5_read()</a></code> instead returns a group's contents in the order they were
+written, where the file records it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

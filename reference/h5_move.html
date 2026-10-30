@@ -92,6 +92,9 @@ for very large datasets.</p>
 (e.g., <code>"data/old"</code> to <code>"data/new"</code>) or to move an object to a
 different group (e.g., <code>"data/old"</code> to <code>"archive/old"</code>). The destination
 parent group will be automatically created if it does not exist.</p>
+<p>A dataset's dimension scales (its <code>names</code>, <code>dimnames</code>, or <code>row.names</code>,
+stored as <code>"&lt;from&gt;_names"</code> etc.) are moved and renamed along with it.
+Moving a group into itself (e.g., <code>"g"</code> to <code>"g/sub"</code>) is an error.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
