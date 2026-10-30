@@ -100,8 +100,8 @@ h5_typeof <- function (file, name, attr = NULL) {
 
   file <- validate_strings(file, name, attr, must_exist = TRUE)
 
-  if (is.null(attr)) { .Call("C_h5_typeof",      file, name,       PACKAGE = "h5lite") } 
-  else               { .Call("C_h5_typeof_attr", file, name, attr, PACKAGE = "h5lite") }
+  if (is.null(attr)) { h5_call(.Call("C_h5_typeof",      file, name, PACKAGE = "h5lite")) } 
+  else               { h5_call(.Call("C_h5_typeof_attr", file, name, attr, PACKAGE = "h5lite")) }
 }
 
 
@@ -137,8 +137,8 @@ h5_dim <- function (file, name, attr = NULL) {
 
   file <- validate_strings(file, name, attr, must_exist = TRUE)
 
-  if (is.null(attr)) { .Call("C_h5_dim",      file, name,       PACKAGE = "h5lite") } 
-  else               { .Call("C_h5_dim_attr", file, name, attr, PACKAGE = "h5lite") }
+  if (is.null(attr)) { h5_call(.Call("C_h5_dim",      file, name, PACKAGE = "h5lite")) } 
+  else               { h5_call(.Call("C_h5_dim_attr", file, name, attr, PACKAGE = "h5lite")) }
 }
 
 
@@ -235,7 +235,7 @@ h5_is_group <- function (file, name, attr = NULL) {
   if (!h5_exists(file, name)) return(FALSE)
 
   # Call the C function to check if the object's type is H5O_TYPE_GROUP.
-  .Call("C_h5_is_group", file, name, PACKAGE = "h5lite")
+  h5_call(.Call("C_h5_is_group", file, name, PACKAGE = "h5lite"))
 }
 
 #' Check if an HDF5 Object is a Dataset
@@ -271,13 +271,14 @@ h5_is_dataset <- function (file, name, attr = NULL) {
   if (!is.null(attr))               return(TRUE)
   
   # Call the C function to check if the object's type is H5O_TYPE_DATASET.
-  .Call("C_h5_is_dataset", file, name, PACKAGE = "h5lite")
+  h5_call(.Call("C_h5_is_dataset", file, name, PACKAGE = "h5lite"))
 }
 
 #' Get Names of an HDF5 Object
 #'
 #' Returns the names of the object.
-#' * For **Groups**, it returns the names of the objects contained in the group (similar to `ls()`).
+#' * For **Groups**, it returns the names of the objects contained in the group (similar to `ls()`),
+#'   in the order [sort()] puts them.
 #' * For **Compound Datasets** (data.frames), it returns the column names.
 #' * For other **Datasets**, it looks for a dimension scale and returns it if found.
 #'
@@ -307,7 +308,7 @@ h5_names <- function (file, name = "/", attr = NULL) {
   file <- validate_strings(file, name, attr, must_exist = TRUE)
 
   if (h5_is_dataset(file, name, attr)) {
-    res <- .Call("C_h5_names", file, name, attr, PACKAGE = "h5lite")
+    res <- h5_call(.Call("C_h5_names", file, name, attr, PACKAGE = "h5lite"))
   }
   else {
     res <- h5_ls(file, name, recursive = FALSE, full.names = FALSE)
@@ -342,7 +343,9 @@ h5_attr_names <- function (file, name = "/") {
   file <- validate_strings(file, name, must_exist = TRUE)
   
   # Call the C function that iterates over attributes and returns their names.
-  .Call("C_h5_attr_names", file, name, PACKAGE = "h5lite")
+  # DIMENSION_LIST and REFERENCE_LIST are HDF5's dimension scale bookkeeping.
+  res <- h5_call(.Call("C_h5_attr_names", file, name, PACKAGE = "h5lite"))
+  setdiff(res, c("DIMENSION_LIST", "REFERENCE_LIST"))
 }
 
 
@@ -353,6 +356,8 @@ h5_attr_names <- function (file, name = "/") {
 #' * For **Datasets** and **Attributes**, this is the product of all dimensions (total number of elements).
 #' * For **Groups**, this is the number of objects directly contained in the group.
 #' * Scalar datasets or attributes return 1.
+#' * `NULL` datasets or attributes return 0.
+#' * Objects or attributes that don't exist return `NA`.
 #'
 #' @param file The path to the HDF5 file.
 #' @param name The full path of the object (group or dataset).
@@ -376,16 +381,22 @@ h5_attr_names <- function (file, name = "/") {
 #' unlink(file)
 h5_length <- function (file, name, attr = NULL) {
 
-  if (h5_is_dataset(file, name, attr)) {
-    dims <- h5_dim(file, name, attr)
-    res <- if (identical(dims, numeric(0)))                     { 1          }
-           else if (h5_class(file, name, attr) == "data.frame") { dims[2]    }
-           else                                                 { prod(dims) }
-    return(as.double(res))
-  }
-  else if (h5_is_group(file, name, attr)) {
-    return(length(h5_ls(file, name, recursive = FALSE)))
-  }
+  file <- validate_strings(file, name, attr)
+  if (!file.exists(file)) stop("File '", file, "' does not exist.", call. = FALSE)
 
-  return(NA_integer_)
+  # A missing object or attribute has no length
+  if (!h5_exists(file, name, attr)) return(NA_integer_)
+
+  if (h5_is_group(file, name, attr))
+    return(as.double(length(h5_ls(file, name, recursive = FALSE))))
+
+  # NULL datasets and attributes have no elements, like length(NULL)
+  if (identical(h5_typeof(file, name, attr), "null"))
+    return(0)
+
+  dims <- h5_dim(file, name, attr)
+  res  <- if (identical(dims, numeric(0)))                     { 1          }
+          else if (h5_class(file, name, attr) == "data.frame") { dims[2]    }
+          else                                                 { prod(dims) }
+  as.double(res)
 }

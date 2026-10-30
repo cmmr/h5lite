@@ -20,7 +20,8 @@ A character vector of names, or \code{NULL} if the object has no names.
 \description{
 Returns the names of the object.
 \itemize{
-\item For \strong{Groups}, it returns the names of the objects contained in the group (similar to \code{ls()}).
+\item For \strong{Groups}, it returns the names of the objects contained in the group (similar to \code{ls()}),
+in the order \code{\link[=sort]{sort()}} puts them.
 \item For \strong{Compound Datasets} (data.frames), it returns the column names.
 \item For other \strong{Datasets}, it looks for a dimension scale and returns it if found.
 }

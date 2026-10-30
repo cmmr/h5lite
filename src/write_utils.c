@@ -26,10 +26,13 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
   size_t type_size   = H5Tget_size(type_id);
   int    is_numeric  = (tclass == H5T_INTEGER || tclass == H5T_FLOAT);
   int    is_float    = (tclass == H5T_FLOAT);
-  
+  int    is_f32_f64  = is_float && (type_size == 4 || type_size == 8);
+
+  /* Scale-Offset handles floats of 4 or 8 bytes only; on float16/bfloat16
+   * it would make H5Dcreate2() fail */
   int is_scaled = 0;
   if      (tclass == H5T_INTEGER && int_packing    != NA_INTEGER) { is_scaled = 1; }
-  else if (tclass == H5T_FLOAT   && float_rounding != NA_INTEGER) { is_scaled = 2; }
+  else if (is_f32_f64            && float_rounding != NA_INTEGER) { is_scaled = 2; }
   
   /* 2. Sanity Checks: Gatekeeping for SZIP and ZFP variants.
    * Unsupported data falls back to the default pipeline (shuffle + gzip-5),
@@ -75,8 +78,9 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
   if      (is_scaled)                       {}
   else if (strcmp(codec,  "none")     == 0) {}
   else if (strncmp(codec, "szip",  4) == 0) {}
-  else if (strncmp(codec, "zfp",   3) == 0) {} 
-  else if (strncmp(codec, "bshuf", 5) == 0) {} 
+  else if (strncmp(codec, "zfp",   3) == 0) {}
+  else if (strcmp(codec,  "ndlz")     == 0) {} /* NDLZ compresses the raw bytes */
+  else if (strncmp(codec, "bshuf", 5) == 0) {}
   else if (blosc > 0)     { blosc_shuffle = 2; } 
   else if (type_size > 1) { H5Pset_shuffle(dcpl_id); }
   
@@ -92,41 +96,51 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     else if (strcmp(codec, "zstd") == 0)                  { blosc_level = (unsigned int)ceil((int_level * 9.0) / 22.0); }
     else if (strcmp(codec, "lz4")  == 0 && int_level > 0) { blosc_level = (unsigned int)ceil((int_level * 9.0) / 12.0); }
     if (blosc_level > 9) blosc_level = 9;
-    
-    int nelmts = 7;
-    unsigned int meta = blosc_level;
+
+    /* Blosc2's pre-filter bitmask (2 = bitshuffle, 4 = delta, 8 = trunc-prec)
+     * and the one-byte parameter of its truncation or ZFP codec */
     unsigned int mask = blosc_shuffle;
-    
-    if (blosc == 2 && !is_scaled) {
-      if (b2_delta) mask += 4;
-      
-      if (b2_trunc != NA_INTEGER) {
-        mask += 8;
-        nelmts = 8;
-        meta = (unsigned int)b2_trunc;
-      }
-    }
-    
-    int compcode = 0; 
+    unsigned int meta = 0;
+
+    int compcode = 0;
     if      (strcmp(codec, "lz4")      == 0) { compcode = int_level ? 2 : 1; }
     else if (strcmp(codec, "snappy")   == 0) { compcode = 3;  }
     else if (strcmp(codec, "gzip")     == 0) { compcode = 4;  }
     else if (strcmp(codec, "zstd")     == 0) { compcode = 5;  }
     else if (strcmp(codec, "ndlz")     == 0) { compcode = 32; }
     else if (strcmp(codec, "zfp-rate") == 0) {
-      compcode = 35; nelmts = 8; 
+      compcode = 35;
       meta = (unsigned int)round((dbl_level / (type_size * 8.0)) * 100.0);
     }
-    else if (strcmp(codec, "zfp-prec") == 0) { 
-      compcode = 34; nelmts = 8; 
-      meta = int_level; 
+    else if (strcmp(codec, "zfp-prec") == 0) {
+      compcode = 34;
+      meta = int_level;
     }
-    else if (strcmp(codec, "zfp-acc")  == 0) { 
-      compcode = 33; nelmts = 8; 
+    else if (strcmp(codec, "zfp-acc")  == 0) {
+      compcode = 33;
       int exp = (int)floor(log10(dbl_level));
       meta = (unsigned int)((uint8_t)exp);
     }
-    
+
+    /* NDLZ and the ZFP codecs run no pre-filters */
+    if (blosc == 2 && !is_scaled && compcode < 32) {
+      if (b2_delta) mask += 4;
+
+      /* Truncation zeroes the low bits of every 4- or 8-byte item, whatever
+       * it holds, so it would corrupt integers and compound records. It
+       * can't drop a float32's whole 23-bit mantissa either. */
+      int mantissa = (type_size == 4) ? 23 : 52;
+      if (b2_trunc != NA_INTEGER && is_f32_f64 && b2_trunc > -mantissa) {
+        mask += 8;
+        meta = (unsigned int)b2_trunc;
+      }
+    }
+
+    /* Both take the level, the pre-filters (Blosc: 2 = bitshuffle; Blosc2:
+     * the bitmask), and the codec in slots 4-6. Blosc2 takes the parameter of
+     * its truncation or ZFP codec as an 8th value. hdf5lib 2.2.0.0 reads only
+     * this layout; 2.2.0.1 still accepts it, and stores it in its new one. */
+    int nelmts = (blosc == 2 && ((mask & 8) || compcode >= 33)) ? 8 : 7;
     unsigned int cd_values[8] = {0, 0, 0, 0, blosc_level, mask, compcode, meta};
     H5Pset_filter(dcpl_id, filter_id, H5Z_FLAG_OPTIONAL, nelmts, cd_values);
   }
@@ -161,10 +175,18 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     H5Pset_filter(dcpl_id, 32003, H5Z_FLAG_OPTIONAL, 0, NULL);
   }
   
-  else if (strcmp(codec, "zfp-rev")  == 0) { H5Pset_zfp_reversible(dcpl_id);          }
-  else if (strcmp(codec, "zfp-prec") == 0) { H5Pset_zfp_precision(dcpl_id, int_level);    }
-  else if (strcmp(codec, "zfp-acc")  == 0) { H5Pset_zfp_accuracy(dcpl_id, dbl_level); }
-  else if (strcmp(codec, "zfp-rate") == 0) { H5Pset_zfp_rate(dcpl_id, dbl_level);     }
+  else if (strncmp(codec, "zfp", 3) == 0) {
+    if      (strcmp(codec, "zfp-rev")  == 0) { H5Pset_zfp_reversible(dcpl_id);          }
+    else if (strcmp(codec, "zfp-prec") == 0) { H5Pset_zfp_precision(dcpl_id, int_level); }
+    else if (strcmp(codec, "zfp-acc")  == 0) { H5Pset_zfp_accuracy(dcpl_id, dbl_level);  }
+    else if (strcmp(codec, "zfp-rate") == 0) { H5Pset_zfp_rate(dcpl_id, dbl_level);      }
+
+    /* The helpers add ZFP as mandatory, keeping its settings in a property
+     * rather than in cd_values. Make it optional like every other filter here:
+     * ZFP refuses chunks holding NA, NaN, or Inf, and HDF5 then stores just
+     * those chunks unfiltered. */
+    H5Pmodify_filter(dcpl_id, 32013, H5Z_FLAG_OPTIONAL, 0, NULL);
+  }
   
   /* 7. Apply Checksum (Must be the absolute last filter in the pipeline) */
   if (checksum) H5Pset_fletcher32(dcpl_id);
@@ -204,14 +226,62 @@ hid_t open_or_create_file(const char *fname) {
     /* File exists but is not HDF5. This is an error (prevent overwriting user data). */
     if (fp != NULL) { fclose(fp); error("File exists but is not a valid HDF5 file: %s", fname); }
     
-    /* File does not exist, so create it. */
-    file_id = H5Fcreate(fname, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+    /* File does not exist, so create it. The root group tracks the order in
+     * which links and attributes are created, so they list in that order. */
+    hid_t fcpl_id = H5Pcreate(H5P_FILE_CREATE);
+    H5Pset_link_creation_order(fcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+    H5Pset_attr_creation_order(fcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+    file_id = H5Fcreate(fname, H5F_ACC_EXCL, fcpl_id, H5P_DEFAULT);
+    H5Pclose(fcpl_id);
   }
   
   if (file_id < 0)
     error("Failed to open or create file: %s", fname); // # nocov
   
   return file_id;
+}
+
+/*
+ * A Group Creation Property List that tracks the order in which links and
+ * attributes are created, so h5_ls() and h5_read() can list them in that order.
+ * The caller closes it.
+ */
+hid_t ordered_gcpl(void) {
+  hid_t gcpl_id = H5Pcreate(H5P_GROUP_CREATE);
+  H5Pset_link_creation_order(gcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+  H5Pset_attr_creation_order(gcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+  return gcpl_id;
+}
+
+/*
+ * Creates any missing groups above `path`, like `mkdir -p "$(dirname path)"`.
+ * HDF5 can create intermediate groups itself, but only with default
+ * properties, which don't track creation order.
+ */
+void create_parent_groups(hid_t file_id, const char *path) {
+  size_t len  = strlen(path);
+  char  *part = (char *)malloc(len + 1);
+  if (!part) return; // # nocov
+
+  hid_t gcpl_id = ordered_gcpl();
+  hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+  H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
+
+  H5E_BEGIN_TRY {
+    for (size_t i = 1; i < len; i++) {
+      if (path[i] != '/' || path[i - 1] == '/') continue;
+      memcpy(part, path, i);
+      part[i] = '\0';
+      if (H5Lexists(file_id, part, H5P_DEFAULT) <= 0) {
+        hid_t group_id = H5Gcreate2(file_id, part, lcpl_id, gcpl_id, H5P_DEFAULT);
+        if (group_id >= 0) H5Gclose(group_id);
+      }
+    }
+  } H5E_END_TRY;
+
+  H5Pclose(lcpl_id);
+  H5Pclose(gcpl_id);
+  free(part);
 }
 
 /*
@@ -253,21 +323,43 @@ hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dim
 /*
  * Checks if a link (dataset or group) exists and deletes it if it does.
  * This is used to implement "overwrite-by-default" behavior.
+ * A dimension scale that still labels other datasets is moved aside to a free
+ * name instead, so those datasets keep their names.
  */
 herr_t handle_overwrite(hid_t file_id, const char *name) {
-  /* Suppress HDF5's auto error printing for H5Lexists */
-  herr_t (*old_func)(hid_t, void*);
-  void *old_client_data;
-  H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto(H5E_DEFAULT, NULL, NULL); // Suppress error for non-existent link.
-  
-  htri_t link_exists = H5Lexists(file_id, name, H5P_DEFAULT);
-  
-  /* Restore error handler */
-  H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
-  
-  if (link_exists > 0) { return H5Ldelete(file_id, name, H5P_DEFAULT); }
-  else                 { return 0; }
+
+  htri_t link_exists = 0;
+  int    in_use      = 0;
+
+  H5E_BEGIN_TRY {
+    link_exists = H5Lexists(file_id, name, H5P_DEFAULT);
+    if (link_exists > 0) {
+      hid_t dset_id = H5Dopen2(file_id, name, H5P_DEFAULT);
+      if (dset_id >= 0) {
+        in_use = H5DSis_scale(dset_id) > 0 && scale_ref_count(dset_id) > 0;
+        H5Dclose(dset_id);
+      }
+    }
+  } H5E_END_TRY;
+
+  if (link_exists <= 0) return 0;
+  if (!in_use)          return delete_object(file_id, name);
+
+  char aside[1024];
+  free_link_name(file_id, name, aside, sizeof(aside));
+  return H5Lmove(file_id, name, file_id, aside, H5P_DEFAULT, H5P_DEFAULT);
+}
+
+/*
+ * Number of bytes of the UTF-8 string `s` that fit in `width` bytes without
+ * splitting a multibyte character.
+ */
+size_t utf8_fit(const char *s, size_t width) {
+  size_t len = strlen(s);
+  if (len <= width) return len;
+  size_t n = width;
+  while (n > 0 && ((unsigned char)s[n] & 0xC0) == 0x80) n--; /* s[n] is a continuation byte */
+  return n;
 }
 
 /*
@@ -374,15 +466,17 @@ static hid_t create_enum_type(SEXP data, int native_mem_layout) {
     const char *name = Rf_translateCharUTF8(STRING_ELT(levels, i));
     
     /* H5Tenum_insert requires a pointer to the value matching the base type size */
+    herr_t status;
     if (native_mem_layout) {
       int val = (int)val_idx;
-      H5Tenum_insert(type_id, name, &val);
+      status = H5Tenum_insert(type_id, name, &val);
     }
     else {
-      if      (n_levels < 256)   { uint8_t  val = (uint8_t)val_idx;  H5Tenum_insert(type_id, name, &val); }
-      else if (n_levels < 65536) { uint16_t val = (uint16_t)val_idx; H5Tenum_insert(type_id, name, &val); }
-      else                       { uint32_t val = (uint32_t)val_idx; H5Tenum_insert(type_id, name, &val); } // # nocov
+      if      (n_levels < 256)   { uint8_t  val = (uint8_t)val_idx;  status = H5Tenum_insert(type_id, name, &val); }
+      else if (n_levels < 65536) { uint16_t val = (uint16_t)val_idx; status = H5Tenum_insert(type_id, name, &val); }
+      else                       { uint32_t val = (uint32_t)val_idx; status = H5Tenum_insert(type_id, name, &val); } // # nocov
     }
+    if (status < 0) { H5Tclose(type_id); UNPROTECT(1); return -1; } // # nocov
   }
   
   UNPROTECT(1);

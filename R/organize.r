@@ -19,7 +19,7 @@
 h5_create_group <- function (file, name) {
   file <- validate_strings(file, name)
   # Call the C function, which handles creating parent groups automatically.
-  .Call("C_h5_create_group", file, name, PACKAGE = "h5lite")
+  h5_call(.Call("C_h5_create_group", file, name, PACKAGE = "h5lite"))
   invisible(NULL)
 }
 
@@ -85,6 +85,10 @@ h5_create_file <- function (file) {
 #' different group (e.g., `"data/old"` to `"archive/old"`). The destination
 #' parent group will be automatically created if it does not exist.
 #'
+#' A dataset's dimension scales (its `names`, `dimnames`, or `row.names`,
+#' stored as `"<from>_names"` etc.) are moved and renamed along with it.
+#' Moving a group into itself (e.g., `"g"` to `"g/sub"`) is an error.
+#'
 #' @param file The path to the HDF5 file.
 #' @param from The current (source) path of the object (e.g., `"/group/data"`).
 #' @param to The new (destination) path for the object (e.g., `"/group/data_new"`).
@@ -118,9 +122,19 @@ h5_move <- function (file, from, to) {
 
   file <- validate_strings(file, from, must_exist = TRUE)
   assert_scalar_character(to)
-  
+
+  from <- abs_h5_path(from)
+  to   <- abs_h5_path(to)
+
+  if (from == "/") stop("The root group cannot be moved.", call. = FALSE)
+  if (to == from)  return(invisible(NULL))
+
+  # HDF5 would detach the group from the file, losing it and everything in it.
+  if (startsWith(to, paste0(from, "/")))
+    stop("Cannot move '", from, "' into itself ('", to, "').", call. = FALSE)
+
   # Call the C function that wraps H5Lmove.
-  .Call("C_h5_move", file, from, to, PACKAGE = "h5lite")
+  h5_call(.Call("C_h5_move", file, from, to, PACKAGE = "h5lite"))
   invisible(NULL)
 }
 
@@ -130,6 +144,12 @@ h5_move <- function (file, from, to) {
 #' Deletes an object (dataset or group) or an attribute from an HDF5 file.
 #' If the object or attribute does not exist, a warning is issued and the function returns
 #' successfully (no error is raised).
+#'
+#' Deleting a dataset also deletes its dimension scales (the datasets holding its
+#' `names`, `dimnames`, or `row.names`), unless another dataset uses them too.
+#' Scales named other than `"<name>_..."` (such as those other software makes)
+#' are detached but kept. Deleting a dimension scale removes it from the
+#' datasets it labels.
 #'
 #' @param file The path to the HDF5 file.
 #' @param name The full path of the object to delete (e.g., `"/data/dset"` or `"/groups/g1"`).
@@ -176,8 +196,8 @@ h5_delete <- function(file, name, attr = NULL, warn = TRUE) {
 
   # Warn but do not error if the target doesn't exist.
   if (h5_exists(file, name, attr)) {
-    if (is.null(attr)) { .Call("C_h5_delete",      file, name,       PACKAGE = "h5lite") }
-    else               { .Call("C_h5_delete_attr", file, name, attr, PACKAGE = "h5lite") }
+    if (is.null(attr)) { h5_call(.Call("C_h5_delete",      file, name, PACKAGE = "h5lite")) }
+    else               { h5_call(.Call("C_h5_delete_attr", file, name, attr, PACKAGE = "h5lite")) }
   }
   else if (isTRUE(warn)) {
     if (is.null(attr)) { warning("Object '", name, "' not found in file '", file, "'. Nothing to delete.") }

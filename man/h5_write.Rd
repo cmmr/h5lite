@@ -73,8 +73,10 @@ following storage types for it:
 \item \strong{Unsigned Integer:} \code{"uint8"}, \code{"uint16"}, \code{"uint32"}, \code{"uint64"}
 }
 
-\strong{NOTE:} \code{NA} values must be stored as \code{float64}. \code{NaN}, \code{Inf}, and \code{-Inf}
-must be stored as a floating point type.
+\strong{NOTE:} \code{NA}, \code{NaN}, \code{Inf}, and \code{-Inf} must be stored as a floating point
+type. Only \code{float64} keeps \code{NA} distinct from \code{NaN}; other floating point
+types store \code{NA} as \code{NaN} (both are \code{NA} to \code{is.na()}). Values outside the
+type's range are an error.
 \subsection{Examples}{
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{h5_write(1:100, file, "big_ints", as = "int64")
@@ -141,10 +143,11 @@ HDF5 dimension scales. Named vectors will generate an \verb{<name>_names}
 dataset. A data.frame with row names will generate an \verb{<name>_rownames}
 dataset (column names are saved internally in the original dataset).
 Matrices will generate \verb{<name>_rownames} and \verb{<name>_colnames} datasets.
-Arrays will generate \verb{<name>_dimscale_1}, \verb{<name>_dimscale_2}, etc.
-Special HDF5 metadata attributes link the dimension scales to the dataset.
-The dimension scales can be relocated with \code{h5_move()} without breaking the
-link.
+Arrays will generate \verb{<name>_dimnames_1}, \verb{<name>_dimnames_2}, etc.
+If one of these names is already taken by something else, a free name
+(e.g. \verb{<name>_names_2}) is used instead. Special HDF5 metadata attributes
+link the dimension scales to the dataset. \code{h5_move()} moves a dataset's
+scales along with it, and \code{h5_delete()} deletes them with it.
 }
 
 \examples{

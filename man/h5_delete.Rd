@@ -27,6 +27,13 @@ Deletes an object (dataset or group) or an attribute from an HDF5 file.
 If the object or attribute does not exist, a warning is issued and the function returns
 successfully (no error is raised).
 }
+\details{
+Deleting a dataset also deletes its dimension scales (the datasets holding its
+\code{names}, \code{dimnames}, or \code{row.names}), unless another dataset uses them too.
+Scales named other than \code{"<name>_..."} (such as those other software makes)
+are detached but kept. Deleting a dimension scale removes it from the
+datasets it labels.
+}
 \examples{
 file <- tempfile(fileext = ".h5")
 h5_create_file(file)

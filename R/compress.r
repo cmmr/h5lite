@@ -19,17 +19,24 @@
 #'   * `TRUE`: Automatically calculates and applies the mathematically optimal minimum 
 #'     bit-width for each individual chunk.
 #'   * Integer (e.g., `8`): Forces packing into exactly that many bits.
-#' @param float_rounding Control the HDF5 Scale-Offset filter for floating-point 
-#'   datasets.*(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters).*
+#' @param float_rounding Control the HDF5 Scale-Offset filter for floating-point
+#'   datasets.*(Note: Incompatible with `szip`, `zfp`, `bshuf`, and Blosc2 pre-filters.
+#'   Not applied to `float16`/`bfloat16` data.)*
 #'   * `NULL` (Default): Disabled.
 #'   * Integer (e.g., `3`): The number of base-10 decimal places of detail to preserve 
 #'     before truncating and packing the values (e.g., `3.141`). Negative numbers 
 #'     round to powers of 10.
-#' @param blosc2_delta A logical value. If `TRUE` and a `blosc2` compressor is selected, 
+#' @param blosc2_delta A logical value. If `TRUE` and a `blosc2` compressor is selected,
 #'   applies the Blosc2 Delta pre-filter before compression. Default is `FALSE`.
-#' @param blosc2_truncate An integer. If provided and a `blosc2` compressor is selected, 
-#'   applies the Blosc2 Truncate Precision pre-filter to floating-point data, preserving 
-#'   exactly the specified number of uncompressed bits. Default is `NULL`.
+#'   `"blosc2-ndlz"` and `"blosc2-zfp-..."` run no pre-filters.
+#' @param blosc2_truncate An integer. If provided and a `blosc2` compressor is selected,
+#'   applies the Blosc2 Truncate Precision pre-filter to floating-point data, keeping
+#'   that many bits of each value's mantissa (`1` to `52`), or with a negative
+#'   number dropping that many (`-1` to `-51`). Default is `NULL`. It is
+#'   not applied to integers, data frames, `float16`/`bfloat16` data, data
+#'   containing `NA` or `NaN`, or `float32` data when it would drop 23 bits or
+#'   more (a `float32`'s whole mantissa). `"blosc2-ndlz"` and `"blosc2-zfp-..."`
+#'   run no pre-filters.
 #' 
 #' @section Valid Compression Strings:
 #' The `compress` argument accepts a highly specific string syntax to define both 
@@ -188,8 +195,17 @@ h5_compression <- function(
     }
   }
 
+  # A zero tolerance or rate has no meaning (and no logarithm for Blosc2)
+  if (codec %in% c("zfp-acc", "zfp-rate") && !isTRUE(level > 0))
+    stop("`", compress, "` needs a ", if (codec == "zfp-acc") "tolerance" else "rate",
+         " greater than 0.", call. = FALSE)
+
   if (is.null(float_rounding))  float_rounding  <- NA
   if (is.null(blosc2_truncate)) blosc2_truncate <- NA
+
+  # A float64 mantissa has 52 bits, all of which can't be dropped
+  if (!is.na(blosc2_truncate) && (blosc2_truncate == 0 || blosc2_truncate < -51 || blosc2_truncate > 52))
+    stop("`blosc2_truncate` must be between -51 and 52, and not 0.", call. = FALSE)
 
   for (var in c('int_packing', 'float_rounding'))
     if (!is.na(get(var))) {
@@ -213,30 +229,81 @@ h5_compression <- function(
   )
 }
 
+#' Set the Number of Threads
+#'
+#' Sets how many threads `h5lite` uses for the work it can do in parallel.
+#' Currently that is the Blosc and Blosc2 codecs (`"blosc1-..."` and
+#' `"blosc2-..."`), which compress and decompress the blocks of each chunk in
+#' parallel. Everything uses one thread unless you ask for more.
+#'
+#' @param n The number of threads, from `1` to `256`, or `0` to return to the
+#'   default. If `NULL` (the default), the setting is left unchanged.
+#'
+#' @details
+#' More threads help most when compression is slow, as with high Zstandard
+#' levels, or when chunks are large. The setting applies to `h5lite` for the
+#' rest of the R session.
+#'
+#' The default is one thread, or the value of the `H5LITE_NTHREADS`
+#' environment variable if it is set. Calling `h5_threads()` overrides it.
+#'
+#' Threads need `hdf5lib` 2.2.0.1 or later. When `h5lite` is built with
+#' `hdf5lib` 2.2.0.0, Blosc always uses one thread, whatever the setting.
+#'
+#' CRAN allows packages to use at most two threads in their examples, tests,
+#' and vignettes.
+#'
+#' @return With `n = NULL`, the number of threads `h5lite` will use.
+#'   Otherwise, the previous setting, invisibly (`0` if none had been made).
+#' @seealso [h5_compression()], `vignette('compression')`
+#' @export
+#' @examples
+#' h5_threads()      # 1
+#'
+#' old <- h5_threads(2)
+#' file <- tempfile(fileext = ".h5")
+#' h5_write(rnorm(1e5), file, "x", compress = "blosc2-zstd-5")
+#'
+#' h5_threads(old)   # Restore the previous setting
+#' unlink(file)
+h5_threads <- function(n = NULL) {
+
+  if (is.null(n)) return (h5_call(.Call("C_h5_threads", NULL, PACKAGE = "h5lite")))
+
+  assert_scalar_integer(n)
+  if (n < 0 || n > 256)
+    stop("`n` must be between 0 and 256.", call. = FALSE)
+
+  invisible(h5_call(.Call("C_h5_threads", as.integer(n), PACKAGE = "h5lite")))
+}
+
+
 #' Drop lossy filters that would corrupt non-finite values
 #'
 #' ZFP and floating-point Scale-Offset cannot represent `NA`, `NaN`, or `Inf`:
-#' they come back as arbitrary numbers. Data containing them is written with
-#' the default gzip pipeline instead of ZFP, and without `float_rounding`.
+#' they come back as arbitrary numbers. Blosc2's truncation zeroes the bits
+#' that tell `NA` apart from `NaN`, and can turn `NA` into `Inf`. Data
+#' containing them is written with the default gzip pipeline instead of ZFP,
+#' and without `float_rounding` or `blosc2_truncate`. (hdf5lib 2.2.0.1's ZFP
+#' refuses just the chunks holding them, but 2.2.0.0's compresses them anyway.)
 #' @noRd
 #' @keywords internal
 protect_nonfinite <- function(data, compress) {
 
-  uses_zfp <- startsWith(attr(compress, "codec"), "zfp")
-  rounds   <- !is.na(attr(compress, "float_rounding"))
+  if (!(is.numeric(data) || is.logical(data))) return(compress)
 
-  if (!uses_zfp && !rounds)                     return(compress)
-  if (!(is.numeric(data) || is.logical(data)))  return(compress)
-  if (all(is.finite(data)))                     return(compress)
-
-  if (uses_zfp) {
+  if (startsWith(attr(compress, "codec"), "zfp") && !all(is.finite(data)))
     compress <- h5_compression(
       compress   = "gzip",
       chunk_size = attr(compress, "chunk_size"),
       checksum   = attr(compress, "checksum") )
-  }
 
-  attr(compress, "float_rounding") <- NA_integer_
+  if (!is.na(attr(compress, "float_rounding")) && !all(is.finite(data)))
+    attr(compress, "float_rounding") <- NA_integer_
+
+  if (!is.na(attr(compress, "b2_trunc")) && anyNA(data))
+    attr(compress, "b2_trunc") <- NA_integer_
+
   compress
 }
 
@@ -267,6 +334,7 @@ print.compress <- function(x, ...) {
   else if (grepl("^szip",  codec)) { shuffle_str <- "None (Incompatible with szip)"   }
   else if (grepl("^zfp",   codec)) { shuffle_str <- "None (Incompatible with zfp)"    }
   else if (grepl("^bshuf", codec)) { shuffle_str <- "Bitshuffle (Standalone Plugin)"  }
+  else if (codec == "ndlz")        { shuffle_str <- "None (NDLZ works on raw bytes)"  }
   else if (blosc > 0)              { shuffle_str <- "Bitshuffle (Blosc Internal)"     }
   else                             { shuffle_str <- "Byte Shuffle (Native HDF5)"      }
   

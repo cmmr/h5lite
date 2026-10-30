@@ -55,6 +55,9 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsi
 void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data);
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx);
 
+/* --- init.c --- */
+void apply_nthreads(void);
+
 /* --- inspect.c --- */
 SEXP C_h5_inspect(SEXP filename, SEXP dset_name);
 
@@ -72,21 +75,27 @@ SEXP C_h5_attr_names(SEXP filename, SEXP obj_name);
 
 /* --- ls.c --- */
 SEXP C_h5_str(SEXP filename, SEXP obj_name, SEXP attrs, SEXP members, SEXP markup);
-SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales);
+H5_index_t link_index(hid_t group_id);
+H5_index_t attr_index(hid_t obj_id);
+SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales, SEXP creation_order);
 
 /* --- organize.c --- */
 SEXP C_h5_create_group(SEXP filename, SEXP group_name);
 SEXP C_h5_move(SEXP filename, SEXP from_name, SEXP to_name);
 SEXP C_h5_delete(SEXP filename, SEXP name);
 SEXP C_h5_delete_attr(SEXP filename, SEXP obj_name, SEXP attr_name);
+herr_t delete_object(hid_t file_id, const char *name);
+int scale_ref_count(hid_t scale_id);
+void free_link_name(hid_t loc_id, const char *base, char *out, size_t size);
 
 /* --- read.c --- */
 SEXP C_h5_read_dataset(
     SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element_name, SEXP start, SEXP count);
 SEXP C_h5_read_attribute(SEXP filename, SEXP obj_name, SEXP attr_name, SEXP rmap);
 SEXP read_character(
-    hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, int ndims, hsize_t *dims, 
+    hid_t loc_id, int is_dataset, hid_t file_type_id, hid_t space_id, int ndims, hsize_t *dims,
     hsize_t total_elements, hid_t mem_space_id, hid_t file_space_id);
+void trim_spacepad(char *s);
 
 /* --- util.c --- */
 SEXP errmsg_1(const char *fmt, const char *str1);
@@ -97,6 +106,10 @@ size_t get_R_el_size(SEXP data);
 void h5_transpose(void *src, void *dest, int rank, hsize_t *dims, size_t el_size, int direction_to_r);
 R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name);
 SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id);
+void int64_na_to_na_real(SEXP data, hid_t file_type_id);
+R_xlen_t uint64_to_int64(void *buf, R_xlen_t n);
+SEXP C_h5_open_id_count(void);
+SEXP C_h5_close_all(void);
 
 /* --- write.c --- */
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress);
@@ -106,6 +119,8 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
 /* --- write_utils.c --- */
 void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_dims, SEXP compress);
 hid_t open_or_create_file(const char *fname);
+hid_t ordered_gcpl(void);
+void create_parent_groups(hid_t file_id, const char *path);
 hid_t create_dataspace(SEXP dims, SEXP data, int *out_rank, hsize_t **out_h5_dims);
 herr_t handle_overwrite(hid_t file_id, const char *name);
 herr_t handle_attribute_overwrite(hid_t file_id, hid_t obj_id, const char *attr_name);
@@ -115,5 +130,6 @@ hid_t create_r_memory_type(SEXP data, const char *dtype);
 hid_t create_h5_file_type(SEXP data, const char *dtype);
 hid_t create_string_type(const char *dtype);
 size_t get_fixed_byte_width(const char *dtype);
+size_t utf8_fit(const char *s, size_t width);
 
 #endif

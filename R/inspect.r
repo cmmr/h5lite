@@ -10,6 +10,14 @@
 #'   \item{layout}{A string indicating storage layout (e.g., "chunked", "contiguous").}
 #'   \item{chunk_dims}{A numeric vector of chunk dimensions, or `NULL` if not chunked.}
 #'   \item{filters}{A list describing each filter applied.}
+#'
+#' @details
+#' ZFP can't compress chunks with no dimension longer than one (such as a
+#' single value) or more than four. It then declines the whole dataset: every
+#' chunk is stored uncompressed, and `print()` shows the filter as
+#' `zfp (declined: stored uncompressed)`. With `hdf5lib` 2.2.0.1 or later,
+#' Blosc2's ZFP codecs likewise decline chunks of fewer than four values, shown
+#' as, e.g., `blosc2 [zfp-acc] (declined: stored uncompressed)`.
 #' @export
 #' @examples
 #' file <- tempfile(fileext = ".h5")
@@ -34,7 +42,7 @@ h5_inspect <- function(file, name) {
     stop("Target must be a dataset to inspect its DCPL.")
   }
   
-  res <- .Call("C_h5_inspect", file, name, PACKAGE = "h5lite")
+  res <- h5_call(.Call("C_h5_inspect", file, name, PACKAGE = "h5lite"))
   
   # Append the 'inspect' class while keeping 'list' for standard subsetting
   class(res) <- c("inspect", "list")
@@ -87,8 +95,9 @@ print.inspect <- function(x, ...) {
     cat("None (Uncompressed)\n")
   } else {
     filter_names <- vapply(x$filters, function(f) {
-      fname <- f$name
-      
+      fname    <- f$name
+      declined <- FALSE
+
       # 1. Intercept Blosc (Version 1)
       if (fname == "blosc" && length(f$cd_values) >= 7) {
         shuffle  <- f$cd_values[6] # 0: None, 1: Byte, 2: Bit
@@ -100,25 +109,42 @@ print.inspect <- function(x, ...) {
         
         # 2. Intercept Blosc2
       } else if (fname == "blosc2" && length(f$cd_values) >= 7) {
-        mask     <- f$cd_values[6] # Bitmask pre-filters
-        compcode <- f$cd_values[7]
-        
+        cd       <- f$cd_values
+        compcode <- cd[7]
+        declined <- cd[5] == 255 # The level hdf5lib records for data ZFP can't take
+
+        # hdf5lib packs its pre-filter bitmask and the truncation bits into
+        # cd_values[0] (0xB21.....). Earlier versions (2) kept the bitmask in
+        # cd_values[5] and the bits after the chunk shape, or for chunks
+        # without one in bits 8-15 of cd_values[5]. Other writers (1) only
+        # record the last pre-filter, as a Blosc2 filter code.
+        if (cd[1] %/% 2^24 == 0xB2) {
+          mask <- cd[1] %/% 2^16 %% 16
+          bits <- cd[1] %/% 2^8  %% 256
+        } else if (cd[1] == 1) {
+          mask <- switch(as.character(cd[6]), "1" = 1, "2" = 2, "3" = 4, "4" = 8, 0)
+          bits <- NA
+        } else {
+          ndim <- if (length(cd) >= 8) cd[8] else 0
+          mask <- cd[6] %% 256
+          bits <- if (length(cd) >= 9 + ndim) cd[9 + ndim] %% 256 else cd[6] %/% 256 %% 256
+        }
+
+        # In the order Blosc2 runs them
         internal <- c()
+        if (bitwAnd(mask, 8) > 0) {
+          if (isTRUE(bits > 127)) bits <- bits - 256 # Blosc2 reads a signed byte
+          internal <- c(internal, if (is.na(bits)) "trunc" else sprintf("trunc(bits=%s)", bits))
+        }
+
+        if (bitwAnd(mask, 4) > 0) internal <- c(internal, "delta")
+
         if (bitwAnd(mask, 2) > 0) {
           internal <- c(internal, "bitshuffle")
         } else if (bitwAnd(mask, 1) > 0) {
           internal <- c(internal, "byteshuffle") # nocov
         }
-        
-        if (bitwAnd(mask, 4) > 0) internal <- c(internal, "delta")
-        
-        if (bitwAnd(mask, 8) > 0) {
-          ndim <- if (length(f$cd_values) >= 8) f$cd_values[8] else 0
-          meta_idx <- 8 + ndim + 1
-          meta_val <- if (length(f$cd_values) >= meta_idx) f$cd_values[meta_idx] else "?"
-          internal <- c(internal, sprintf("trunc(bits=%s)", meta_val))
-        }
-        
+
         # 3. Intercept Bitshuffle
       } else if (fname == "bitshuffle" && length(f$cd_values) >= 5) {
         comp <- f$cd_values[5]
@@ -138,7 +164,12 @@ print.inspect <- function(x, ...) {
           return("szip-ec")
         }
         return("szip") # nocov
-        
+
+        # 5. Intercept ZFP that declined the dataset: chunks it can't compress
+        #    get no ZFP header (at most 2 values), so it refuses every chunk
+      } else if (fname == "zfp" && length(f$cd_values) <= 2) {
+        return("zfp (declined: stored uncompressed)")
+
       } else {
         # Not a dynamically expanded filter, return normal name
         return(fname)
@@ -162,7 +193,9 @@ print.inspect <- function(x, ...) {
                       paste0("codec-", compcode))
       
       internal <- c(internal, codec)
-      return(sprintf("%s [%s]", fname, paste(internal, collapse = " -> ")))
+      out <- sprintf("%s [%s]", fname, paste(internal, collapse = " -> "))
+      if (declined) out <- paste(out, "(declined: stored uncompressed)")
+      return(out)
       
     }, FUN.VALUE = character(1))
     

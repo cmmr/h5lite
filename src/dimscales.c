@@ -38,10 +38,16 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsi
   
   SEXP dimnames_list = R_NilValue;
   int has_any_scale = 0;
-  
-  if (rank == 1) { dimnames_list = PROTECT(allocVector(VECSXP, 1)); } 
+
+  if (rank == 1) { dimnames_list = PROTECT(allocVector(VECSXP, 1)); }
   else           { dimnames_list = PROTECT(allocVector(VECSXP, rank)); }
-  
+
+  /* The dataset's full extent, to check each scale's length against */
+  hsize_t *full_dims  = (hsize_t *)R_alloc(rank, sizeof(hsize_t));
+  hid_t    dset_space = H5Dget_space(dset_id);
+  H5Sget_simple_extent_dims(dset_space, full_dims, NULL);
+  H5Sclose(dset_space);
+
   for (int i = 0; i < rank; i++) {
     if (H5DSget_num_scales(dset_id, (unsigned)i) > 0) {
       
@@ -56,7 +62,13 @@ void read_r_dimscales(hid_t dset_id, int rank, SEXP result, hsize_t *offset, hsi
         int s_ndims = H5Sget_simple_extent_ndims(space);
         hsize_t *s_dims = (hsize_t*)R_alloc(s_ndims > 0 ? s_ndims : 1, sizeof(hsize_t));
         if(s_ndims > 0) H5Sget_simple_extent_dims(space, s_dims, NULL);
-        
+
+        /* Only a 1D scale with one label per element can serve as names */
+        if (s_ndims != 1 || s_dims[0] != full_dims[i]) {
+          H5Tclose(ftype); H5Sclose(space); H5Dclose(scale_id);
+          continue;
+        }
+
         hid_t scale_mem_space = H5S_ALL;
         hsize_t total = 1;
         
@@ -173,10 +185,25 @@ void write_r_dimscales(hid_t loc_id, hid_t dset_id, const char *dname, SEXP data
 void write_single_scale(hid_t loc_id, hid_t dset_id, const char *scale_name, SEXP labels, unsigned int dim_idx) {
   
   if (labels == R_NilValue || TYPEOF(labels) != STRSXP || XLENGTH(labels) == 0) return;
-  
-  /* 1. Remove existing scale if we are overwriting to prevent stale data */
-  handle_overwrite(loc_id, scale_name);
-  
+
+  /* 1. Reuse the name only if it holds a scale nothing else uses; otherwise
+   * (user data, a group, or another dataset's scale) pick a free name. */
+  char name[1024];
+  int  reuse = 0;
+  H5E_BEGIN_TRY {
+    if (H5Lexists(loc_id, scale_name, H5P_DEFAULT) > 0) {
+      hid_t old_id = H5Dopen2(loc_id, scale_name, H5P_DEFAULT);
+      if (old_id >= 0) {
+        reuse = H5DSis_scale(old_id) > 0 && scale_ref_count(old_id) == 0;
+        H5Dclose(old_id);
+      }
+    }
+  } H5E_END_TRY;
+
+  if (reuse) { H5Ldelete(loc_id, scale_name, H5P_DEFAULT); snprintf(name, sizeof(name), "%s", scale_name); }
+  else       { free_link_name(loc_id, scale_name, name, sizeof(name)); }
+  scale_name = name;
+
   /* 2. Create the dataset for the labels */
   hsize_t scale_dim  = (hsize_t)XLENGTH(labels);
   hid_t space_id     = H5Screate_simple(1, &scale_dim, NULL);

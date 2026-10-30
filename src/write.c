@@ -33,11 +33,10 @@ SEXP write_atomic_dataset(hid_t obj_id, SEXP data, const char *dtype_str, int ra
         SEXP s = STRING_ELT(data, i);
         if (s != NA_STRING) {
           const char *utf8_s = Rf_translateCharUTF8(s);
-          /* Copy up to fixed_width. 
-           * If src < width, strncpy pads with nulls (safety).
-           * If src > width, it truncates (standard behavior).
-           * Note: We do not force a null-terminator at [width-1]. HDF5 allows fully filled strings. */
-          strncpy(f_buffer + (i * fixed_width), utf8_s, fixed_width);
+          /* Copy up to fixed_width bytes, truncating at a character boundary.
+           * The rest stays zero from calloc. We do not force a null-terminator
+           * at [width-1]: HDF5 allows fully filled strings. */
+          memcpy(f_buffer + (i * fixed_width), utf8_s, utf8_fit(utf8_s, fixed_width));
         }
         /* If NA_STRING, we leave it as 0 (from calloc) which is an empty string in HDF5 */
       }
@@ -203,12 +202,18 @@ static SEXP write_null_dataset(hid_t file_id, const char *dname) {
     return errmsg_1("Failed to overwrite existing dataset: %s", dname);
   } // # nocov end
   
-  hid_t dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, space_id, lcpl_id, H5P_DEFAULT, H5P_DEFAULT);
+  create_parent_groups(file_id, dname);
+  hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+  H5Pset_attr_creation_order(dcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+  hid_t dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
 
-  H5Pclose(lcpl_id); H5Sclose(space_id);
+  H5Pclose(lcpl_id); H5Pclose(dcpl_id); H5Sclose(space_id);
   if (dset_id < 0) return errmsg_1("Failed to create null dataset: %s", dname);
 
-  H5Dclose(dset_id);
+  if (H5Dclose(dset_id) < 0) { // # nocov start
+    delete_object(file_id, dname);
+    return errmsg_1("Failed to create null dataset: %s", dname);
+  } // # nocov end
   return R_NilValue;
 }
 
@@ -237,7 +242,9 @@ static SEXP write_null_attribute(hid_t file_id, hid_t obj_id, const char *attr_n
 SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SEXP dims, SEXP compress) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *dname = Rf_translateCharUTF8(STRING_ELT(dset_name, 0));
-  
+
+  apply_nthreads();
+
   hid_t file_id = open_or_create_file(fname);
 
   /* --- Overwrite Logic --- */
@@ -281,8 +288,10 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       H5Pset_create_intermediate_group(lcpl_id, 1);
       H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
       
-      /* Create Dataset Creation Property List (DCPL) for compression */
+      /* Create Dataset Creation Property List (DCPL) for compression, tracking
+       * attribute creation order so attributes list in the order written */
       hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+      H5Pset_attr_creation_order(dcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
       
       /* Only apply chunking/compression if requested and applicable */
       if (rank > 0 && XLENGTH(data) > 0) {
@@ -294,6 +303,7 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
       }
       
       /* Create the dataset passing both LCPL (name encoding) and DCPL (compression) */
+      create_parent_groups(file_id, dname);
       hid_t dset_id = H5Dcreate2(file_id, dname, file_type_id, space_id, lcpl_id, dcpl_id, H5P_DEFAULT);
       H5Pclose(lcpl_id);
       H5Pclose(dcpl_id);
@@ -305,11 +315,18 @@ SEXP C_h5_write_dataset(SEXP filename, SEXP dset_name, SEXP data, SEXP dtype, SE
         errmsg = write_atomic_dataset(dset_id, data, dtype_str, rank, h5_dims);
         
         /* --- Write Dimension Scales if present --- */
-        if (errmsg == R_NilValue) {
+        if (errmsg == R_NilValue && rank > 0) {
           write_r_dimscales(file_id, dset_id, dname, data);
         }
-        
-        H5Dclose(dset_id);
+
+        /* Chunks still in HDF5's cache are filtered and written on close. A
+         * mandatory filter that rejects one fails only here, and HDF5 drops
+         * that chunk, so remove the incomplete dataset and report it. */
+        if (H5Dclose(dset_id) < 0) {
+          delete_object(file_id, dname);
+          if (errmsg == R_NilValue)
+            errmsg = errmsg_1("Failed to write dataset '%s': a compression filter rejected the data.", dname);
+        }
       }
       
       H5Tclose(file_type_id); H5Sclose(space_id); H5Fclose(file_id);

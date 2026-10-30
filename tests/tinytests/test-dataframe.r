@@ -101,5 +101,8 @@ local({
   
   res <- h5_read(file, "df")
   expect_true(is.character(res$time))
-  expect_equal(res$time, format(now, format = "%Y-%m-%dT%H:%M:%OSZ"))
+
+  # Stored in UTC, to the microsecond
+  stored <- as.POSIXct(res$time, format = "%Y-%m-%dT%H:%M:%OSZ", tz = "UTC")
+  expect_equal(as.numeric(stored), as.numeric(now), tolerance = 1e-6, scale = 1)
 })

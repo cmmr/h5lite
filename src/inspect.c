@@ -52,7 +52,8 @@ static const char* get_filter_name(H5Z_filter_t filter_id) {
     case 32029: return "trpx";
     case 32030: return "ffmpeg";
     case 32031: return "jpeg2000";
-      
+    case 32032: return "bitround";
+
     default: return ""; /* Empty string acts as a signal to use the file-stored name */
   }
   // # nocov end
@@ -149,9 +150,10 @@ SEXP C_h5_inspect(SEXP filename, SEXP dset_name) {
     
     SEXP r_f_name = PROTECT(mkString(hr_name));
     SEXP r_f_id   = PROTECT(ScalarInteger(filter_id));
-    SEXP r_f_cd   = PROTECT(allocVector(INTSXP, cd_nelmts));
+    /* cd_values are unsigned 32-bit, which R integers can't hold in full */
+    SEXP r_f_cd   = PROTECT(allocVector(REALSXP, cd_nelmts));
     for (size_t j = 0; j < cd_nelmts; j++) {
-      INTEGER(r_f_cd)[j] = cd_values[j];
+      REAL(r_f_cd)[j] = (double)cd_values[j];
     }
     
     SET_VECTOR_ELT(f_list, 0, r_f_name);

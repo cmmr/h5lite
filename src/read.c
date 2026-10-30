@@ -7,6 +7,13 @@ static herr_t h5_read_impl(hid_t loc_id, hid_t mem_type_id, void *buf, int is_da
 }
 
 
+/* Removes the trailing spaces that pad a (NUL-terminated) SPACEPAD string. */
+void trim_spacepad(char *s) {
+  size_t n = strlen(s);
+  while (n > 0 && s[n - 1] == ' ') s[--n] = '\0';
+}
+
+
 /* --- READERS FOR ATOMIC TYPES --- */
 
 static SEXP read_numeric(hid_t loc_id, int is_dataset, hid_t file_type_id, H5T_class_t class_id, 
@@ -14,13 +21,24 @@ static SEXP read_numeric(hid_t loc_id, int is_dataset, hid_t file_type_id, H5T_c
                          hid_t mem_space_id, hid_t file_space_id) {
   
   SEXP result = PROTECT(allocVector(REALSXP, (R_xlen_t)total_elements));
-  
+
   herr_t status;
-  char   as_bit64 = (rtype == R_TYPE_BIT64);
-  if (as_bit64) { status = h5_read_impl(loc_id, H5T_NATIVE_INT64,  REAL(result), is_dataset, mem_space_id, file_space_id); }
-  else          { status = h5_read_impl(loc_id, H5T_NATIVE_DOUBLE, REAL(result), is_dataset, mem_space_id, file_space_id); }
+  char   as_bit64  = (rtype == R_TYPE_BIT64);
+  char   is_uint64 = (class_id == H5T_INTEGER && H5Tget_size(file_type_id) == 8 && H5Tget_sign(file_type_id) == H5T_SGN_NONE);
+  R_xlen_t n_over  = 0;
+
+  if (as_bit64 && is_uint64) {
+    /* Read unsigned, then flag what doesn't fit in int64 (HDF5 would clamp it) */
+    status = h5_read_impl(loc_id, H5T_NATIVE_UINT64, REAL(result), is_dataset, mem_space_id, file_space_id);
+    if (status >= 0) n_over = uint64_to_int64(REAL(result), (R_xlen_t)total_elements);
+  }
+  else if (as_bit64) { status = h5_read_impl(loc_id, H5T_NATIVE_INT64,  REAL(result), is_dataset, mem_space_id, file_space_id); }
+  else               { status = h5_read_impl(loc_id, H5T_NATIVE_DOUBLE, REAL(result), is_dataset, mem_space_id, file_space_id); }
   if (status < 0) { UNPROTECT(1); return mkChar("Failed to read numeric data"); }
-  
+
+  if (!as_bit64) int64_na_to_na_real(result, file_type_id);
+  if (n_over > 0) warning("%.0f uint64 value(s) exceed the int64 range and were read as NA.", (double)n_over);
+
   UNPROTECT(1);
   result = PROTECT(coerce_to_rtype(result, rtype, file_type_id));
   
@@ -68,19 +86,20 @@ SEXP read_character(
   H5T_cset_t file_cset = H5Tget_cset(file_type_id);
   
   if (H5Tis_variable_str(file_type_id)) {
-    char **c_buffer = (char **)malloc(total_elements * sizeof(char *));
+    char **c_buffer = (char **)calloc(total_elements, sizeof(char *));
     char **f_buffer = (char **)malloc(total_elements * sizeof(char *));
     if (!c_buffer || !f_buffer) { // # nocov start
       free(c_buffer); free(f_buffer);
       return mkChar("Memory allocation failed for variable-length strings");
     } // # nocov end
-    
+
     hid_t mem_type = H5Tcopy(H5T_C_S1);
-    H5Tset_size(mem_type, H5T_VARIABLE); 
+    H5Tset_size(mem_type, H5T_VARIABLE);
     H5Tset_cset(mem_type, file_cset);
-    
+
     if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset, mem_space_id, file_space_id) < 0) {
-      result = PROTECT(mkChar("Failed to read variable-length strings")); // # nocov
+      /* Nothing was read, so there are no strings to reclaim */
+      result = PROTECT(mkChar("Failed to read variable-length strings"));
     } else {
       result = PROTECT(allocVector(STRSXP, (R_xlen_t)total_elements));
       h5_transpose(c_buffer, f_buffer, ndims, dims, sizeof(char*), 1);
@@ -88,11 +107,12 @@ SEXP read_character(
         if (f_buffer[i]) { SET_STRING_ELT(result, i, mkCharCE(f_buffer[i], CE_UTF8)); }
         else             { SET_STRING_ELT(result, i, NA_STRING); } // # nocov
       }
+
+      /* --- CLEANUP (Hyperslab-safe) --- */
+      hid_t reclaim_space = (mem_space_id != H5S_ALL) ? mem_space_id : space_id;
+      if (is_dataset) { H5Dvlen_reclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer); }
+      else            { H5Treclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer);      }
     }
-    /* --- CLEANUP (Hyperslab-safe) --- */
-    hid_t reclaim_space = (mem_space_id != H5S_ALL) ? mem_space_id : space_id;
-    if (is_dataset) { H5Dvlen_reclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer); }
-    else            { H5Treclaim(mem_type, reclaim_space, H5P_DEFAULT, c_buffer);      }
     free(c_buffer); free(f_buffer); H5Tclose(mem_type);
   }
   else {
@@ -104,10 +124,14 @@ SEXP read_character(
       return mkChar("Memory allocation failed for fixed-length strings");
     } // # nocov end
     
+    /* Match the file's padding so HDF5 copies the bytes as-is: converting to
+     * NULLTERM would drop the last byte of strings that fill the whole width. */
+    H5T_str_t strpad = H5Tget_strpad(file_type_id);
     hid_t mem_type = H5Tcopy(H5T_C_S1);
     H5Tset_size(mem_type, type_size);
     H5Tset_cset(mem_type, file_cset);
-    
+    H5Tset_strpad(mem_type, strpad);
+
     if (h5_read_impl(loc_id, mem_type, c_buffer, is_dataset, mem_space_id, file_space_id) < 0) {
       result = PROTECT(mkChar("Failed to read fixed-length strings")); // # nocov
     }else {
@@ -117,6 +141,7 @@ SEXP read_character(
       for (hsize_t i = 0; i < total_elements; i++) {
         memcpy(single_str, f_buffer + (i * type_size), type_size);
         single_str[type_size] = '\0';
+        if (strpad == H5T_STR_SPACEPAD) trim_spacepad(single_str);
         SET_STRING_ELT(result, i, mkCharCE(single_str, CE_UTF8));
       }
     }
@@ -142,7 +167,7 @@ static SEXP read_raw(
   herr_t status   = h5_read_impl(loc_id, mem_type, RAW(result), is_dataset, mem_space_id, file_space_id);
   
   if (status < 0) {
-    result = PROTECT(mkChar("Failed to read raw data")); // # nocov
+    result = mkChar("Failed to read raw data"); // # nocov
   }
   else if (ndims > 1) {
     SEXP dup_result = PROTECT(duplicate(result));
@@ -194,10 +219,15 @@ static SEXP read_factor(
   H5Tclose(mem_type_id);
 
   if (status < 0) { // # nocov start
-    UNPROTECT(2); 
-    return mkChar("Failed to read enum values"); 
+    UNPROTECT(2);
+    return mkChar("Failed to read enum values");
   } // # nocov end
-  
+
+  /* Values that match no member come back as -1 */
+  int *codes = INTEGER(result);
+  for (hsize_t i = 0; i < total_elements; i++)
+    if (codes[i] < 1 || codes[i] > n_members) codes[i] = NA_INTEGER;
+
   /* 4. Handle Transposition (if necessary) */
   if (ndims > 1) {
     SEXP dup_result = PROTECT(duplicate(result));
@@ -226,10 +256,12 @@ SEXP C_h5_read_dataset(SEXP filename, SEXP dataset_name, SEXP rmap, SEXP element
   const char *fname   = Rf_translateCharUTF8(STRING_ELT(filename,     0));
   const char *dname   = Rf_translateCharUTF8(STRING_ELT(dataset_name, 0));
   const char *el_name = Rf_translateCharUTF8(STRING_ELT(element_name, 0));
-  
+
+  apply_nthreads();
+
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
-  
+
   hid_t dset_id = H5Dopen2(file_id, dname, H5P_DEFAULT);
   if (dset_id < 0) { H5Fclose(file_id); error("Failed to open dataset: %s", dname); }
   

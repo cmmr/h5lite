@@ -497,7 +497,7 @@ SEXP C_h5_attr_names(SEXP filename, SEXP obj_name) {
     h5_op_data_t op_data;
     op_data.names = result;
     op_data.idx = 0;
-    H5Aiterate2(obj_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_attr_cb, &op_data);
+    H5Aiterate2(obj_id, attr_index(obj_id), H5_ITER_INC, NULL, op_attr_cb, &op_data);
   } else {
     PROTECT(result = allocVector(STRSXP, 0));
   }

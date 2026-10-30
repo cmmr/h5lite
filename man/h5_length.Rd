@@ -23,6 +23,8 @@ Behaves like \code{length()} for R objects.
 \item For \strong{Datasets} and \strong{Attributes}, this is the product of all dimensions (total number of elements).
 \item For \strong{Groups}, this is the number of objects directly contained in the group.
 \item Scalar datasets or attributes return 1.
+\item \code{NULL} datasets or attributes return 0.
+\item Objects or attributes that don't exist return \code{NA}.
 }
 }
 \examples{

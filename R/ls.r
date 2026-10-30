@@ -13,7 +13,12 @@
 #' 
 #' @return A character vector of object names. If `name` is `/` (the default),
 #'   the paths are relative to the root of the file. If `name` is another group,
-#'   the paths are relative to that group (unless `full.names = TRUE`).
+#'   the paths are relative to that group (unless `full.names = TRUE`, which
+#'   returns absolute paths such as `"/group/dataset"`).
+#'
+#'   Names are in the order [sort()] puts them, which depends on the locale.
+#'   [h5_read()] instead returns a group's contents in the order they were
+#'   written, where the file records it.
 #' 
 #' @seealso [h5_attr_names()], [h5_str()]
 #' @export
@@ -36,9 +41,13 @@ h5_ls <- function(file, name = "/", recursive = TRUE, full.names = FALSE, scales
 
   file <- validate_strings(file, name, must_exist = TRUE)
   assert_scalar_logical(recursive, full.names, scales)
-  
-  # Call the C function that performs a recursive or non-recursive listing.
-  .Call("C_h5_ls", file, name, recursive, full.names, scales, PACKAGE = "h5lite")
+
+  # Full names are built from `name`, so give it a canonical absolute form
+  if (full.names) name <- abs_h5_path(name)
+
+  # Call the C function that performs a recursive or non-recursive listing,
+  # then order the names the way R's sort() does.
+  sort(h5_call(.Call("C_h5_ls", file, name, recursive, full.names, scales, FALSE, PACKAGE = "h5lite")))
 }
 
 #' Display the Structure of an HDF5 Object
@@ -83,6 +92,6 @@ h5_str <- function(file, name = "/", attrs = TRUE, members = TRUE, markup = inte
   assert_scalar_logical(attrs, members, markup)
   
   # Call the C function that recursively visits objects and prints a summary.
-  .Call("C_h5_str", file, name, attrs, members, markup, PACKAGE = "h5lite")
+  h5_call(.Call("C_h5_str", file, name, attrs, members, markup, PACKAGE = "h5lite"))
   invisible(NULL)
 }

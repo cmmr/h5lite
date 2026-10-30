@@ -151,20 +151,23 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
   
   file   <- validate_strings(file, name, attr, must_exist = TRUE)
   obj_as <- validate_as(as)
-  
-  validate_start_count(file, name, attr, start, count)
-  
+
+  if (!is.null(attr) && !(is.null(start) && is.null(count)))
+    stop('`start` and `count` cannot be used on attributes.', call. = FALSE)
+  if (is.null(start) && !is.null(count))
+    stop('`start` must be provided if `count` is specified.', call. = FALSE)
+
   # Validate choices
   choices <- c("auto", "integer", "double", "logical", "bit64", "null")
-  if (!missing(choices))
-    for (i in seq_along(obj_as))
-      obj_as[i] <- tryCatch(
-        expr  = match.arg(tolower(obj_as[[i]]), choices),
-        error = function (e) { 
-          stop(
-            call. = FALSE,
-            "Invalid `as` argument: '", obj_as[[i]], "'\n", 
-            "Valid options are: '", paste(collapse = "', '", choices), "'.") })
+  for (i in seq_along(obj_as)) {
+    matched <- match_type(tolower(obj_as[[i]]), choices)
+    if (is.na(matched))
+      stop(
+        call. = FALSE,
+        "Invalid `as` argument: '", obj_as[[i]], "'\n",
+        "Valid options are: '", paste(collapse = "', '", choices), "'.")
+    obj_as[i] <- matched
+  }
   
   # Prepare the 'as' map for attributes
   # Example: obj_as  = c("@ready" = "logical", ".uint" = "integer", "@." = "null")
@@ -179,32 +182,43 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
     }
     if (is.null(attr_as) || length(attr_as) == 0) attr_as <- "auto"
   }
-  
+
+  # Reading one attribute directly: it is the object, so accept plain or "@" keys
+  if (!is.null(attr) && !is.null(names(obj_as))) {
+    attr_as <- c(obj_as[startsWith(names(obj_as), "@")], obj_as[!startsWith(names(obj_as), "@")])
+    names(attr_as) <- sub("^@", "", names(attr_as))
+    attr_as <- attr_as[!duplicated(names(attr_as))]
+  }
+
   # --- Perform Read Operation ---
   read_data(file, name, attr, obj_as, attr_as, start, count)
 }
 
 
 read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = NULL, count = NULL) {
-  
-  is_auto_count <- !is.null(start) && is.null(count)
-  c_count       <- if (is_auto_count) 1 else count
-  
+
   # Case 1: Read Specific Attribute directly
   if (!is.null(attr)) {
-    return(.Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite"))
+    return(h5_call(.Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite")))
   }
-  
-  # Case 2: Read Group (Recursive)
+
+  # Case 2: Read Group (Recursive). Children are read in creation order
+  # where the file tracks it, so lists come back in the order written, and
+  # by name otherwise.
   if (h5_is_group(file, name)) {
-    children <- sort(h5_ls(file, name, recursive = FALSE, full.names = TRUE))
+    children <- h5_call(.Call("C_h5_ls", file, abs_h5_path(name), FALSE, TRUE, FALSE, TRUE, PACKAGE = "h5lite"))
     res      <- lapply(children, read_data, file = file, obj_as = obj_as, attr_as = attr_as, start = start, count = count)
     names(res) <- if (length(res) == 0) NULL else basename(children)
   }
-  
+
   # Case 3: Read Dataset
   else {
-    res <- .Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, c_count, PACKAGE = "h5lite")
+    # `start` and `count` apply to each dataset, so they are checked here
+    is_auto_count <- !is.null(start) && is.null(count)
+    validate_start_count(file, name, attr, start, count)
+    c_count <- if (is_auto_count) 1 else count
+
+    res <- h5_call(.Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, c_count, PACKAGE = "h5lite"))
     
     # Surgically drop fully specified dimensions
     if (!is.null(start) && !inherits(res, "data.frame")) {
@@ -267,11 +281,18 @@ read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = NULL, c
   }
   
   # --- Attach Attributes ---
+  # A skipped or empty object has nothing to attach attributes to
+  if (is.null(res)) return (res)
+
+  # Skip HDF5's dimension scale bookkeeping, and attributes that would reshape
+  # or reclass the result (h5_write never writes these; other software may).
   obj_attr_names <- h5_attr_names(file, name)
-  obj_attr_names <- setdiff(obj_attr_names, c("DIMENSION_LIST", "REFERENCE_LIST"))
+  obj_attr_names <- setdiff(obj_attr_names, c(
+    "DIMENSION_LIST", "REFERENCE_LIST",
+    "class", "dim", "dimnames", "names", "row.names", "levels" ))
   for (attr in obj_attr_names)
     if (!is.na(h5_class(file, name, attr)))
-      base::attr(res, attr) <- .Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite")
+      base::attr(res, attr) <- h5_call(.Call("C_h5_read_attribute", file, name, attr, attr_as, PACKAGE = "h5lite"))
   
   return(res)
 }

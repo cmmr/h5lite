@@ -196,20 +196,21 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
   
   /* Search for type-specific and general type mappings. */
   
-  char needle_full[32];
-  char needle_type[32];
-  
-  /* Construct type keys (e.g., ".int32", ".uint") based on HDF5 class and sign. */
+  char needle_full[32] = "";
+  char needle_type[32] = "";
+
+  /* Construct type keys (e.g., ".int32", ".uint") based on HDF5 class and sign.
+   * Only numbers have them: strings, raw, enums, etc. match only "." */
   int bitwidth = (int)H5Tget_size(file_type_id) * 8;
   if (class_id == H5T_FLOAT) {
     snprintf(needle_type, sizeof(needle_type), ".float");
     snprintf(needle_full, sizeof(needle_full), ".float%d", bitwidth);
   }
-  else if (H5Tget_sign(file_type_id) == H5T_SGN_NONE) {
+  else if (class_id == H5T_INTEGER && H5Tget_sign(file_type_id) == H5T_SGN_NONE) {
     snprintf(needle_type, sizeof(needle_type), ".uint");
     snprintf(needle_full, sizeof(needle_full), ".uint%d", bitwidth);
   }
-  else {
+  else if (class_id == H5T_INTEGER) {
     snprintf(needle_type, sizeof(needle_type), ".int");
     snprintf(needle_full, sizeof(needle_full), ".int%d", bitwidth);
   }
@@ -223,20 +224,22 @@ R_TYPE rtype_from_map(hid_t file_type_id, SEXP rmap, const char *el_name) {
     const char *key = Rf_translateCharUTF8(STRING_ELT(names_vec, i));
     
     /* Check for matches: specific type (.int32), general type (.int), or default (.) */
-    if (strcmp(key, needle_full) == 0 || strcmp(key, needle_type) == 0 || strcmp(key, ".") == 0) {
-      
+    int is_type_key = needle_full[0] != '\0' && (strcmp(key, needle_full) == 0 || strcmp(key, needle_type) == 0);
+    if (is_type_key || strcmp(key, ".") == 0) {
+
       const char *value = CHAR(STRING_ELT(rmap, i));
-      
+
       R_TYPE result = R_TYPE_DOUBLE;
       if (strcmp(value, "logical") == 0) result = R_TYPE_LOGICAL;
       if (strcmp(value, "integer") == 0) result = R_TYPE_INTEGER;
       if (strcmp(value, "bit64")   == 0) result = R_TYPE_BIT64;
       if (strcmp(value, "null")    == 0) result = R_TYPE_NULL;
+      if (strcmp(value, "auto")    == 0) result = (class_id == H5T_FLOAT) ? R_TYPE_DOUBLE : R_TYPE_AUTO;
       
       /* Prioritize specific matches over general ones */
-      if      (strcmp(key, needle_full) == 0) { return result;       }
-      else if (strcmp(key, needle_type) == 0) { type_match = result; }
-      else                                    { dot_match  = result; }
+      if      (is_type_key && strcmp(key, needle_full) == 0) { return result;       }
+      else if (is_type_key)                                   { type_match = result; }
+      else                                                    { dot_match  = result; }
     }
   }
   
@@ -308,4 +311,77 @@ SEXP coerce_to_rtype(SEXP data, R_TYPE rtype, hid_t file_type_id) {
   
   UNPROTECT(1);
   return data;
+}
+
+
+/*
+ * bit64 stores NA as INT64_MIN. When signed 64-bit integers are read as
+ * doubles, that value would otherwise come back as -9.22e18.
+ */
+void int64_na_to_na_real(SEXP data, hid_t file_type_id) {
+  if (TYPEOF(data) != REALSXP)                 return;
+  if (H5Tget_class(file_type_id) != H5T_INTEGER) return;
+  if (H5Tget_size(file_type_id)  != 8)           return;
+  if (H5Tget_sign(file_type_id)  != H5T_SGN_2)   return;
+  
+  double  *vals = REAL(data);
+  R_xlen_t n    = XLENGTH(data);
+  for (R_xlen_t i = 0; i < n; i++)
+    if (vals[i] == (double)INT64_MIN) vals[i] = NA_REAL;
+}
+
+/*
+ * Converts `n` uint64 values in `buf`, in place, to int64. Values above
+ * INT64_MAX become INT64_MIN (bit64's NA). Returns how many did.
+ */
+R_xlen_t uint64_to_int64(void *buf, R_xlen_t n) {
+  R_xlen_t n_over = 0;
+  for (R_xlen_t i = 0; i < n; i++) {
+    uint64_t u;
+    int64_t  s;
+    memcpy(&u, (char *)buf + i * 8, 8);
+    if (u > (uint64_t)INT64_MAX) { s = INT64_MIN; n_over++; }
+    else                         { s = (int64_t)u;          }
+    memcpy((char *)buf + i * 8, &s, 8);
+  }
+  return n_over;
+}
+
+
+/*
+ * Number of HDF5 files and objects (datasets, groups, attributes, named
+ * types) currently open. h5lite closes everything before returning to R, so
+ * this is 0 except while an error is being raised.
+ */
+SEXP C_h5_open_id_count(void) {
+  ssize_t n = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_ALL);
+  return ScalarInteger(n < 0 ? NA_INTEGER : (int)n);
+}
+
+/*
+ * Closes every open HDF5 file and object. Called after an R error escapes a
+ * .Call(), which skips that function's own cleanup and would otherwise leave
+ * the file open (and, on Windows, locked) for the rest of the session.
+ */
+SEXP C_h5_close_all(void) {
+  ssize_t n = H5Fget_obj_count(H5F_OBJ_ALL, H5F_OBJ_ALL);
+  if (n <= 0) return R_NilValue;
+  
+  hid_t *ids = (hid_t *)malloc((size_t)n * sizeof(hid_t));
+  if (!ids) return R_NilValue; // # nocov
+  n = H5Fget_obj_ids(H5F_OBJ_ALL, H5F_OBJ_ALL, (size_t)n, ids);
+  
+  H5E_BEGIN_TRY {
+    /* Objects first: a file only closes once nothing in it is open */
+    for (int pass = 0; pass < 2; pass++) {
+      for (ssize_t i = 0; i < n; i++) {
+        int is_file = (H5Iget_type(ids[i]) == H5I_FILE);
+        if (is_file != pass) continue;
+        while (H5Iis_valid(ids[i]) > 0 && H5Idec_ref(ids[i]) > 0) {}
+      }
+    }
+  } H5E_END_TRY;
+  
+  free(ids);
+  return R_NilValue;
 }

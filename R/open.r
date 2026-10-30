@@ -107,29 +107,34 @@
 h5_open <- function (file) {
   
   h5_create_file(file)
-  
+
   env        <- new.env(parent = emptyenv())
-  env$.file  <- file
+  # Pin a relative path to the current directory, so a later setwd() doesn't
+  # point the handle at a different file
+  is_absolute <- grepl("^(/|~|[A-Za-z]:[/\\\\]|[/\\\\]{2})", file)
+  env$.file   <- if (is_absolute) file else normalizePath(file, mustWork = TRUE)
   env$.wd    <- "/"
   class(env) <- "h5"
-  
-  env$read         = \(name = ".",       attr = NULL, as = "auto")                    { h5_run(env, h5_read)  }
-  env$write        = \(data, name = ".", attr = NULL, as = "auto", compress = "gzip") { h5_run(env, h5_write) }
-  env$ls           = \(name = ".", recursive = TRUE, full.names = FALSE)              { h5_run(env, h5_ls)    }
-  env$attr_names   = \(name = ".")                     { h5_run(env, h5_attr_names)   }
-  env$class        = \(name, attr = NULL)              { h5_run(env, h5_class)        }
-  env$create_group = \(name)                           { h5_run(env, h5_create_group) }
-  env$delete       = \(name, attr = NULL, warn = TRUE) { h5_run(env, h5_delete)       }
-  env$dim          = \(name, attr = NULL)              { h5_run(env, h5_dim)          }
-  env$exists       = \(name, attr = NULL)              { h5_run(env, h5_exists)       }
-  env$inspect      = \(name)                           { h5_run(env, h5_inspect)      }
-  env$is_dataset   = \(name)                           { h5_run(env, h5_is_dataset)   }
-  env$is_group     = \(name)                           { h5_run(env, h5_is_group)     }
-  env$length       = \(name = ".", attr = NULL)        { h5_run(env, h5_length)       }
-  env$move         = \(from, to)                       { h5_run(env, h5_move)         }
-  env$names        = \(name = ".")                     { h5_run(env, h5_names)        }
-  env$str          = \(name = ".", attrs = TRUE)       { h5_run(env, h5_str)          }
-  env$typeof       = \(name, attr = NULL)              { h5_run(env, h5_typeof)       }
+
+  # Each method takes the same arguments as its function, minus `file`.
+  # Where `name` has a default, it is the handle's working directory.
+  env$read         = h5_method(env, h5_read,         name = ".")
+  env$write        = h5_method(env, h5_write,        name = ".")
+  env$ls           = h5_method(env, h5_ls,           name = ".")
+  env$attr_names   = h5_method(env, h5_attr_names,   name = ".")
+  env$class        = h5_method(env, h5_class)
+  env$create_group = h5_method(env, h5_create_group)
+  env$delete       = h5_method(env, h5_delete)
+  env$dim          = h5_method(env, h5_dim)
+  env$exists       = h5_method(env, h5_exists,       name = ".")
+  env$inspect      = h5_method(env, h5_inspect)
+  env$is_dataset   = h5_method(env, h5_is_dataset)
+  env$is_group     = h5_method(env, h5_is_group)
+  env$length       = h5_method(env, h5_length,       name = ".")
+  env$move         = h5_method(env, h5_move)
+  env$names        = h5_method(env, h5_names,        name = ".")
+  env$str          = h5_method(env, h5_str,          name = ".")
+  env$typeof       = h5_method(env, h5_typeof)
   
   # Navigation methods
   env$cd = function (group = "/") {
@@ -159,6 +164,20 @@ check_open <- function(env) {
 }
 
 
+#' Build a handle method with the same arguments as `func`, minus `file`
+#' @noRd
+#' @keywords internal
+h5_method <- function(env, func, ...) {
+  method  <- function() h5_run(env, func)
+  fmls    <- formals(func)
+  fmls$file <- NULL
+  defaults  <- list(...)
+  fmls[names(defaults)] <- defaults
+  formals(method) <- fmls
+  method
+}
+
+
 #' @noRd
 #' @keywords internal
 h5_run <- function(env, func) {
@@ -182,11 +201,7 @@ h5_run <- function(env, func) {
 #' @noRd
 #' @keywords internal
 normalize_path <- function(wd, path) {
-  # An absolute path from the user overrides the working directory
-  if (startsWith(path, "/")) {
-    return(path)
-  }
-  
+
   # If path is absolute, start from root. Otherwise, start from current wd.
   start_dir <- if (startsWith(path, "/")) "/" else wd
   

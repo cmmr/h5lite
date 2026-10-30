@@ -6,7 +6,52 @@
 
 SEXP C_register_hdf5_filters(void) {
   hdf5lib_register_all_filters();
+
+  /* h5lite reports every failure as an R error with its own message, so
+   * HDF5's automatic error-stack dumps would only be noise in the console. */
+  H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+
   return R_NilValue;
+}
+
+/* The number of threads for everything in h5lite that runs in parallel
+ * (currently the Blosc and Blosc2 filters).  0 means none was set. */
+#define H5LITE_MAX_THREADS 256
+static int nthreads_setting = 0;
+
+/* h5_threads() takes precedence.  Without it, the default is the
+ * H5LITE_NTHREADS environment variable, then one thread. */
+static int h5lite_nthreads(void) {
+  if (nthreads_setting > 0) return nthreads_setting;
+  const char *env = getenv("H5LITE_NTHREADS");
+  if (env != NULL) {
+    char *end;
+    long n = strtol(env, &end, 10);
+    if (end != env && n > 0)
+      return (n > H5LITE_MAX_THREADS) ? H5LITE_MAX_THREADS : (int)n;
+  }
+  return 1;
+}
+
+/* Hands the thread count to each threaded feature.  Called at the start of
+ * every dataset read and write, so a change to H5LITE_NTHREADS made with
+ * Sys.setenv() applies to the next call. */
+void apply_nthreads(void) {
+#ifdef HDF5LIB_BLOSC2_BITSHUFFLE
+  hdf5lib_set_blosc_nthreads(h5lite_nthreads());
+#else
+  /* hdf5lib 2.2.0.0 has no thread setting (nor the Blosc2 constants that
+   * hdf5lib.h gained with it), so Blosc runs on one thread there. */
+#endif
+}
+
+/* Gets (n = NULL) or sets the number of threads h5lite uses.
+ * Setting returns the previous setting; 0 means none (use the default). */
+SEXP C_h5_threads(SEXP n) {
+  if (n == R_NilValue) return ScalarInteger(h5lite_nthreads());
+  int previous = nthreads_setting;
+  nthreads_setting = asInteger(n);
+  return ScalarInteger(previous);
 }
 
 // # nocov start
@@ -27,6 +72,7 @@ static const R_CallMethodDef CallEntries[] = {
   /* init.c */
   {"C_register_hdf5_filters", (DL_FUNC) &C_register_hdf5_filters, 0},
   {"C_destroy_hdf5_filters",  (DL_FUNC) &C_destroy_hdf5_filters,  0},
+  {"C_h5_threads",            (DL_FUNC) &C_h5_threads,            1},
   
   /* info.c */
   {"C_h5_typeof",      (DL_FUNC) &C_h5_typeof, 2},
@@ -44,7 +90,7 @@ static const R_CallMethodDef CallEntries[] = {
   
   /* ls.c */
   {"C_h5_str", (DL_FUNC) &C_h5_str, 5},
-  {"C_h5_ls",  (DL_FUNC) &C_h5_ls, 5},
+  {"C_h5_ls",  (DL_FUNC) &C_h5_ls, 6},
   
   /* organize.c */
   {"C_h5_create_group", (DL_FUNC) &C_h5_create_group, 2},
@@ -59,7 +105,11 @@ static const R_CallMethodDef CallEntries[] = {
   /* write.c */
   {"C_h5_write_dataset",   (DL_FUNC) &C_h5_write_dataset, 6},
   {"C_h5_write_attribute", (DL_FUNC) &C_h5_write_attribute, 6},
-  
+
+  /* util.c */
+  {"C_h5_open_id_count", (DL_FUNC) &C_h5_open_id_count, 0},
+  {"C_h5_close_all",     (DL_FUNC) &C_h5_close_all,     0},
+
   {NULL, NULL, 0}
 };
 

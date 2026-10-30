@@ -50,7 +50,17 @@ local({
   expect_error(h5_compression("zstd-25"), "level must be an integer between")
   expect_error(h5_compression("lz4-15"), "level must be an integer between")
   expect_error(h5_compression("bzip2-0"), "level must be an integer between")
-  
+  expect_error(h5_compression("zfp-acc-0"),         "tolerance greater than 0")
+  expect_error(h5_compression("blosc2-zfp-acc-0"),  "tolerance greater than 0")
+  expect_error(h5_compression("zfp-acc-."),         "tolerance greater than 0")
+  expect_error(h5_compression("blosc2-zfp-rate-0"), "rate greater than 0")
+
+  # Blosc2 can't keep no bits, or drop a float64's whole 52-bit mantissa
+  for (bits in c(0, -52, 53))
+    expect_error(h5_compression("blosc2", blosc2_truncate = bits), "between -51 and 52", info = bits)
+  expect_silent(h5_compression("blosc2", blosc2_truncate = -51))
+  expect_silent(h5_compression("blosc2", blosc2_truncate = 52))
+
   # Mutually exclusive filters (Scale-Offset Conflicts)
   expect_error(h5_compression("szip-nn", int_packing = TRUE), "not compatible with `szip-nn`")
   expect_error(h5_compression("zfp-rate-8", float_rounding = 3), "not compatible with `zfp-rate`")

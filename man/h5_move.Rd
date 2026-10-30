@@ -30,6 +30,10 @@ You can use this function to either rename an object within the same group
 (e.g., \code{"data/old"} to \code{"data/new"}) or to move an object to a
 different group (e.g., \code{"data/old"} to \code{"archive/old"}). The destination
 parent group will be automatically created if it does not exist.
+
+A dataset's dimension scales (its \code{names}, \code{dimnames}, or \code{row.names},
+stored as \code{"<from>_names"} etc.) are moved and renamed along with it.
+Moving a group into itself (e.g., \code{"g"} to \code{"g/sub"}) is an error.
 }
 \examples{
 file <- tempfile(fileext = ".h5")

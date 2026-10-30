@@ -51,13 +51,23 @@ validate_strings <- function (file, name = "/", attr = NULL, must_exist = FALSE)
     if (!file.exists(file)) stop("File '", file, "' does not exist.", call. = FALSE)
     
     # Check Object/Attribute Existence
-    if (!.Call("C_h5_exists", file, name, attr, PACKAGE = "h5lite")) {
+    if (!h5_call(.Call("C_h5_exists", file, name, attr, PACKAGE = "h5lite"))) {
       if (is.null(attr)) { stop("Object '", name, "' does not exist in file '", file, "'.", call. = FALSE) } 
       else               { stop("Attribute '", attr, "' does not exist on object '", name, "'.", call. = FALSE) }
     }
   }
 
   return (file)
+}
+
+
+#' Normalizes an HDF5 path to absolute form, e.g. "a//b/" -> "/a/b"
+#' @noRd
+#' @keywords internal
+abs_h5_path <- function (path) {
+  parts <- strsplit(path, "/", fixed = TRUE)[[1]]
+  parts <- parts[nzchar(parts) & parts != "."]
+  paste0("/", paste(parts, collapse = "/"))
 }
 
 
@@ -81,6 +91,7 @@ validate_start_count <- function (file, name, attr, start, count) {
   
   if (length(start) <  1) stop ('`start` cannot be an empty vector', call. = FALSE)
   if (!isTRUE(all(start > 0))) stop ('`start` must be positive', call. = FALSE)
+  if (!isTRUE(all(start %% 1 == 0))) stop ('`start` must contain whole numbers', call. = FALSE)
   
   # Allow count to be NULL in the parent frame, but enforce it as 1 for bounds checking here
   check_count <- count
@@ -91,8 +102,13 @@ validate_start_count <- function (file, name, attr, start, count) {
     check_count <- as.numeric(count)
     if (length(check_count) != 1) stop ('`count` must be a single numeric value', call. = FALSE)
     if (!isTRUE(all(check_count > 0))) stop ('`count` must be positive', call. = FALSE)
+    if (!isTRUE(check_count %% 1 == 0)) stop ('`count` must be a whole number', call. = FALSE)
   }
   
+  # A data frame is one row of compound records per element, so only rows can be selected
+  if (length(start) > 1 && identical(h5_class(file, name, attr), "data.frame"))
+    stop('`start` must be a single value (the first row) for data frames.', call. = FALSE)
+
   shape <- h5_dim(file, name, attr)
   if (length(shape) == 0) shape <- 1L # scalar
   

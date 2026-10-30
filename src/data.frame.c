@@ -45,9 +45,13 @@ SEXP read_data_frame(
     member_rtypes[c] = rtype_from_map(file_member_type, rmap, member_name);
     
     if (file_class == H5T_INTEGER || file_class == H5T_FLOAT) {
-      char bit64 = member_rtypes[c] == R_TYPE_BIT64;
-      if (bit64) { mem_member_types[c] = H5Tcopy(H5T_NATIVE_INT64);  }
-      else       { mem_member_types[c] = H5Tcopy(H5T_NATIVE_DOUBLE); }
+      char bit64  = member_rtypes[c] == R_TYPE_BIT64;
+      char uint64 = file_class == H5T_INTEGER && H5Tget_size(file_member_type) == 8 &&
+                    H5Tget_sign(file_member_type) == H5T_SGN_NONE;
+      /* uint64 is read unsigned so values beyond int64 can become NA, not be clamped */
+      if      (bit64 && uint64) { mem_member_types[c] = H5Tcopy(H5T_NATIVE_UINT64); }
+      else if (bit64)           { mem_member_types[c] = H5Tcopy(H5T_NATIVE_INT64);  }
+      else                      { mem_member_types[c] = H5Tcopy(H5T_NATIVE_DOUBLE); }
     }
     else if (file_class == H5T_ENUM) {
       mem_member_types[c] = H5Tcreate(H5T_ENUM, sizeof(int));
@@ -68,6 +72,8 @@ SEXP read_data_frame(
       } else {
         size_t fixed_width = H5Tget_size(file_member_type);
         H5Tset_size(mem_member_types[c], fixed_width);
+        /* Match the file's padding so full-width strings keep their last byte */
+        H5Tset_strpad(mem_member_types[c], H5Tget_strpad(file_member_type));
         if (max_fixed_width < fixed_width) max_fixed_width = fixed_width;
       }
       H5Tset_cset(mem_member_types[c], cset);
@@ -131,13 +137,22 @@ SEXP read_data_frame(
         double val; memcpy(&val, src, sizeof(double));
         REAL(r_column)[r] = val;
       }
-      R_TYPE rtype = member_rtypes[c];
+      R_TYPE rtype            = member_rtypes[c];
+      hid_t  file_member_type = H5Tget_member_type(file_type_id, c);
+      if (rtype == R_TYPE_BIT64) {
+        if (H5Tequal(mem_member_types[c], H5T_NATIVE_UINT64) > 0) {
+          R_xlen_t n_over = uint64_to_int64(REAL(r_column), (R_xlen_t)n_rows);
+          if (n_over > 0) warning("%.0f uint64 value(s) exceed the int64 range and were read as NA.", (double)n_over);
+        }
+      }
+      else {
+        int64_na_to_na_real(r_column, file_member_type);
+      }
       if (rtype != R_TYPE_DOUBLE) {
-        hid_t file_member_type = H5Tget_member_type(file_type_id, c);
         UNPROTECT(1);
         r_column = PROTECT(coerce_to_rtype(r_column, rtype, file_member_type));
-        H5Tclose(file_member_type);
       }
+      H5Tclose(file_member_type);
     }
     else if (mclass == H5T_COMPLEX) {
       r_column = PROTECT(allocVector(CPLXSXP, n_rows));
@@ -156,6 +171,12 @@ SEXP read_data_frame(
       }
       hid_t file_member_type = H5Tget_member_type(file_type_id, c);
       int n_levels = H5Tget_nmembers(file_member_type);
+
+      /* Values that match no member come back as -1 */
+      int *codes = INTEGER(r_column);
+      for (hsize_t r = 0; r < n_rows; r++)
+        if (codes[r] < 1 || codes[r] > n_levels) codes[r] = NA_INTEGER;
+
       SEXP levels = PROTECT(allocVector(STRSXP, n_levels));
       for (int i = 0; i < n_levels; i++) {
         char *lname = H5Tget_member_name(file_member_type, i);
@@ -182,11 +203,13 @@ SEXP read_data_frame(
         }
       }
       else {
-        size_t str_size = H5Tget_size(mem_member_types[c]);
+        size_t str_size   = H5Tget_size(mem_member_types[c]);
+        int    space_pad  = H5Tget_strpad(mem_member_types[c]) == H5T_STR_SPACEPAD;
         for (hsize_t r = 0; r < n_rows; r++) {
           char *src = buffer + (r * total_mem_size) + member_offset;
           memcpy(fixed_width_buffer, src, str_size);
           fixed_width_buffer[str_size] = '\0';
+          if (space_pad) trim_spacepad(fixed_width_buffer);
           SET_STRING_ELT(r_column, r, mkCharCE(fixed_width_buffer, CE_UTF8));
         }
       }
@@ -204,7 +227,24 @@ SEXP read_data_frame(
     SET_VECTOR_ELT(result, c, r_column);
     UNPROTECT(1);
   }
-  
+
+  /* Drop the columns mapped to "null" */
+  int n_keep = 0;
+  for (int c = 0; c < n_cols; c++) if (member_rtypes[c] != R_TYPE_NULL) n_keep++;
+  if (n_keep < n_cols) {
+    SEXP kept       = PROTECT(allocVector(VECSXP, n_keep));
+    SEXP kept_names = PROTECT(allocVector(STRSXP, n_keep));
+    for (int c = 0, k = 0; c < n_cols; c++) {
+      if (member_rtypes[c] == R_TYPE_NULL) continue;
+      SET_VECTOR_ELT(kept,       k, VECTOR_ELT(result, c));
+      SET_STRING_ELT(kept_names, k, STRING_ELT(col_names_sexp, c));
+      k++;
+    }
+    setAttrib(kept, R_NamesSymbol, kept_names);
+    UNPROTECT(3); /* kept_names, kept, result */
+    result = PROTECT(kept);
+  }
+
   SEXP class_attr = PROTECT(allocVector(STRSXP, 1));
   SET_STRING_ELT(class_attr, 0, mkChar("data.frame"));
   setAttrib(result, R_ClassSymbol, class_attr);
@@ -231,9 +271,12 @@ SEXP read_data_frame(
           
           hid_t scale_mem_space = H5S_ALL;
           hsize_t total = H5Sget_simple_extent_npoints(s_space);
-          
+
+          /* Only a 1D scale with one label per row can serve as row names */
+          int usable = (s_ndims == 1 && total == (hsize_t)H5Sget_simple_extent_npoints(space_id));
+
           /* Extract the specific scale subset mapping to our row offset/count */
-          if (offset != NULL && mem_dims != NULL && s_ndims == 1) {
+          if (usable && offset != NULL && mem_dims != NULL) {
             hsize_t s_offset[1] = { offset[0] };
             hsize_t s_count[1]  = { mem_dims[0] };
             H5Sselect_hyperslab(s_space, H5S_SELECT_SET, s_offset, NULL, s_count, NULL);
@@ -242,7 +285,7 @@ SEXP read_data_frame(
           }
           
           /* Safely verify the scale matches our exact row extraction count */
-          if (total == (hsize_t)n_rows) {
+          if (usable && total == (hsize_t)n_rows) {
             hsize_t *s_dims = (hsize_t*)R_alloc(s_ndims > 0 ? s_ndims : 1, sizeof(hsize_t));
             if (s_ndims > 0) H5Sget_simple_extent_dims(s_space, s_dims, NULL);
             if (scale_mem_space != H5S_ALL && s_ndims == 1) s_dims[0] = mem_dims[0];
@@ -355,8 +398,12 @@ SEXP write_dataframe(
   
   for (R_xlen_t c = 0; c < n_cols; c++) {
     const char *col_name = Rf_translateCharUTF8(STRING_ELT(col_names, c));
-    H5Tinsert(file_type_id, col_name, file_offset, ft_members[c]);
-    H5Tinsert(mem_type_id,  col_name, mem_offset,  mt_members[c]);
+    if (H5Tinsert(file_type_id, col_name, file_offset, ft_members[c]) < 0 ||
+        H5Tinsert(mem_type_id,  col_name, mem_offset,  mt_members[c]) < 0) { // # nocov start
+      for (int i = 0; i < n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
+      H5Tclose(file_type_id); H5Tclose(mem_type_id); UNPROTECT(2); // data, col_names
+      return errmsg_2("Could not add column '%s' to compound type for '%s'.", col_name, obj_name);
+    } // # nocov end
     file_offset += H5Tget_size(ft_members[c]);
     mem_offset  += H5Tget_size(mt_members[c]);
   }
@@ -417,10 +464,10 @@ SEXP write_dataframe(
             /* 2. Copy data if not NA */
             if (s != NA_STRING) {
               const char *utf8_s = Rf_translateCharUTF8(s);
-              /* Copy up to 'width' bytes. 
-               * strncpy does not guarantee null-termination if string >= width, 
-               * which is exactly what HDF5 expects for full fixed-width strings. */
-              strncpy(dest, utf8_s, width);
+              /* Copy up to 'width' bytes, truncating at a character boundary.
+               * A full-width string has no null terminator, which is what HDF5
+               * expects for fixed-width strings. */
+              memcpy(dest, utf8_s, utf8_fit(utf8_s, width));
             }
           }
           else {
@@ -458,6 +505,8 @@ SEXP write_dataframe(
     H5Pset_char_encoding(lcpl_id, H5T_CSET_UTF8);
     
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_attr_creation_order(dcpl_id, H5P_CRT_ORDER_TRACKED | H5P_CRT_ORDER_INDEXED);
+    create_parent_groups(loc_id, obj_name);
     if (n_rows > 0) {
       hsize_t chunk_dims = 0;
       calculate_chunk_dims(1, &h5_dims, total_mem_size, compress, &chunk_dims);
@@ -488,9 +537,14 @@ SEXP write_dataframe(
       }
   }
 
+  /* A dataset's cached chunks are filtered and written on close; see
+   * C_h5_write_dataset(). */
   if (is_attribute) { H5Aclose(obj_id); }
-  else              { H5Dclose(obj_id); }
-  
+  else if (H5Dclose(obj_id) < 0) {
+    delete_object(loc_id, obj_name);
+    if (status >= 0) status = -1;
+  }
+
   free(buffer); UNPROTECT(2); // data, col_names
   for(int i = 0; i < n_cols; i++) { H5Tclose(ft_members[i]); H5Tclose(mt_members[i]); }
   H5Tclose(file_type_id); H5Tclose(mem_type_id); H5Sclose(space_id);

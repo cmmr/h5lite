@@ -119,15 +119,21 @@ local({
   opts_delta <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE)
   h5_write(dat, file, "b2_delta", compress = opts_delta)
   out_b2d <- capture.output(print(h5_inspect(file, "b2_delta")))
-  expect_true(any(grepl("blosc2 \\[bitshuffle -> delta -> zstd\\]", out_b2d)))
-  
-  # Blosc2 with Truncate filter
-  opts_trunc <- h5_compression("blosc2-ndlz", blosc2_truncate = 10)
+  expect_true(any(grepl("blosc2 \\[delta -> bitshuffle -> zstd\\]", out_b2d)))
+
+  # Blosc2 with Truncate filter, which runs first
+  opts_trunc <- h5_compression("blosc2-lz4", blosc2_truncate = 10)
   h5_write(dat, file, "b2_trunc", compress = opts_trunc)
   out_b2t <- capture.output(print(h5_inspect(file, "b2_trunc")))
-  expect_true(any(grepl("trunc\\(bits=10\\)", out_b2t)))
-  expect_true(any(grepl("ndlz", out_b2t)))
-  
+  expect_true(any(grepl("blosc2 \\[trunc\\(bits=10\\) -> bitshuffle -> lz4\\]", out_b2t)))
+
+  # NDLZ runs no pre-filters
+  opts_ndlz <- h5_compression("blosc2-ndlz", blosc2_truncate = 10)
+  h5_write(dat, file, "b2_ndlz", compress = opts_ndlz)
+  out_ndlz <- capture.output(print(h5_inspect(file, "b2_ndlz")))
+  expect_true(any(grepl("blosc2 \\[ndlz\\]", out_ndlz)))
+  expect_identical(h5_read(file, "b2_ndlz"), dat)
+
   unlink(file)
 })
 

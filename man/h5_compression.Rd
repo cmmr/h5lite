@@ -36,7 +36,8 @@ bit-width for each individual chunk.
 }}
 
 \item{float_rounding}{Control the HDF5 Scale-Offset filter for floating-point
-datasets.\emph{(Note: Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters).}
+datasets.\emph{(Note: Incompatible with \code{szip}, \code{zfp}, \code{bshuf}, and Blosc2 pre-filters.
+Not applied to \code{float16}/\code{bfloat16} data.)}
 \itemize{
 \item \code{NULL} (Default): Disabled.
 \item Integer (e.g., \code{3}): The number of base-10 decimal places of detail to preserve
@@ -45,11 +46,17 @@ round to powers of 10.
 }}
 
 \item{blosc2_delta}{A logical value. If \code{TRUE} and a \code{blosc2} compressor is selected,
-applies the Blosc2 Delta pre-filter before compression. Default is \code{FALSE}.}
+applies the Blosc2 Delta pre-filter before compression. Default is \code{FALSE}.
+\code{"blosc2-ndlz"} and \code{"blosc2-zfp-..."} run no pre-filters.}
 
 \item{blosc2_truncate}{An integer. If provided and a \code{blosc2} compressor is selected,
-applies the Blosc2 Truncate Precision pre-filter to floating-point data, preserving
-exactly the specified number of uncompressed bits. Default is \code{NULL}.}
+applies the Blosc2 Truncate Precision pre-filter to floating-point data, keeping
+that many bits of each value's mantissa (\code{1} to \code{52}), or with a negative
+number dropping that many (\code{-1} to \code{-51}). Default is \code{NULL}. It is
+not applied to integers, data frames, \code{float16}/\code{bfloat16} data, data
+containing \code{NA} or \code{NaN}, or \code{float32} data when it would drop 23 bits or
+more (a \code{float32}'s whole mantissa). \code{"blosc2-ndlz"} and \code{"blosc2-zfp-..."}
+run no pre-filters.}
 }
 \value{
 An S3 object of class \code{compress} containing the parsed pipeline parameters.

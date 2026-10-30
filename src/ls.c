@@ -100,6 +100,47 @@ static void format_member_type(hid_t type_id, char *buffer, size_t buf_len) {
   UNPROTECT(1); // type_sexp
 }
 
+/* --- ORDERING HELPERS --- */
+
+/* The index to list a group's links by: creation order if the group tracks it. */
+H5_index_t link_index(hid_t group_id) {
+  unsigned flags = 0;
+  H5E_BEGIN_TRY {
+    hid_t gcpl_id = H5Gget_create_plist(group_id);
+    if (gcpl_id >= 0) { H5Pget_link_creation_order(gcpl_id, &flags); H5Pclose(gcpl_id); }
+  } H5E_END_TRY;
+  return (flags & H5P_CRT_ORDER_INDEXED) ? H5_INDEX_CRT_ORDER : H5_INDEX_NAME;
+}
+
+/* The index to list an object's attributes by: creation order if it tracks it. */
+H5_index_t attr_index(hid_t obj_id) {
+  unsigned flags = 0;
+  H5E_BEGIN_TRY {
+    hid_t ocpl_id = -1;
+    H5I_type_t type = H5Iget_type(obj_id);
+    if      (type == H5I_DATASET)  ocpl_id = H5Dget_create_plist(obj_id);
+    else if (type == H5I_GROUP)    ocpl_id = H5Gget_create_plist(obj_id);
+    else if (type == H5I_DATATYPE) ocpl_id = H5Tget_create_plist(obj_id);
+    if (ocpl_id >= 0) { H5Pget_attr_creation_order(ocpl_id, &flags); H5Pclose(ocpl_id); }
+  } H5E_END_TRY;
+  return (flags & H5P_CRT_ORDER_INDEXED) ? H5_INDEX_CRT_ORDER : H5_INDEX_NAME;
+}
+
+/* The name of the i-th attribute of `obj_id`, or NULL. The caller frees it. */
+static char *attr_name_by_idx(hid_t obj_id, H5_index_t idx, hsize_t i) {
+  ssize_t len = H5Aget_name_by_idx(obj_id, ".", idx, H5_ITER_INC, i, NULL, 0, H5P_DEFAULT);
+  if (len < 0) return NULL;
+  char *name = (char *)malloc((size_t)len + 1);
+  if (name) H5Aget_name_by_idx(obj_id, ".", idx, H5_ITER_INC, i, name, (size_t)len + 1, H5P_DEFAULT);
+  return name;
+}
+
+/* Attributes HDF5 uses to link dimension scales, which h5lite doesn't show. */
+static int is_hidden_attr(const char *name) {
+  return strcmp(name, "DIMENSION_LIST") == 0 || strcmp(name, "REFERENCE_LIST") == 0;
+}
+
+
 /* --- RECURSIVE PRINTING LOGIC --- */
 
 /*
@@ -131,10 +172,14 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
   H5O_info_t oinfo;
   if(H5Oget_info(loc_id, &oinfo, fields) < 0) return;
   
-  /* 1. Count Attributes */
-  hsize_t n_attrs = 0;
-  if (show_attrs) {
-    n_attrs = oinfo.num_attrs;
+    /* 1. Count Attributes, leaving out HDF5's dimension scale bookkeeping */
+  H5_index_t attr_idx  = attr_index(loc_id);
+  hsize_t    n_attrs   = 0;
+  hsize_t    all_attrs = show_attrs ? oinfo.num_attrs : 0;
+  for (hsize_t i = 0; i < all_attrs; i++) {
+    char *aname = attr_name_by_idx(loc_id, attr_idx, i);
+    if (aname && !is_hidden_attr(aname)) n_attrs++;
+    free(aname);
   }
 
   /* 2. Count Compound Members (if this object is a compound dataset) */
@@ -172,18 +217,18 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
   const char *pref_norm = "\xE2\x94\x82   ";
   const char *pref_last = "    ";
   
-  /* --- PHASE 1: Attributes --- */
-  if (show_attrs) {
-    for (hsize_t i = 0; i < n_attrs; i++) {
-      int is_last = (i == total_items - 1); 
-      
-      /* Open Attribute */
-      hid_t attr_id = H5Aopen_by_idx(loc_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, H5P_DEFAULT, H5P_DEFAULT);
-      if (attr_id < 0) continue;
-      
+    /* --- PHASE 1: Attributes --- */
+  hsize_t n_shown = 0;
+  for (hsize_t i = 0; i < all_attrs; i++) {
+
       /* Get Name */
-      char attr_name[256];
-      H5Aget_name(attr_id, sizeof(attr_name), attr_name);
+      char *attr_name = attr_name_by_idx(loc_id, attr_idx, i);
+      if (!attr_name || is_hidden_attr(attr_name)) { free(attr_name); continue; }
+      int is_last = (n_shown++ == total_items - 1);
+
+      /* Open Attribute */
+      hid_t attr_id = H5Aopen_by_idx(loc_id, ".", attr_idx, H5_ITER_INC, i, H5P_DEFAULT, H5P_DEFAULT);
+      if (attr_id < 0) { free(attr_name); continue; }
       
       /* Get Type Info */
       hid_t atype  = H5Aget_type(attr_id);
@@ -229,10 +274,10 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
         }
       }
 
-      /* Close attribute type AFTER using it */
+            /* Close attribute type AFTER using it */
       H5Tclose(atype);
       H5Aclose(attr_id);
-    }
+      free(attr_name);
   }
 
   /* --- PHASE 2: Compound Members (Datasets) --- */
@@ -261,22 +306,27 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
     H5Tclose(compound_tid);
   }
 
-  /* --- PHASE 3: Links (Children) --- */
+    /* --- PHASE 3: Links (Children), in creation order where tracked --- */
+  H5_index_t link_idx = (n_links > 0) ? link_index(loc_id) : H5_INDEX_NAME;
   for (hsize_t i = 0; i < n_links; i++) {
     hsize_t global_idx = n_attrs + n_members + i;
     int is_last = (global_idx == total_items - 1);
-    
+
     /* Get Link Name */
-    char name[256];
-    if(H5Lget_name_by_idx(loc_id, ".", H5_INDEX_NAME, H5_ITER_NATIVE, i, name, sizeof(name), H5P_DEFAULT) < 0) continue;
+    ssize_t name_len = H5Lget_name_by_idx(loc_id, ".", link_idx, H5_ITER_INC, i, NULL, 0, H5P_DEFAULT);
+    if (name_len < 0) continue;
+    char *name = (char *)malloc((size_t)name_len + 1);
+    if (!name) continue; // # nocov
+    H5Lget_name_by_idx(loc_id, ".", link_idx, H5_ITER_INC, i, name, (size_t)name_len + 1, H5P_DEFAULT);
     
     /* Open Object to inspect type/recurse */
     hid_t oid = H5Oopen(loc_id, name, H5P_DEFAULT);
     if (oid < 0) { // # nocov start
       Rprintf("%s%s %s %s<Error>%s\n", 
               prefix, (is_last ? conn_last : conn_norm), 
-              name, col_subtle, col_reset); 
-      continue; 
+                            name, col_subtle, col_reset);
+      free(name);
+      continue;
     } // # nocov end
     
     /* Determine Object Info */
@@ -325,10 +375,11 @@ static void h5_list_recursive(hid_t loc_id, const char *prefix, int show_attrs, 
       /* Safety: Ensure we don't overflow the prefix stack buffer */
       snprintf(new_prefix, sizeof(new_prefix), "%s%s", prefix, (is_last ? pref_last : pref_norm));
       
-      h5_list_recursive(oid, new_prefix, show_attrs, show_members, show_markup);
+            h5_list_recursive(oid, new_prefix, show_attrs, show_members, show_markup);
     }
-    
+
     H5Oclose(oid);
+    free(name);
   }
 }
 
@@ -471,13 +522,16 @@ static herr_t op_iterate_cb(hid_t group, const char *name, const H5L_info_t *inf
  * C implementation of h5_ls().
  * Lists objects in a group, either recursively or non-recursively.
  * It uses a two-pass approach: first pass counts items, second pass allocates and fills the R vector.
+ * Objects are listed by name, or with `creation_order` in the order they were
+ * created (where the file tracks it), as h5_read() needs to rebuild lists.
  */
-SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales) {
+SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SEXP scales, SEXP creation_order) {
   const char *fname = Rf_translateCharUTF8(STRING_ELT(filename, 0));
   const char *gname = Rf_translateCharUTF8(STRING_ELT(group_name, 0));
   int is_recursive   = LOGICAL(recursive)[0];
   int use_full_names = LOGICAL(full_names)[0];
   int show_scales    = LOGICAL(scales)[0];
+  int by_creation    = LOGICAL(creation_order)[0];
   
   hid_t file_id = H5Fopen(fname, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) error("Failed to open file: %s", fname);
@@ -494,15 +548,28 @@ SEXP C_h5_ls(SEXP filename, SEXP group_name, SEXP recursive, SEXP full_names, SE
   op_data.full_names  = use_full_names;
   op_data.show_scales = show_scales;
   
+  /* Creation order needs the group to track it (and, recursively, every group
+   * below), so fall back to names if it doesn't. */
+  H5_index_t idx    = by_creation ? link_index(group_id) : H5_INDEX_NAME;
+  herr_t     status = 0;
+
   /* First pass: Count the number of items. `op_data.names` is NULL. */
-  if (is_recursive) { H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC); }
-  else              { H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data); }
-  
+  H5E_BEGIN_TRY {
+    if (is_recursive) { status = H5Ovisit(group_id, idx, H5_ITER_INC, op_visit_cb, &op_data, H5O_INFO_BASIC); }
+    else              { status = H5Literate(group_id, idx, H5_ITER_INC, NULL, op_iterate_cb, &op_data); }
+  } H5E_END_TRY;
+  if (status < 0 && idx == H5_INDEX_CRT_ORDER) {
+    idx = H5_INDEX_NAME;
+    op_data.count = 0;
+    if (is_recursive) { H5Ovisit(group_id, idx, H5_ITER_INC, op_visit_cb, &op_data, H5O_INFO_BASIC); }
+    else              { H5Literate(group_id, idx, H5_ITER_INC, NULL, op_iterate_cb, &op_data); }
+  }
+
   /* Second pass: Allocate the R vector and fill it with names. */
   if (op_data.count > 0) {
     PROTECT(op_data.names = allocVector(STRSXP, op_data.count));
-    if (is_recursive) { H5Ovisit(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, op_visit_cb, &op_data, H5O_INFO_BASIC); }
-    else              { H5Literate(group_id, H5_INDEX_NAME, H5_ITER_NATIVE, NULL, op_iterate_cb, &op_data); }
+    if (is_recursive) { H5Ovisit(group_id, idx, H5_ITER_INC, op_visit_cb, &op_data, H5O_INFO_BASIC); }
+    else              { H5Literate(group_id, idx, H5_ITER_INC, NULL, op_iterate_cb, &op_data); }
   } else {
     PROTECT(op_data.names = allocVector(STRSXP, 0));
   }

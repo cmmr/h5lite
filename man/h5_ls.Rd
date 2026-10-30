@@ -23,7 +23,12 @@ other datasets.}
 \value{
 A character vector of object names. If \code{name} is \code{/} (the default),
 the paths are relative to the root of the file. If \code{name} is another group,
-the paths are relative to that group (unless \code{full.names = TRUE}).
+the paths are relative to that group (unless \code{full.names = TRUE}, which
+returns absolute paths such as \code{"/group/dataset"}).
+
+Names are in the order \code{\link[=sort]{sort()}} puts them, which depends on the locale.
+\code{\link[=h5_read]{h5_read()}} instead returns a group's contents in the order they were
+written, where the file records it.
 }
 \description{
 Lists the names of objects (datasets and groups) within an HDF5 file or group.

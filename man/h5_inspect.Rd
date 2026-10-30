@@ -21,6 +21,14 @@ An object of class \code{inspect} (a named list) containing:
 Retrieves the Dataset Creation Property List (DCPL) details including storage
 layout, chunk dimensions, and a detailed list of all applied filters.
 }
+\details{
+ZFP can't compress chunks with no dimension longer than one (such as a
+single value) or more than four. It then declines the whole dataset: every
+chunk is stored uncompressed, and \code{print()} shows the filter as
+\verb{zfp (declined: stored uncompressed)}. With \code{hdf5lib} 2.2.0.1 or later,
+Blosc2's ZFP codecs likewise decline chunks of fewer than four values, shown
+as, e.g., \verb{blosc2 [zfp-acc] (declined: stored uncompressed)}.
+}
 \examples{
 file <- tempfile(fileext = ".h5")
 
