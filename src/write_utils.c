@@ -41,9 +41,17 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     if (!is_numeric || is_scaled)                { codec = "gzip"; int_level = 5; blosc = 0; }
   }
   else if (strncmp(codec, "zfp",  3) == 0) {
+    /* Standalone ZFP compresses chunks with 1 to 4 dimensions longer than
+     * one. For others, hdf5lib 2.2.0.0 records no parameters and then crashes
+     * reading them (2.2.0.1 stores those chunks unfiltered). */
+    int zfp_dims = 0;
+    for (int i = 0; i < rank; i++) if (chunk_dims[i] > 1) zfp_dims++;
+    int zfp_shape_ok = (blosc > 0 || (zfp_dims >= 1 && zfp_dims <= 4));
+
     if      (!is_numeric || is_scaled)         { codec = "gzip"; int_level = 5; blosc = 0; }
     else if (type_size != 4 && type_size != 8) { codec = "gzip"; int_level = 5; blosc = 0; }
     else if (blosc > 0 && !is_float)           { codec = "gzip"; int_level = 5; blosc = 0; }
+    else if (!zfp_shape_ok)                    { codec = "gzip"; int_level = 5; blosc = 0; }
   }
 
   /* Adjust chunking for SZIP */
@@ -183,8 +191,8 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
 
     /* The helpers add ZFP as mandatory, keeping its settings in a property
      * rather than in cd_values. Make it optional like every other filter here:
-     * ZFP refuses chunks holding NA, NaN, or Inf, and HDF5 then stores just
-     * those chunks unfiltered. */
+     * with hdf5lib 2.2.0.1, ZFP refuses chunks holding NA, NaN, or Inf, and
+     * HDF5 then stores just those chunks unfiltered. */
     H5Pmodify_filter(dcpl_id, 32013, H5Z_FLAG_OPTIONAL, 0, NULL);
   }
   

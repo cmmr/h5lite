@@ -51,6 +51,7 @@
 * `float_rounding` on `float16` or `bfloat16` data no longer makes the write fail; HDF5's Scale-Offset filter can't handle them, so it is skipped.
 * `compress = "none"` no longer chunks or shuffles the data, and `compress = TRUE` now selects gzip instead of no compression.
 * Unsupported data with `"blosc2-zfp-*"` now falls back to the default shuffle + gzip pipeline.
+* Standalone ZFP (`"zfp-..."`) now falls back to the default shuffle + gzip pipeline for data whose chunks have no dimension longer than one (e.g. a single value) or more than four, which ZFP can't compress. The write used to fail.
 * `h5_inspect()` no longer prints large chunk dimensions in scientific notation.
 * Reorganized the vignettes; `vignette('compression')` now covers every bundled codec, lossy compression, sharing files with other software, and chunk tuning.
 
@@ -62,7 +63,6 @@ These take effect when h5lite is built with hdf5lib 2.2.0.1 or later.
 * Blosc2 datasets are stored in hdf5lib's new parameter layout, which keeps the reference HDF5-Blosc2 filter's values in its slots and packs the pre-filters and `blosc2_truncate` bits into the first. So `hdf5plugin` describes them by their last pre-filter, `h5py` can append to them, and `h5py` can read 1-D Blosc2 datasets. `hdf5plugin` used to read the pre-filter bitmask h5lite recorded as a single filter code, which isn't a valid one with `blosc2_delta` or `blosc2_truncate`. 1-D Blosc2 datasets written earlier can't be read by `h5py` until they are rewritten.
 * `"blosc2-zfp-..."` now compresses arrays of more than four dimensions, and chunks with a dimension shorter than 4, which it used to store uncompressed. Data of fewer than four values is stored uncompressed, and `print(h5_inspect())` shows e.g. `blosc2 [zfp-acc] (declined: stored uncompressed)`.
 * Blosc2 now compresses matrices and arrays after `int_packing` or `float_rounding`. It used to refuse every chunk with two or more dimensions after Scale-Offset, leaving them packed but otherwise uncompressed.
-* Standalone ZFP (`"zfp-..."`) can't compress chunks with no dimension longer than one (e.g. a single value) or more than four. It now stores them uncompressed under parameters that say so, which `h5py` with `hdf5plugin` can read, and `print(h5_inspect())` shows the filter as `zfp (declined: stored uncompressed)`; it used to record no parameters for them and read past them.
 * `"snappy"` datasets are written in the block layout of snappy-cuda, the filter registered for Snappy's HDF5 filter ID. h5lite built with hdf5lib 2.2.0.0 or earlier can't read them; older ones can still be read.
 * Datasets compressed with SZ3 (filter 32024) can be read when an SZ3 plugin is on `HDF5_PLUGIN_PATH`. hdf5lib's read-only BitRound shim claimed SZ3's ID, which made them unreadable; it now uses BitRound's own, 32032, which `h5_inspect()` names `bitround`.
 

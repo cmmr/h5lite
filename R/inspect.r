@@ -13,9 +13,10 @@
 #'
 #' @details
 #' ZFP can't compress chunks with no dimension longer than one (such as a
-#' single value) or more than four. It then declines the whole dataset: every
-#' chunk is stored uncompressed, and `print()` shows the filter as
-#' `zfp (declined: stored uncompressed)`. With `hdf5lib` 2.2.0.1 or later,
+#' single value) or more than four. `h5_write()` uses the default pipeline for
+#' them, but in files from other software ZFP may have declined such a
+#' dataset: every chunk is stored uncompressed, and `print()` shows the filter
+#' as `zfp (declined: stored uncompressed)`. With `hdf5lib` 2.2.0.1 or later,
 #' Blosc2's ZFP codecs likewise decline chunks of fewer than four values, shown
 #' as, e.g., `blosc2 [zfp-acc] (declined: stored uncompressed)`.
 #' @export

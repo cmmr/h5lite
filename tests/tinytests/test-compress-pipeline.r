@@ -233,45 +233,77 @@ local({
   }
 })
 
+# Needs hdf5lib 2.2.0.1: 2.2.0.0 crashes R on these chunks (it records no
+# parameters for them, then reads them through a NULL pointer). Restore once
+# h5lite requires it.
+# local({
+#   #test_that("ZFP stores chunks it can't compress unfiltered", {
+#   f <- tempfile(fileext = ".h5")
+#   on.exit(unlink(f))
+#
+#   # ZFP compresses chunks with 1 to 4 dimensions longer than one. For others,
+#   # hdf5lib records parameters ({version, 0}) that make it refuse every chunk,
+#   # so HDF5 stores each one unfiltered. (It used to record none.)
+#   set.seed(1)
+#   cases <- list(
+#     value  = rnorm(1),
+#     arr5d  = array(rnorm(32),  rep(2, 5)),
+#     chunks = array(rnorm(4^5), rep(4, 5)) ) # Eight 2x2x2x4x4 chunks
+#
+#   for (codec in c("zfp-acc-0.01", "zfp-prec-16")) {
+#     for (nm in names(cases)) {
+#       id <- paste0(codec, "_", nm)
+#       h5_write(cases[[nm]], f, id, compress = h5_compression(codec, chunk_size = 1024))
+#       info <- h5_inspect(f, id)
+#       zfp  <- info$filters[[1]]
+#
+#       # Lossy ZFP would not return these values exactly
+#       expect_identical(h5_read(f, id), cases[[nm]], info = id)
+#       expect_equal(pipeline(f, id), "zfp", info = id)
+#       expect_equal(zfp$cd_values[-1], 0, info = id)
+#       # Any compressed chunk would change the total
+#       expect_equal(info$storage_size, info$uncompressed_size, info = id)
+#       expect_stdout(print(info), "Pipeline: zfp \\(declined: stored uncompressed\\)", info = id)
+#     }
+#   }
+#
+#   # Chunks with 1 to 4 dimensions longer than one are still compressed
+#   h5_write(array(rnorm(256), rep(4, 4)), f, "arr4d", compress = "zfp-acc-0.01")
+#   info <- h5_inspect(f, "arr4d")
+#   expect_true(length(info$filters[[1]]$cd_values) > 2)
+#   expect_true(info$storage_size < info$uncompressed_size / 2)
+#   expect_false(any(grepl("declined", capture.output(print(info)))))
+# })
+
+# Until h5lite requires hdf5lib 2.2.0.1: remove this block with the guard in
+# apply_compression(), and restore the one above.
 local({
-  #test_that("ZFP stores chunks it can't compress unfiltered", {
+  #test_that("Standalone ZFP falls back to gzip for chunks it can't compress", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
 
-  # ZFP compresses chunks with 1 to 4 dimensions longer than one. For others,
-  # hdf5lib records parameters ({version, 0}) that make it refuse every chunk,
-  # so HDF5 stores each one unfiltered. (It used to record none.)
+  # ZFP compresses chunks with 1 to 4 dimensions longer than one. hdf5lib
+  # 2.2.0.0 crashes R on others, so they get the default pipeline instead.
   set.seed(1)
   cases <- list(
     value  = rnorm(1),
     arr5d  = array(rnorm(32),  rep(2, 5)),
     chunks = array(rnorm(4^5), rep(4, 5)) ) # Eight 2x2x2x4x4 chunks
 
-  for (codec in c("zfp-acc-0.01", "zfp-prec-16")) {
+  for (codec in c("zfp-acc-0.01", "zfp-rev")) {
     for (nm in names(cases)) {
       id <- paste0(codec, "_", nm)
       h5_write(cases[[nm]], f, id, compress = h5_compression(codec, chunk_size = 1024))
-      info <- h5_inspect(f, id)
-      zfp  <- info$filters[[1]]
-
-      # Lossy ZFP would not return these values exactly
+      expect_equal(pipeline(f, id), c("shuffle", "gzip"), info = id)
       expect_identical(h5_read(f, id), cases[[nm]], info = id)
-      expect_equal(pipeline(f, id), "zfp", info = id)
-      # Needs hdf5lib 2.2.0.1, which records {version, 0} for chunks ZFP
-      # declines. Restore once h5lite requires it.
-      # expect_equal(zfp$cd_values[-1], 0, info = id)
-      # Any compressed chunk would change the total
-      expect_equal(info$storage_size, info$uncompressed_size, info = id)
-      expect_stdout(print(info), "Pipeline: zfp \\(declined: stored uncompressed\\)", info = id)
     }
   }
 
-  # Chunks with 1 to 4 dimensions longer than one are still compressed
+  # Chunks with 1 to 4 dimensions longer than one still get ZFP
   h5_write(array(rnorm(256), rep(4, 4)), f, "arr4d", compress = "zfp-acc-0.01")
-  info <- h5_inspect(f, "arr4d")
-  expect_true(length(info$filters[[1]]$cd_values) > 2)
-  expect_true(info$storage_size < info$uncompressed_size / 2)
-  expect_false(any(grepl("declined", capture.output(print(info)))))
+  expect_equal(pipeline(f, "arr4d"), "zfp")
+  h5_write(array(rnorm(16), c(2, 2, 2, 2, 1)), f, "arr5d1", compress = "zfp-rev")
+  expect_equal(pipeline(f, "arr5d1"), "zfp")
 })
 
 local({

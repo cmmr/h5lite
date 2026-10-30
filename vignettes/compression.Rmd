@@ -217,7 +217,7 @@ ZFP has requirements that are easy to miss:
 
 * **It can't store `NA`, `NaN`, or `Inf`.** ZFP would turn them into arbitrary numbers, so `h5lite` writes data that contains them with the default pipeline (shuffle + gzip) instead. Those values come back exactly.
 
-* **Standalone ZFP compresses blocks of one to four dimensions.** A chunk with no dimension longer than one (a single value, say) or with more than four is stored uncompressed, and `h5_inspect()` shows the filter as `zfp (declined: stored uncompressed)`. The values come back exactly. With `hdf5lib` 2.2.0.1 or later, ZFP inside Blosc2 compresses chunks of any shape, but stores data of fewer than four values uncompressed in the same way.
+* **Standalone ZFP compresses blocks of one to four dimensions.** Data whose chunks have no dimension longer than one (a single value, say) or more than four is written with the default pipeline (shuffle + gzip) instead. With `hdf5lib` 2.2.0.1 or later, ZFP inside Blosc2 compresses chunks of any shape, but stores data of fewer than four values uncompressed in the same way.
 
 * **In Blosc2, accuracy mode supports only powers of ten.** For `"blosc2-zfp-acc-[tolerance]"`, the tolerance is rounded down to a power of ten (for example, `0.05` becomes `0.01`).
 
@@ -329,7 +329,7 @@ rbind(
 
 Other settings depend on the data being written, so `h5_write()` **quietly adjusts** them instead:
 
-* **Szip and ZFP** fall back to the default pipeline (shuffle + gzip level 5) when the data type isn't supported (see [ZFP](#zfp)), or when the data is non-numeric, such as strings, data frames, or factors. Szip also falls back when the chunk's fastest-changing dimension has fewer than 2 elements.
+* **Szip and ZFP** fall back to the default pipeline (shuffle + gzip level 5) when the data type isn't supported (see [ZFP](#zfp)), or when the data is non-numeric, such as strings, data frames, or factors. Szip also falls back when the chunk's fastest-changing dimension has fewer than 2 elements, and standalone ZFP when the chunks have no dimension longer than one, or more than four.
 * **Missing and non-finite values:** ZFP falls back to the default pipeline, and `float_rounding` is skipped, for data that contains `NA`, `NaN`, or `Inf`, because those filters can't store them. `blosc2_truncate` is skipped for data containing `NA` or `NaN`.
 * **Shuffling** is skipped where it would be useless or harmful (see [Shuffling](#shuffling)).
 * **`blosc2_delta` and `blosc2_truncate`** apply only to `"blosc2-..."` codecs other than `"blosc2-ndlz"` and `"blosc2-zfp-..."`. With any other codec, they are ignored. `blosc2_truncate` also applies only to `float32` and `float64` data, and not to `float32` data when it would drop all 23 mantissa bits.

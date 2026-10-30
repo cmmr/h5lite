@@ -9,3 +9,4 @@ rhub_check.r
 src/*.o
 src/*.dll
 .positai
+TODO-hdf5lib-2.2.0.1.md
