@@ -106,6 +106,13 @@
   [`h5_str()`](https://cmmr.github.io/h5lite/reference/h5_str.md) and
   [`h5_attr_names()`](https://cmmr.github.io/h5lite/reference/h5_attr_names.md)
   no longer show HDF5’s `DIMENSION_LIST`/`REFERENCE_LIST` attributes.
+- Object names longer than 260 bytes no longer make
+  [`h5_write()`](https://cmmr.github.io/h5lite/reference/h5_write.md)
+  and [`h5_read()`](https://cmmr.github.io/h5lite/reference/h5_read.md)
+  fail on Windows with older versions of R (such as R 4.2), and `as`
+  keys now match an object named `~`. Both came from R’s
+  [`basename()`](https://rdrr.io/r/base/basename.html), which is meant
+  for file paths.
 - HDF5’s internal error stack is no longer printed before h5lite’s error
   messages.
 - [`h5_open()`](https://cmmr.github.io/h5lite/reference/h5_open.md)
