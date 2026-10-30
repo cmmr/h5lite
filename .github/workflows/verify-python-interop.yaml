@@ -38,9 +38,11 @@ jobs:
         run: Rscript scripts/generate_h5.r
 
       # --- Setup Python Environment ---
+      # Not '3.x': a new Python can come out before h5py has wheels for it, and
+      # pip then builds h5py from source, which fails without a system HDF5.
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.14'
 
       - name: Install Python Dependencies
         run: pip install h5py numpy
