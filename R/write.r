@@ -300,7 +300,7 @@ write_data <- function(data, file, name, attr, obj_as, attr_as, compress, dry = 
 
   assert_no_bytes_encoding(data)
 
-  map_key <- if (is.null(attr)) basename(name) else attr
+  map_key <- if (is.null(attr)) h5_basename(name) else attr
   data    <- factors_to_strings(data, map_key, obj_as)
   h5_type <- resolve_h5_type(data, map_key, obj_as)
 

@@ -208,7 +208,7 @@ read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = NULL, c
   if (h5_is_group(file, name)) {
     children <- h5_call(.Call("C_h5_ls", file, abs_h5_path(name), FALSE, TRUE, FALSE, TRUE, PACKAGE = "h5lite"))
     res      <- lapply(children, read_data, file = file, obj_as = obj_as, attr_as = attr_as, start = start, count = count)
-    names(res) <- if (length(res) == 0) NULL else basename(children)
+    names(res) <- if (length(res) == 0) NULL else h5_basename(children)
   }
 
   # Case 3: Read Dataset
@@ -218,7 +218,7 @@ read_data <- function (file, name, attr = NULL, obj_as, attr_as, start = NULL, c
     validate_start_count(file, name, attr, start, count)
     c_count <- if (is_auto_count) 1 else count
 
-    res <- h5_call(.Call("C_h5_read_dataset", file, name, obj_as, basename(name), start, c_count, PACKAGE = "h5lite"))
+    res <- h5_call(.Call("C_h5_read_dataset", file, name, obj_as, h5_basename(name), start, c_count, PACKAGE = "h5lite"))
     
     # Surgically drop fully specified dimensions
     if (!is.null(start) && !inherits(res, "data.frame")) {

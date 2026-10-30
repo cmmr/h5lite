@@ -71,6 +71,16 @@ abs_h5_path <- function (path) {
 }
 
 
+#' The last component of an HDF5 path, e.g. "/a/b/" -> "b". Unlike
+#' basename(), it never expands "~", and takes names of any length (on
+#' Windows, R 4.2's basename() refuses them over 260 bytes).
+#' @noRd
+#' @keywords internal
+h5_basename <- function (path) {
+  sub("^.*/", "", sub("/+$", "", path))
+}
+
+
 #' Sanity check integer arguments for start and count
 #' @noRd
 #' @keywords internal

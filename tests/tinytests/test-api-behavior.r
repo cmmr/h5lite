@@ -320,6 +320,25 @@ local({
 })
 
 local({
+  #test_that("`as` keys and list names match names basename() would change", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
+
+  # basename() expands "~", and in R 4.2 on Windows refuses names over 260
+  # bytes. `as` keys match the last component of the name.
+  long  <- strrep("n", 300)
+  cases <- list(c("~", "~"), c(long, long), c(paste0("g/", long), long))
+  for (cs in cases) {
+    h5_write(1.5, f, cs[1], as = setNames("float32", cs[2]))
+    expect_equal(h5_typeof(f, cs[1]), "float32", info = cs[1])
+  }
+
+  x <- setNames(list(1L, 2L), c("~", long))
+  h5_write(x, f, "lst")
+  expect_identical(names(h5_read(f, "lst")), names(x))
+})
+
+local({
   #test_that("failed calls don't print HDF5's internal error stack", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))

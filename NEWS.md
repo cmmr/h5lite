@@ -33,6 +33,7 @@
 * `h5_length()` returns 0 for NULL datasets and attributes.
 * `h5_ls()` and `h5_names()` (for groups) now return names in the order `sort()` puts them, instead of an arbitrary order, and `full.names = TRUE` returns absolute paths. `h5_read()` on a group and `h5_str()` now follow the order objects were created (in files written by this version; name order otherwise), so lists read back in the order they were written.
 * `h5_str()` shows names longer than 255 bytes, and `h5_str()` and `h5_attr_names()` no longer show HDF5's `DIMENSION_LIST`/`REFERENCE_LIST` attributes.
+* Object names longer than 260 bytes no longer make `h5_write()` and `h5_read()` fail on Windows with older versions of R (such as R 4.2), and `as` keys now match an object named `~`. Both came from R's `basename()`, which is meant for file paths.
 * HDF5's internal error stack is no longer printed before h5lite's error messages.
 * `h5_open()` handle methods now accept the same arguments as the corresponding functions (e.g. `h5$read(name, start, count)`), `".."` works in absolute paths, and a relative file path keeps working after `setwd()`.
 * `I()` around a length-one `POSIXct` now writes a scalar, and its warning for longer objects appears once.
