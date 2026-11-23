@@ -32,9 +32,6 @@ the rest of the R session.
 The default is one thread, or the value of the `H5LITE_NTHREADS`
 environment variable if it is set. Calling `h5_threads()` overrides it.
 
-Threads need `hdf5lib` 2.2.0.1 or later. When `h5lite` is built with
-`hdf5lib` 2.2.0.0, Blosc always uses one thread, whatever the setting.
-
 CRAN allows packages to use at most two threads in their examples,
 tests, and vignettes.
 

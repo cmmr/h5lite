@@ -13,7 +13,7 @@ parallel. Everything uses one thread unless you ask for more."><meta property="o
 
     <a class="navbar-brand me-2" href="../index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,8 +91,6 @@ levels, or when chunks are large. The setting applies to <code>h5lite</code> for
 rest of the R session.</p>
 <p>The default is one thread, or the value of the <code>H5LITE_NTHREADS</code>
 environment variable if it is set. Calling <code>h5_threads()</code> overrides it.</p>
-<p>Threads need <code>hdf5lib</code> 2.2.0.1 or later. When <code>h5lite</code> is built with
-<code>hdf5lib</code> 2.2.0.0, Blosc always uses one thread, whatever the setting.</p>
 <p>CRAN allows packages to use at most two threads in their examples, tests,
 and vignettes.</p>
     </div>

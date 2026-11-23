@@ -26,7 +26,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">h5lite</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">2.2.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -356,9 +356,7 @@ parallel. Threads help most when compression is slow, as with high
 Zstandard levels, and with large chunks, but they speed up reading at
 the default 1 MB chunk size too. To change the default of one thread
 without calling <code><a href="../reference/h5_threads.html">h5_threads()</a></code>, set the
-<code>H5LITE_NTHREADS</code> environment variable. Threads need
-<code>hdf5lib</code> 2.2.0.1 or later: when <code>h5lite</code> is built
-with <code>hdf5lib</code> 2.2.0.0, Blosc always uses one thread.</p>
+<code>H5LITE_NTHREADS</code> environment variable.</p>
 </div>
 <div class="section level3">
 <h3 id="szip">Szip<a class="anchor" aria-label="anchor" href="#szip"></a>
@@ -535,15 +533,16 @@ the result with <code><a href="../reference/h5_inspect.html">h5_inspect()</a></c
 </li>
 <li><p><strong>It can’t store <code>NA</code>, <code>NaN</code>, or
 <code>Inf</code>.</strong> ZFP would turn them into arbitrary numbers,
-so <code>h5lite</code> writes data that contains them with the default
-pipeline (shuffle + gzip) instead. Those values come back
-exactly.</p></li>
+so it leaves any chunk that contains them uncompressed. Those values
+come back exactly, and the rest of the dataset is still
+ZFP-compressed.</p></li>
 <li><p><strong>Standalone ZFP compresses blocks of one to four
-dimensions.</strong> Data whose chunks have no dimension longer than one
-(a single value, say) or more than four is written with the default
-pipeline (shuffle + gzip) instead. With <code>hdf5lib</code> 2.2.0.1 or
-later, ZFP inside Blosc2 compresses chunks of any shape, but stores data
-of fewer than four values uncompressed in the same way.</p></li>
+dimensions.</strong> A chunk with no dimension longer than one (a single
+value, say) or with more than four is stored uncompressed, and
+<code><a href="../reference/h5_inspect.html">h5_inspect()</a></code> shows the filter as
+<code>zfp (declined: stored uncompressed)</code>. The values come back
+exactly. Inside Blosc2, ZFP compresses chunks of any shape, but stores
+data of fewer than four values uncompressed in the same way.</p></li>
 <li><p><strong>In Blosc2, accuracy mode supports only powers of
 ten.</strong> For <code>"blosc2-zfp-acc-[tolerance]"</code>, the
 tolerance is rounded down to a power of ten (for example,
@@ -779,16 +778,14 @@ instead:</p>
 <strong>Szip and ZFP</strong> fall back to the default pipeline
 (shuffle + gzip level 5) when the data type isn’t supported (see <a href="#zfp">ZFP</a>), or when the data is non-numeric, such as strings,
 data frames, or factors. Szip also falls back when the chunk’s
-fastest-changing dimension has fewer than 2 elements, and standalone ZFP
-when the chunks have no dimension longer than one, or more than
-four.</li>
+fastest-changing dimension has fewer than 2 elements.</li>
 <li>
-<strong>Missing and non-finite values:</strong> ZFP falls back to
-the default pipeline, and <code>float_rounding</code> is skipped, for
-data that contains <code>NA</code>, <code>NaN</code>, or
-<code>Inf</code>, because those filters can’t store them.
-<code>blosc2_truncate</code> is skipped for data containing
-<code>NA</code> or <code>NaN</code>.</li>
+<strong>Missing and non-finite values:</strong> ZFP leaves chunks
+that contain <code>NA</code>, <code>NaN</code>, or <code>Inf</code>
+uncompressed (as it does chunks of a shape it can’t compress), and
+<code>float_rounding</code> is skipped for data that contains them,
+because those filters can’t store them. <code>blosc2_truncate</code> is
+skipped for data containing <code>NA</code> or <code>NaN</code>.</li>
 <li>
 <strong>Shuffling</strong> is skipped where it would be useless or
 harmful (see <a href="#shuffling">Shuffling</a>).</li>

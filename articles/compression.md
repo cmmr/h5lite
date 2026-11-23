@@ -183,9 +183,7 @@ slow, as with high Zstandard levels, and with large chunks, but they
 speed up reading at the default 1 MB chunk size too. To change the
 default of one thread without calling
 [`h5_threads()`](https://cmmr.github.io/h5lite/reference/h5_threads.md),
-set the `H5LITE_NTHREADS` environment variable. Threads need `hdf5lib`
-2.2.0.1 or later: when `h5lite` is built with `hdf5lib` 2.2.0.0, Blosc
-always uses one thread.
+set the `H5LITE_NTHREADS` environment variable.
 
 ### Szip
 
@@ -354,16 +352,18 @@ ZFP has requirements that are easy to miss:
   ```
 
 - **It can’t store `NA`, `NaN`, or `Inf`.** ZFP would turn them into
-  arbitrary numbers, so `h5lite` writes data that contains them with the
-  default pipeline (shuffle + gzip) instead. Those values come back
-  exactly.
+  arbitrary numbers, so it leaves any chunk that contains them
+  uncompressed. Those values come back exactly, and the rest of the
+  dataset is still ZFP-compressed.
 
-- **Standalone ZFP compresses blocks of one to four dimensions.** Data
-  whose chunks have no dimension longer than one (a single value, say)
-  or more than four is written with the default pipeline (shuffle +
-  gzip) instead. With `hdf5lib` 2.2.0.1 or later, ZFP inside Blosc2
-  compresses chunks of any shape, but stores data of fewer than four
-  values uncompressed in the same way.
+- **Standalone ZFP compresses blocks of one to four dimensions.** A
+  chunk with no dimension longer than one (a single value, say) or with
+  more than four is stored uncompressed, and
+  [`h5_inspect()`](https://cmmr.github.io/h5lite/reference/h5_inspect.md)
+  shows the filter as `zfp (declined: stored uncompressed)`. The values
+  come back exactly. Inside Blosc2, ZFP compresses chunks of any shape,
+  but stores data of fewer than four values uncompressed in the same
+  way.
 
 - **In Blosc2, accuracy mode supports only powers of ten.** For
   `"blosc2-zfp-acc-[tolerance]"`, the tolerance is rounded down to a
@@ -546,11 +546,11 @@ Other settings depend on the data being written, so
   level 5) when the data type isn’t supported (see [ZFP](#zfp)), or when
   the data is non-numeric, such as strings, data frames, or factors.
   Szip also falls back when the chunk’s fastest-changing dimension has
-  fewer than 2 elements, and standalone ZFP when the chunks have no
-  dimension longer than one, or more than four.
-- **Missing and non-finite values:** ZFP falls back to the default
-  pipeline, and `float_rounding` is skipped, for data that contains
-  `NA`, `NaN`, or `Inf`, because those filters can’t store them.
+  fewer than 2 elements.
+- **Missing and non-finite values:** ZFP leaves chunks that contain
+  `NA`, `NaN`, or `Inf` uncompressed (as it does chunks of a shape it
+  can’t compress), and `float_rounding` is skipped for data that
+  contains them, because those filters can’t store them.
   `blosc2_truncate` is skipped for data containing `NA` or `NaN`.
 - **Shuffling** is skipped where it would be useless or harmful (see
   [Shuffling](#shuffling)).
