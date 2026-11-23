@@ -2,6 +2,8 @@
 
 ## h5lite 2.2.0.0
 
+CRAN release: 2026-10-30
+
 - Works with hdf5lib 2.2.0.0 and 2.2.0.1. Some fixes take effect only
   when h5lite is built with hdf5lib 2.2.0.1 or later; they are listed
   under “With hdf5lib 2.2.0.1” below.
@@ -68,6 +70,10 @@
 
 ### Other fixes
 
+- `h5_read(as = "bit64")` now loads `bit64` (or errors if it isn’t
+  installed), so the `integer64` results print and subset correctly even
+  when `bit64` wasn’t already loaded
+  ([\#4](https://github.com/cmmr/h5lite/issues/4)).
 - Enum values with no matching member, and attributes named like R’s
   structural attributes (`dim`, `class`, …), no longer produce malformed
   or reshaped results. Factors with empty-string levels can no longer be

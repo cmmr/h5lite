@@ -230,7 +230,7 @@ codecs <- c("gzip", "zstd-5", "zstd-19", "lz4", "bshuf-lz4",
 # A slowly varying sensor signal (float64)
 compression_ratio(temps, codecs)
 #>          gzip        zstd-5       zstd-19           lz4     bshuf-lz4 
-#>          2.01          2.03          2.08          1.29          2.39 
+#>          2.01          2.06          2.08          1.29          2.39 
 #>  bshuf-zstd-5  blosc2-lz4-5 blosc2-zstd-5 
 #>          2.46          1.31          2.47
 
