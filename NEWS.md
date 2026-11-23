@@ -1,3 +1,8 @@
+# h5lite 2.2.0.1
+
+* `h5_read(as = "bit64")` now loads `bit64` (or errors if it isn't installed), so the `integer64` results print and subset correctly even when `bit64` wasn't already loaded (#4).
+
+
 # h5lite 2.2.0.0
 
 * Works with hdf5lib 2.2.0.0 and 2.2.0.1. Some fixes take effect only when h5lite is built with hdf5lib 2.2.0.1 or later; they are listed under "With hdf5lib 2.2.0.1" below.
@@ -24,7 +29,6 @@
 
 ## Other fixes
 
-* `h5_read(as = "bit64")` now loads `bit64` (or errors if it isn't installed), so the `integer64` results print and subset correctly even when `bit64` wasn't already loaded (#4).
 * Enum values with no matching member, and attributes named like R's structural attributes (`dim`, `class`, ...), no longer produce malformed or reshaped results. Factors with empty-string levels can no longer be written.
 * Reading a NULL dataset that has attributes no longer errors.
 * Lists can be written to the root group (`h5_write(list, file, "/")`, `h5$write(list)`).
