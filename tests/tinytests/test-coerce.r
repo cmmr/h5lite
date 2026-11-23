@@ -60,6 +60,22 @@ local({
     b64 <- bit64::as.integer64(4L)
     expect_identical(h5_read(file, "my_big", as = "bit64"), b64)
     expect_identical(h5_read(file, "my_big", as = c(my_big = "bit64")), b64)
+
+    # Reading as bit64 loads bit64, so integer64 methods dispatch (issue #4).
+    # Checked in a fresh R process, where bit64 isn't already loaded.
+    script <- tempfile(fileext = ".R")
+    writeLines(c(
+      paste0('.libPaths(', deparse1(.libPaths()), ')'),
+      'library(h5lite)',
+      'stopifnot(!isNamespaceLoaded("bit64"))',
+      paste0('x <- h5_read(', deparse1(normalizePath(file, winslash = "/")), ', "my_big", as = "bit64")'),
+      'cat(isNamespaceLoaded("bit64"), as.character(x), class(x[1]))'
+    ), script)
+    out <- suppressWarnings(system2(
+      file.path(R.home("bin"), "Rscript"), c("--vanilla", shQuote(script)),
+      stdout = TRUE, stderr = TRUE))
+    unlink(script)
+    expect_equal(out[length(out)], "TRUE 4 integer64")
   }
 })
 

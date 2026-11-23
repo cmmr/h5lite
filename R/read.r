@@ -168,7 +168,13 @@ h5_read <- function(file, name = "/", attr = NULL, as = "auto", start = NULL, co
         "Valid options are: '", paste(collapse = "', '", choices), "'.")
     obj_as[i] <- matched
   }
-  
+
+  # integer64 results need bit64's S3 methods registered, or they print and
+  # subset as doubles. Loading the namespace registers them.
+  if ("bit64" %in% obj_as && !requireNamespace("bit64", quietly = TRUE))
+    stop('`as = "bit64"` requires the bit64 package. ',
+         'Install it with install.packages("bit64").', call. = FALSE)
+
   # Prepare the 'as' map for attributes
   # Example: obj_as  = c("@ready" = "logical", ".uint" = "integer", "@." = "null")
   #          attr_as = c("ready" = "logical",  ".uint" = "integer", "."  = "null")
