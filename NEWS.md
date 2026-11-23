@@ -1,6 +1,10 @@
 # h5lite 2.2.0.1
 
+* Requires hdf5lib 2.2.0.1 or later, so everything listed under "With hdf5lib 2.2.0.1" for h5lite 2.2.0.0 now always applies: `h5_threads()` takes effect, Blosc2 datasets use the new parameter layout (which `h5py` with `hdf5plugin` reads and appends to), `"blosc2-zfp-..."` handles any chunk shape, Blosc2 compresses after `int_packing` and `float_rounding`, `"snappy"` uses snappy-cuda's format, and SZ3 datasets are readable with an SZ3 plugin.
 * Fixed R hanging as it exits on Windows after Blosc or Blosc2 used more than one thread (`h5_threads()`). Their worker threads are now freed while R shuts down, rather than after Windows has already stopped them.
+* Blosc2 datasets are written in the new parameter layout directly, rather than converted to it by hdf5lib.
+* ZFP now leaves just the chunks holding `NA`, `NaN`, or `Inf` uncompressed, instead of writing the whole dataset with gzip. The rest of the dataset is still ZFP-compressed.
+* Standalone ZFP (`"zfp-..."`) now stores data whose chunks it can't compress (no dimension longer than one, or more than four) uncompressed, under parameters that say so (which `h5py` with `hdf5plugin` can read), instead of falling back to gzip. `print(h5_inspect())` shows `zfp (declined: stored uncompressed)`.
 * `h5_read(as = "bit64")` now loads `bit64` (or errors if it isn't installed), so the `integer64` results print and subset correctly even when `bit64` wasn't already loaded (#4).
 
 

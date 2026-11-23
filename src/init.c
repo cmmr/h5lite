@@ -37,12 +37,7 @@ static int h5lite_nthreads(void) {
  * every dataset read and write, so a change to H5LITE_NTHREADS made with
  * Sys.setenv() applies to the next call. */
 void apply_nthreads(void) {
-#if defined(HDF5LIB_VERSION) && HDF5LIB_VERSION >= 2020001  /* 2.2.0.1 */
   hdf5lib_set_blosc_nthreads(h5lite_nthreads());
-#else
-  /* hdf5lib 2.2.0.0 has no thread setting (nor HDF5LIB_VERSION), so Blosc
-   * runs on one thread there. */
-#endif
 }
 
 /* Gets (n = NULL) or sets the number of threads h5lite uses.

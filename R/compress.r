@@ -247,9 +247,6 @@ h5_compression <- function(
 #' The default is one thread, or the value of the `H5LITE_NTHREADS`
 #' environment variable if it is set. Calling `h5_threads()` overrides it.
 #'
-#' Threads need `hdf5lib` 2.2.0.1 or later. When `h5lite` is built with
-#' `hdf5lib` 2.2.0.0, Blosc always uses one thread, whatever the setting.
-#'
 #' CRAN allows packages to use at most two threads in their examples, tests,
 #' and vignettes.
 #'
@@ -280,23 +277,17 @@ h5_threads <- function(n = NULL) {
 
 #' Drop lossy filters that would corrupt non-finite values
 #'
-#' ZFP and floating-point Scale-Offset cannot represent `NA`, `NaN`, or `Inf`:
-#' they come back as arbitrary numbers. Blosc2's truncation zeroes the bits
-#' that tell `NA` apart from `NaN`, and can turn `NA` into `Inf`. Data
-#' containing them is written with the default gzip pipeline instead of ZFP,
-#' and without `float_rounding` or `blosc2_truncate`. (hdf5lib 2.2.0.1's ZFP
-#' refuses just the chunks holding them, but 2.2.0.0's compresses them anyway.)
+#' Floating-point Scale-Offset cannot represent `NA`, `NaN`, or `Inf`: they
+#' come back as arbitrary numbers. Blosc2's truncation zeroes the bits that
+#' tell `NA` apart from `NaN`, and can turn `NA` into `Inf`. Data containing
+#' them is written without `float_rounding` or `blosc2_truncate`. (ZFP needs no
+#' help: it refuses chunks holding them, and HDF5 stores those chunks
+#' unfiltered.)
 #' @noRd
 #' @keywords internal
 protect_nonfinite <- function(data, compress) {
 
   if (!(is.numeric(data) || is.logical(data))) return(compress)
-
-  if (startsWith(attr(compress, "codec"), "zfp") && !all(is.finite(data)))
-    compress <- h5_compression(
-      compress   = "gzip",
-      chunk_size = attr(compress, "chunk_size"),
-      checksum   = attr(compress, "checksum") )
 
   if (!is.na(attr(compress, "float_rounding")) && !all(is.finite(data)))
     attr(compress, "float_rounding") <- NA_integer_

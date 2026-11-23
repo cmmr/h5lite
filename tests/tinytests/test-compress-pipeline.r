@@ -44,9 +44,7 @@ local({
     h5_write(x, f, codec, compress = codec)
     expect_equal(pipeline(f, codec), "blosc2", info = codec)
     expect_true(ratio(f, codec) > 1.5, info = codec)
-    # Needs hdf5lib 2.2.0.1: 2.2.0.0's ZFP decoder shifts negative values, which
-    # UBSan reports. Restore once h5lite requires it.
-    # expect_true(max(abs(h5_read(f, codec) - x)) <= 0.01, info = codec)
+    expect_true(max(abs(h5_read(f, codec) - x)) <= 0.01, info = codec)
   }
 })
 
@@ -80,50 +78,45 @@ local({
   expect_equal(h5_read(f, "b2_zfp_int"), 1:1000)
 })
 
-# Needs hdf5lib 2.2.0.1, which converts the cd_values h5lite passes to its new
-# Blosc2 layout. Restore once h5lite requires it.
-# local({
-#   #test_that("Blosc2 gets its pre-filters and truncation bits in cd_values[0]", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   # hdf5lib's layout: 0xB2100001 + (bitmask << 16) + (bits << 8). Slots 4-6
-#   # hold the level, the last pre-filter (2 = bitshuffle), and the codec, as
-#   # the reference filter keeps them, so h5py with hdf5plugin can append.
-#   cmp <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE, blosc2_truncate = -5)
-#   h5_write(matrix(compressible + 1e-9, 100), f, "x", compress = cmp)
-#   cd <- h5_inspect(f, "x")$filters[[1]]$cd_values
-#   expect_equal(cd[1], 0xB2100001 + (8 + 4 + 2) * 2^16 + 251 * 2^8)
-#   expect_equal(cd[5:7], c(3, 2, 5))
-# })
+local({
+  #test_that("Blosc2 gets its pre-filters and truncation bits in cd_values[0]", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
 
-# Needs hdf5lib 2.2.0.1, which declines Blosc2's ZFP codecs on chunks of under
-# 4 values and compresses chunks of over 4 dimensions. Restore once h5lite
-# requires it.
-# local({
-#   #test_that("Blosc2's ZFP codecs store chunks of under 4 values uncompressed", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   # ZFP can't fill a block from them, so hdf5lib records level 255, which
-#   # makes Blosc2 refuse each chunk
-#   x <- c(1.5, 2.25, 3.125)
-#   h5_write(x, f, "x", compress = "blosc2-zfp-acc-0.01")
-#   info <- h5_inspect(f, "x")
-#   expect_identical(h5_read(f, "x"), x)
-#   expect_equal(info$filters[[1]]$cd_values[5], 255)
-#   expect_equal(info$storage_size, info$uncompressed_size)
-#   expect_stdout(print(info), "Pipeline: blosc2 \\[zfp-acc\\] \\(declined: stored uncompressed\\)")
-#
-#   # Chunks of more than 4 dimensions are compressed as one long row
-#   set.seed(1)
-#   arr <- array(cumsum(rnorm(4^5, sd = 0.01)), rep(4, 5))
-#   h5_write(arr, f, "arr5d", compress = "blosc2-zfp-acc-0.01")
-#   info <- h5_inspect(f, "arr5d")
-#   expect_true(info$storage_size < info$uncompressed_size / 2)
-#   expect_true(max(abs(h5_read(f, "arr5d") - arr)) <= 0.01)
-#   expect_false(any(grepl("declined", capture.output(print(info)))))
-# })
+  # hdf5lib's layout: 0xB2100001 + (bitmask << 16) + (bits << 8). Slots 4-6
+  # hold the level, the last pre-filter (2 = bitshuffle), and the codec, as
+  # the reference filter keeps them, so h5py with hdf5plugin can append.
+  cmp <- h5_compression("blosc2-zstd-5", blosc2_delta = TRUE, blosc2_truncate = -5)
+  h5_write(matrix(compressible + 1e-9, 100), f, "x", compress = cmp)
+  cd <- h5_inspect(f, "x")$filters[[1]]$cd_values
+  expect_equal(cd[1], 0xB2100001 + (8 + 4 + 2) * 2^16 + 251 * 2^8)
+  expect_equal(cd[5:7], c(3, 2, 5))
+})
+
+local({
+  #test_that("Blosc2's ZFP codecs store chunks of under 4 values uncompressed", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
+
+  # ZFP can't fill a block from them, so hdf5lib records level 255, which
+  # makes Blosc2 refuse each chunk
+  x <- c(1.5, 2.25, 3.125)
+  h5_write(x, f, "x", compress = "blosc2-zfp-acc-0.01")
+  info <- h5_inspect(f, "x")
+  expect_identical(h5_read(f, "x"), x)
+  expect_equal(info$filters[[1]]$cd_values[5], 255)
+  expect_equal(info$storage_size, info$uncompressed_size)
+  expect_stdout(print(info), "Pipeline: blosc2 \\[zfp-acc\\] \\(declined: stored uncompressed\\)")
+
+  # Chunks of more than 4 dimensions are compressed as one long row
+  set.seed(1)
+  arr <- array(cumsum(rnorm(4^5, sd = 0.01)), rep(4, 5))
+  h5_write(arr, f, "arr5d", compress = "blosc2-zfp-acc-0.01")
+  info <- h5_inspect(f, "arr5d")
+  expect_true(info$storage_size < info$uncompressed_size / 2)
+  expect_true(max(abs(h5_read(f, "arr5d") - arr)) <= 0.01)
+  expect_false(any(grepl("declined", capture.output(print(info)))))
+})
 
 local({
   #test_that("NDLZ gets no pre-filters or truncation bits", {
@@ -135,9 +128,7 @@ local({
   cmp <- h5_compression("blosc2-ndlz", blosc2_delta = TRUE, blosc2_truncate = 8)
   h5_write(x, f, "x", compress = cmp)
   cd <- h5_inspect(f, "x")$filters[[1]]$cd_values
-  # Needs hdf5lib 2.2.0.1's new cd_values layout. Restore once h5lite
-  # requires it.
-  # expect_equal(cd[1], 0xB2100001 + 4 * 2^8) # The default 4x4 cells
+  expect_equal(cd[1], 0xB2100001 + 4 * 2^8) # The default 4x4 cells
   expect_equal(cd[6], 0)
   expect_identical(h5_read(f, "x"), x)
 })
@@ -161,23 +152,20 @@ local({
   expect_false(identical(h5_read(f, "f64_30"), x))
 })
 
-# Needs hdf5lib 2.2.0.1: 2.2.0.0 won't run Blosc2 on Scale-Offset output with 2
-# or more dimensions, and leaks memory (which valgrind reports) each time it
-# refuses a chunk. Restore once h5lite requires it.
-# local({
-#   #test_that("Blosc2 compresses Scale-Offset output at any chunk rank", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   # Scale-Offset changes each chunk's size, so hdf5lib now compresses it as
-#   # plain Blosc2 instead of refusing every chunk with two or more dimensions
-#   m <- matrix(1:20000 %% 300L, 200)
-#   h5_write(m, f, "so",    compress = h5_compression("none",       int_packing = TRUE))
-#   h5_write(m, f, "so_b2", compress = h5_compression("blosc2-lz4", int_packing = TRUE))
-#   expect_identical(h5_read(f, "so_b2"), m)
-#   expect_equal(pipeline(f, "so_b2"), c("scaleoffset", "blosc2"))
-#   expect_true(h5_inspect(f, "so_b2")$storage_size < h5_inspect(f, "so")$storage_size)
-# })
+local({
+  #test_that("Blosc2 compresses Scale-Offset output at any chunk rank", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
+
+  # Scale-Offset changes each chunk's size, so hdf5lib now compresses it as
+  # plain Blosc2 instead of refusing every chunk with two or more dimensions
+  m <- matrix(1:20000 %% 300L, 200)
+  h5_write(m, f, "so",    compress = h5_compression("none",       int_packing = TRUE))
+  h5_write(m, f, "so_b2", compress = h5_compression("blosc2-lz4", int_packing = TRUE))
+  expect_identical(h5_read(f, "so_b2"), m)
+  expect_equal(pipeline(f, "so_b2"), c("scaleoffset", "blosc2"))
+  expect_true(h5_inspect(f, "so_b2")$storage_size < h5_inspect(f, "so")$storage_size)
+})
 
 local({
   #test_that("print.inspect reads Blosc2 lists from earlier hdf5lib and other writers", {
@@ -240,79 +228,43 @@ local({
   }
 })
 
-# Needs hdf5lib 2.2.0.1: 2.2.0.0 crashes R on these chunks (it records no
-# parameters for them, then reads them through a NULL pointer). Restore once
-# h5lite requires it.
-# local({
-#   #test_that("ZFP stores chunks it can't compress unfiltered", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   # ZFP compresses chunks with 1 to 4 dimensions longer than one. For others,
-#   # hdf5lib records parameters ({version, 0}) that make it refuse every chunk,
-#   # so HDF5 stores each one unfiltered. (It used to record none.)
-#   set.seed(1)
-#   cases <- list(
-#     value  = rnorm(1),
-#     arr5d  = array(rnorm(32),  rep(2, 5)),
-#     chunks = array(rnorm(4^5), rep(4, 5)) ) # Eight 2x2x2x4x4 chunks
-#
-#   for (codec in c("zfp-acc-0.01", "zfp-prec-16")) {
-#     for (nm in names(cases)) {
-#       id <- paste0(codec, "_", nm)
-#       h5_write(cases[[nm]], f, id, compress = h5_compression(codec, chunk_size = 1024))
-#       info <- h5_inspect(f, id)
-#       zfp  <- info$filters[[1]]
-#
-#       # Lossy ZFP would not return these values exactly
-#       expect_identical(h5_read(f, id), cases[[nm]], info = id)
-#       expect_equal(pipeline(f, id), "zfp", info = id)
-#       expect_equal(zfp$cd_values[-1], 0, info = id)
-#       # Any compressed chunk would change the total
-#       expect_equal(info$storage_size, info$uncompressed_size, info = id)
-#       expect_stdout(print(info), "Pipeline: zfp \\(declined: stored uncompressed\\)", info = id)
-#     }
-#   }
-#
-#   # Chunks with 1 to 4 dimensions longer than one are still compressed
-#   h5_write(array(rnorm(256), rep(4, 4)), f, "arr4d", compress = "zfp-acc-0.01")
-#   info <- h5_inspect(f, "arr4d")
-#   expect_true(length(info$filters[[1]]$cd_values) > 2)
-#   expect_true(info$storage_size < info$uncompressed_size / 2)
-#   expect_false(any(grepl("declined", capture.output(print(info)))))
-# })
-
-# Until h5lite requires hdf5lib 2.2.0.1: remove this block with the guard in
-# apply_compression(), and restore the one above.
 local({
-  #test_that("Standalone ZFP falls back to gzip for chunks it can't compress", {
+  #test_that("ZFP stores chunks it can't compress unfiltered", {
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
 
-  # ZFP compresses chunks with 1 to 4 dimensions longer than one. hdf5lib
-  # 2.2.0.0 crashes R on others, so they get the default pipeline instead.
+  # ZFP compresses chunks with 1 to 4 dimensions longer than one. For others,
+  # hdf5lib records parameters ({version, 0}) that make it refuse every chunk,
+  # so HDF5 stores each one unfiltered. (It used to record none.)
   set.seed(1)
   cases <- list(
     value  = rnorm(1),
     arr5d  = array(rnorm(32),  rep(2, 5)),
     chunks = array(rnorm(4^5), rep(4, 5)) ) # Eight 2x2x2x4x4 chunks
 
-  for (codec in c("zfp-acc-0.01", "zfp-rev")) {
+  for (codec in c("zfp-acc-0.01", "zfp-prec-16")) {
     for (nm in names(cases)) {
       id <- paste0(codec, "_", nm)
       h5_write(cases[[nm]], f, id, compress = h5_compression(codec, chunk_size = 1024))
-      expect_equal(pipeline(f, id), c("shuffle", "gzip"), info = id)
+      info <- h5_inspect(f, id)
+      zfp  <- info$filters[[1]]
+
+      # Lossy ZFP would not return these values exactly
       expect_identical(h5_read(f, id), cases[[nm]], info = id)
+      expect_equal(pipeline(f, id), "zfp", info = id)
+      expect_equal(zfp$cd_values[-1], 0, info = id)
+      # Any compressed chunk would change the total
+      expect_equal(info$storage_size, info$uncompressed_size, info = id)
+      expect_stdout(print(info), "Pipeline: zfp \\(declined: stored uncompressed\\)", info = id)
     }
   }
 
-  # Chunks with 1 to 4 dimensions longer than one still get ZFP
+  # Chunks with 1 to 4 dimensions longer than one are still compressed
   h5_write(array(rnorm(256), rep(4, 4)), f, "arr4d", compress = "zfp-acc-0.01")
-  expect_equal(pipeline(f, "arr4d"), "zfp")
-  # 2.2.0.0's reversible ZFP overflows signed integers on data with mixed signs,
-  # which UBSan reports.
-  # h5_write(array(rnorm(16), c(2, 2, 2, 2, 1)), f, "arr5d1", compress = "zfp-rev")
-  # expect_equal(pipeline(f, "arr5d1"), "zfp")
+  info <- h5_inspect(f, "arr4d")
+  expect_true(length(info$filters[[1]]$cd_values) > 2)
+  expect_true(info$storage_size < info$uncompressed_size / 2)
+  expect_false(any(grepl("declined", capture.output(print(info)))))
 })
 
 local({
@@ -361,51 +313,46 @@ local({
 })
 
 
-# Needs hdf5lib 2.2.0.1, whose ZFP refuses just the chunks holding NA, NaN, or
-# Inf; until then h5_write() uses gzip for such data. Restore once h5lite
-# requires it.
-# local({
-#   #test_that("ZFP stores only the chunks with non-finite values uncompressed", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   set.seed(1)
-#   x <- cumsum(rnorm(1e5, sd = 0.01))
-#   x[c(10, 50000)] <- NA
-#   x[99999]        <- Inf
-#
-#   # 64 KB chunks: 13 chunks, 3 of which hold a non-finite value
-#   for (codec in c("zfp-acc-0.01", "blosc2-zfp-acc-0.01")) {
-#     h5_write(x, f, codec, compress = h5_compression(codec, chunk_size = 64 * 1024))
-#     y <- h5_read(f, codec)
-#     expect_equal(pipeline(f, codec), if (startsWith(codec, "zfp")) "zfp" else "blosc2", info = codec)
-#     expect_identical(is.na(y), is.na(x), info = codec)
-#     expect_identical(is.infinite(y), is.infinite(x), info = codec)
-#     expect_true(max(abs(y - x)[is.finite(x)]) <= 0.01, info = codec)
-#     expect_true(ratio(f, codec) > 1.5, info = codec)
-#   }
-# })
+local({
+  #test_that("ZFP stores only the chunks with non-finite values uncompressed", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
 
-# Needs hdf5lib 2.2.0.1, whose ZFP refuses chunks holding NaN (2.2.0.0's
-# corrupts them). Restore once h5lite requires it.
-# local({
-#   #test_that("a filter that fails when the dataset closes is never silent", {
-#   f <- tempfile(fileext = ".h5")
-#   on.exit(unlink(f))
-#
-#   # Call the writer directly, bypassing h5_write()'s own checks. A small
-#   # dataset sits in HDF5's chunk cache until the dataset is closed, so a
-#   # filter that rejects the chunk only fails then.
-#   x <- c(1.5, NaN, 2.5, 3.5)
-#   res <- tryCatch(
-#     expr = {
-#       h5lite:::h5_call(.Call("C_h5_write_dataset", f, "z", x, "float64", length(x),
-#                              h5_compression("zfp-acc-0.01"), PACKAGE = "h5lite"))
-#       h5_read(f, "z")
-#     },
-#     error = function(e) "error")
-#   expect_true(identical(res, "error") || isTRUE(all.equal(res, x, tolerance = 0.01)))
-# })
+  set.seed(1)
+  x <- cumsum(rnorm(1e5, sd = 0.01))
+  x[c(10, 50000)] <- NA
+  x[99999]        <- Inf
+
+  # 64 KB chunks: 13 chunks, 3 of which hold a non-finite value
+  for (codec in c("zfp-acc-0.01", "blosc2-zfp-acc-0.01")) {
+    h5_write(x, f, codec, compress = h5_compression(codec, chunk_size = 64 * 1024))
+    y <- h5_read(f, codec)
+    expect_equal(pipeline(f, codec), if (startsWith(codec, "zfp")) "zfp" else "blosc2", info = codec)
+    expect_identical(is.na(y), is.na(x), info = codec)
+    expect_identical(is.infinite(y), is.infinite(x), info = codec)
+    expect_true(max(abs(y - x)[is.finite(x)]) <= 0.01, info = codec)
+    expect_true(ratio(f, codec) > 1.5, info = codec)
+  }
+})
+
+local({
+  #test_that("a filter that fails when the dataset closes is never silent", {
+  f <- tempfile(fileext = ".h5")
+  on.exit(unlink(f))
+
+  # Call the writer directly, bypassing h5_write()'s own checks. A small
+  # dataset sits in HDF5's chunk cache until the dataset is closed, so a
+  # filter that rejects the chunk only fails then.
+  x <- c(1.5, NaN, 2.5, 3.5)
+  res <- tryCatch(
+    expr = {
+      h5lite:::h5_call(.Call("C_h5_write_dataset", f, "z", x, "float64", length(x),
+                             h5_compression("zfp-acc-0.01"), PACKAGE = "h5lite"))
+      h5_read(f, "z")
+    },
+    error = function(e) "error")
+  expect_true(identical(res, "error") || isTRUE(all.equal(res, x, tolerance = 0.01)))
+})
 
 local({
   #test_that("h5_threads() sets the number of threads", {

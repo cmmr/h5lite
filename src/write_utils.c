@@ -41,17 +41,9 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
     if (!is_numeric || is_scaled)                { codec = "gzip"; int_level = 5; blosc = 0; }
   }
   else if (strncmp(codec, "zfp",  3) == 0) {
-    /* Standalone ZFP compresses chunks with 1 to 4 dimensions longer than
-     * one. For others, hdf5lib 2.2.0.0 records no parameters and then crashes
-     * reading them (2.2.0.1 stores those chunks unfiltered). */
-    int zfp_dims = 0;
-    for (int i = 0; i < rank; i++) if (chunk_dims[i] > 1) zfp_dims++;
-    int zfp_shape_ok = (blosc > 0 || (zfp_dims >= 1 && zfp_dims <= 4));
-
     if      (!is_numeric || is_scaled)         { codec = "gzip"; int_level = 5; blosc = 0; }
     else if (type_size != 4 && type_size != 8) { codec = "gzip"; int_level = 5; blosc = 0; }
     else if (blosc > 0 && !is_float)           { codec = "gzip"; int_level = 5; blosc = 0; }
-    else if (!zfp_shape_ok)                    { codec = "gzip"; int_level = 5; blosc = 0; }
   }
 
   /* Adjust chunking for SZIP */
@@ -144,13 +136,12 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
       }
     }
 
-    /* Both take the level, the pre-filters (Blosc: 2 = bitshuffle; Blosc2:
-     * the bitmask), and the codec in slots 4-6. Blosc2 takes the parameter of
-     * its truncation or ZFP codec as an 8th value. hdf5lib 2.2.0.0 reads only
-     * this layout; 2.2.0.1 still accepts it, and stores it in its new one. */
-    int nelmts = (blosc == 2 && ((mask & 8) || compcode >= 33)) ? 8 : 7;
-    unsigned int cd_values[8] = {0, 0, 0, 0, blosc_level, mask, compcode, meta};
-    H5Pset_filter(dcpl_id, filter_id, H5Z_FLAG_OPTIONAL, nelmts, cd_values);
+    /* Both take the level, the last pre-filter (Blosc: 2 = bitshuffle), and
+     * the codec in slots 4-6. Blosc2 also takes its pre-filter bitmask and
+     * parameter packed into slot 0: 0xB2100001 + (mask << 16) + (meta << 8). */
+    unsigned int settings = (blosc == 2) ? 0xB2100001u | (mask << 16) | ((meta & 0xFF) << 8) : 0;
+    unsigned int cd_values[7] = {settings, 0, 0, 0, blosc_level, blosc_shuffle, compcode};
+    H5Pset_filter(dcpl_id, filter_id, H5Z_FLAG_OPTIONAL, 7, cd_values);
   }
 
   else if (strcmp(codec, "gzip")    == 0) { H5Pset_deflate(dcpl_id, int_level); }
@@ -191,8 +182,8 @@ void apply_compression(hid_t dcpl_id, hid_t type_id, int rank, hsize_t *chunk_di
 
     /* The helpers add ZFP as mandatory, keeping its settings in a property
      * rather than in cd_values. Make it optional like every other filter here:
-     * with hdf5lib 2.2.0.1, ZFP refuses chunks holding NA, NaN, or Inf, and
-     * HDF5 then stores just those chunks unfiltered. */
+     * ZFP refuses chunks holding NA, NaN, or Inf, and HDF5 then stores just
+     * those chunks unfiltered. */
     H5Pmodify_filter(dcpl_id, 32013, H5Z_FLAG_OPTIONAL, 0, NULL);
   }
   
