@@ -21,11 +21,8 @@ local({
 
   # Blosc treats clevel 0 as "store uncompressed", so a default level of 0
   # must never reach the filter.
-  # Needs an hdf5lib whose Blosc1 passes UBSan: it calls bitshuffle through a
-  # mismatched function pointer. Restore the Blosc1 codecs once it does.
-  # for (codec in c("blosc1", "blosc1-lz4", "blosc1-lz4-0", "blosc1-snappy",
-  #                 "blosc2", "blosc2-lz4", "blosc2-lz4-0", "blosc2-ndlz")) {
-  for (codec in c("blosc2", "blosc2-lz4", "blosc2-lz4-0", "blosc2-ndlz")) {
+  for (codec in c("blosc1", "blosc1-lz4", "blosc1-lz4-0", "blosc1-snappy",
+                  "blosc2", "blosc2-lz4", "blosc2-lz4-0", "blosc2-ndlz")) {
     h5_write(compressible, f, codec, compress = codec)
     expect_true(ratio(f, codec) > 2, info = codec)
     expect_equal(h5_read(f, codec), compressible, info = codec)
@@ -57,10 +54,9 @@ local({
   f <- tempfile(fileext = ".h5")
   on.exit(unlink(f))
 
-  # Needs an hdf5lib whose Blosc1 passes UBSan (see the first block above).
-  # h5_write(compressible, f, "b1_gzip", compress = "blosc1-gzip-5")
-  # expect_equal(pipeline(f, "b1_gzip"), "blosc")
-  # expect_equal(h5_read(f, "b1_gzip"), compressible)
+  h5_write(compressible, f, "b1_gzip", compress = "blosc1-gzip-5")
+  expect_equal(pipeline(f, "b1_gzip"), "blosc")
+  expect_equal(h5_read(f, "b1_gzip"), compressible)
 
   h5_write(compressible, f, "b2_gzip", compress = "blosc2-gzip-5")
   expect_equal(pipeline(f, "b2_gzip"), "blosc2")
@@ -377,9 +373,7 @@ local({
   expect_equal(h5_threads(), 2L)
 
   # Data round-trips with threads in both Blosc versions
-  # Needs an hdf5lib whose Blosc1 passes UBSan (see the first block above).
-  # for (codec in c("blosc1-zstd-5", "blosc2-zstd-5")) {
-  for (codec in c("blosc2-zstd-5")) {
+  for (codec in c("blosc1-zstd-5", "blosc2-zstd-5")) {
     h5_write(compressible, f, codec, compress = h5_compression(codec, chunk_size = 256 * 1024))
     expect_equal(h5_read(f, codec), compressible, info = codec)
   }
