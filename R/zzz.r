@@ -1,13 +1,30 @@
 
-.onLoad <- function(libname, pkgname) {
+# Whether this load's filters have been destroyed (by unloading or at exit)
+filter_state <- new.env(parent = emptyenv())
+
+.onLoad <- function(libname, pkgname) { # nocov start
     # Register the compression plugins once per session
-    .Call("C_register_hdf5_filters", PACKAGE = "h5lite") # nocov
-}
+    .Call("C_register_hdf5_filters", PACKAGE = "h5lite")
+    filter_state$destroyed <- FALSE
+
+    # R doesn't run .onUnload() as it exits. hdf5lib then frees Blosc's worker
+    # threads from HDF5's atexit handler, but on Windows the process has
+    # already killed them by then, and waiting for them hangs R. So free them
+    # while R is still shutting down.
+    reg.finalizer(filter_state, function(e) destroy_filters(), onexit = TRUE)
+} # nocov end
 
 .onUnload <- function(libpath) {
-    # Free Blosc's worker threads and cached contexts, and unregister the filters
-    .Call("C_destroy_hdf5_filters", PACKAGE = "h5lite") # nocov
+    destroy_filters() # nocov
 }
+
+# Free Blosc's worker threads and cached contexts, and unregister the filters
+destroy_filters <- function() { # nocov start
+    if (isFALSE(filter_state$destroyed)) {
+        filter_state$destroyed <- TRUE
+        .Call("C_destroy_hdf5_filters", PACKAGE = "h5lite")
+    }
+} # nocov end
 
 
 #' Evaluate a .Call(), closing any HDF5 handles an error leaves open

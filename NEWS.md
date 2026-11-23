@@ -1,5 +1,6 @@
 # h5lite 2.2.0.1
 
+* Fixed R hanging as it exits on Windows after Blosc or Blosc2 used more than one thread (`h5_threads()`). Their worker threads are now freed while R shuts down, rather than after Windows has already stopped them.
 * `h5_read(as = "bit64")` now loads `bit64` (or errors if it isn't installed), so the `integer64` results print and subset correctly even when `bit64` wasn't already loaded (#4).
 
 
